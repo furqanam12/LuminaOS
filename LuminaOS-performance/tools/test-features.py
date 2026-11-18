@@ -148,6 +148,38 @@ class SourceTests(unittest.TestCase):
         settings = self.read("src/ui/apps/settings.html")
         self.assertIn("id=\"compat-wizard\"", settings)
 
+    def test_no_unreachable_post_routes(self):
+        """Every POST route must be reachable: no return before later handlers."""
+        tree = ast.parse(API.read_text(encoding="utf-8"), filename=str(API))
+        route = next(n for n in ast.walk(tree)
+                     if isinstance(n, ast.FunctionDef) and n.name == "route_post")
+
+        def dead_lines(body):
+            dead, terminated = [], False
+            for st in body:
+                if terminated:
+                    dead.append(st.lineno)
+                if isinstance(st, (ast.Return, ast.Raise)):
+                    terminated = True
+                for field in ("body", "orelse", "finalbody"):
+                    dead.extend(dead_lines(getattr(st, field, []) or []))
+                for handler in getattr(st, "handlers", []) or []:
+                    dead.extend(dead_lines(handler.body))
+            return dead
+
+        self.assertEqual(dead_lines(route.body), [],
+                         "unreachable statements after a return in route_post")
+
+    def test_power_profile_presets_are_canonical(self):
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('"powersaver": "low-power"', api)
+        self.assertIn('{"performancePreset": target}', api)
+        self.assertNotIn("L.setSettings", api)
+        settings = self.read("src/ui/apps/settings.html")
+        self.assertEqual(settings.count("async power(pg)"), 1)
+        self.assertIn("opt('low-power','Power Saver')", settings)
+        self.assertIn("$('#prof').value", settings)
+
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "node is required for inline JavaScript validation")
@@ -157,7 +189,7 @@ class SourceTests(unittest.TestCase):
             blocks = re.findall(r"<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>", path.read_text(encoding="utf-8")) if path.suffix == ".html" else [path.read_text(encoding="utf-8")]
             self.assertTrue(blocks, rel)
             for block in blocks:
-                result = subprocess.run([node, "--check"], input=block, capture_output=True, text=True)
+                result = subprocess.run([node, "--check"], input=block, capture_output=True, text=True, encoding="utf-8")
                 self.assertEqual(result.returncode, 0, rel + ": " + result.stderr)
 
 

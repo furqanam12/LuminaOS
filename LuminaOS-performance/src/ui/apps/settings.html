@@ -255,34 +255,29 @@ const PAGES = {
     });
   },
   async power(pg) {
-    pg.innerHTML = head() + `<div class="h2">Power</div>` + row('lock', 'Lock screen', 'Super + L', '<button class="btn" id="plock">Lock</button>')
-      + row('sleep', 'Sleep', 'Save power while you are away', '<button class="btn" id="psleep">Sleep</button>')
-      + row('restart', 'Restart', 'Close all apps and restart', '<button class="btn" id="preb">Restart</button>')
-      + row('power', 'Shut down', 'Close all apps and turn off', '<button class="btn primary" id="poff">Shut down</button>')
-      + `<div class="h2">Screen</div>` + row('timer', 'Turn off screen after', 'When plugged in', `<select class="input" id="blank">${[['0', 'Never'], ['300', '5 minutes'], ['600', '10 minutes'], ['1800', '30 minutes']].map(([v, t]) => `<option value="${v}" ${String(S().blank || 0) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`);
-    const pw = a => L.post('/api/power', { action: a });
-    on('plock', 'click', () => pw('lock')); on('psleep', 'click', () => pw('suspend'));
-    on('preb', 'click', () => L.ui('power')); on('poff', 'click', () => L.ui('power'));
-    on('blank', 'change', e => L.setSettings({ blank: +e.target.value }));
-  },
-  async power(pg) {
     const s = S();
+    const preset = ['low-power', 'balanced', 'custom'].includes(s.performancePreset) ? s.performancePreset : 'custom';
+    const opt = (v, t) => `<option value="${v}" ${preset === v ? 'selected' : ''}>${t}</option>`;
     pg.innerHTML = head('Power') + row('lock', 'Lock screen', 'Super + L', '<button class="btn" id="plock">Lock</button>')
       + row('sleep', 'Sleep', 'Save power while away', '<button class="btn" id="psleep">Sleep</button>')
       + row('restart', 'Restart', 'Close all apps and restart', '<button class="btn" id="preb">Restart</button>')
       + row('power', 'Shut down', 'Close all apps and turn off', '<button class="btn primary" id="poff">Shut down</button>')
       + `<div class="h2">Screen</div>` + row('timer', 'Turn off screen after', 'When on AC', `<select class="input" id="blank">${[['0','Never'],['300','5 minutes'],['600','10 minutes'],['1800','30 minutes']].map(([v,t])=>`<option value="${v}" ${String(s.blank||0)===v?'selected':''}>${t}</option>`).join('')}</select>`)
-      + `<div class="h2">Profiles</div>${row('power', 'Current profile', s.performancePreset, `<select class="input" id="prof" style="width:200px"><option ${s.performancePreset==='balanced'?'selected':''}>Balanced</option><option ${s.performancePreset==='powersaver'?'selected':''}>Power Saver</option><option ${s.performancePreset==='performance'?'selected':''}>Performance</option></select>`)}
+      + `<div class="h2">Profiles</div>${row('power', 'Current profile', 'Balanced, Power Saver or Custom', `<select class="input" id="prof" style="width:200px">${opt('balanced','Balanced')}${opt('low-power','Power Saver')}${opt('custom','Custom')}</select>`)}`
       + `<div style="margin-top:6px"><button class="btn small primary" id="prof-apply">Apply</button></div>`
       + `<div class="h2">Display</div>` + row('monitor', 'Brightness', 'Screen brightness', slider('brt', s.brightness||100, 0, 100))
       + `<div class="h2">Sound</div>` + row('volume', 'Input mic', 'Default input device', `<select class="input" id="in-dev" style="width:200px"></select>`);
     on('prof', 'change', e => L.setSettings({ performancePreset: e.target.value }));
-    on('prof-apply', 'click', async () => { const r = await L.post('/api/power/profile', { profile: S().performancePreset }); if (r.ok) L.notify('Profile applied', r.profile + ' profile', 'lumina-power', 'Settings'); });
+    on('prof-apply', 'click', async () => {
+      const r = await L.post('/api/power/profile', { profile: $('#prof').value });
+      if (r.ok) L.notify('Profile applied', r.profile + ' profile', 'lumina-power', 'Settings');
+      else L.notify('Profile not applied', r.error || 'Unknown error', 'lumina-power', 'Settings');
+    });
     on('brt', 'input', e => L.post('/api/display/brightness', { level: +e.target.value }));
     const inp = async () => {
       const d = await L.get('/api/audio/input');
       const sel = $('#in-dev');
-      sel.innerHTML = d.devices.map(x => `<option value="${L.esc(x.name)}">${L.esc(x.description || x.name)}</option>`).join('');
+      sel.innerHTML = (d.devices || []).map(x => `<option value="${L.esc(x.name)}">${L.esc(x.description || x.name)}</option>`).join('');
     };
     inp();
     on('in-dev', 'change', e => L.post('/api/audio/input/set', { device: e.target.value }));
@@ -299,7 +294,7 @@ const PAGES = {
       const sel = $(`#disp-${L.esc(o.name)}`);
       if (sel) { sel.value = o.current; sel.onchange = e => { $(`#apply-disp-${L.esc(o.name)}`).dataset.new = e.target.value; }; }
       const btn = $(`#apply-disp-${L.esc(o.name)}`);
-      if (btn) btn.onclick = async () => { const m = btn.dataset.new || o.current; const r = await L.post('/api/display', { output: o.name, mode: m }); if (!r.ok) L.dialog({ title: 'Couldn't apply resolution', text: r.msg || 'Try a different resolution.' }); };
+      if (btn) btn.onclick = async () => { const m = btn.dataset.new || o.current; const r = await L.post('/api/display', { output: o.name, mode: m }); if (!r.ok) L.dialog({ title: 'Could not apply resolution', text: r.msg || 'Try a different resolution.' }); };
     });
   },
   async storage(pg) {

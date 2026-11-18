@@ -1553,6 +1553,49 @@ class Handler(BaseHTTPRequestHandler):
                 "binder": os.path.exists("/dev/binder") or "binder" in sh("cat /proc/filesystems"),
                 "flatpak": bool(shutil.which("flatpak")),
             })
+        if p == "/api/power/profile/get":
+            return self._send(200, {"profile": get_settings().get("performancePreset", "balanced")})
+        if p == "/api/display/brightness/get":
+            return self._send(200, {"level": get_settings().get("brightness", 100)})
+        if p == "/api/audio/input":
+            return self._send(200, {"devices": audio_inputs()})
+        if p == "/api/firewall/status":
+            try:
+                import subprocess as _sp
+                r = _sp.run(["ufw", "status"], capture_output=True, text=True)
+                return self._send(200, {"enabled": "Status: active" in r.stdout, "rules": r.stdout})
+            except Exception as e:
+                return self._send(200, {"enabled": False, "error": str(e)})
+        if p == "/api/update/auto/get":
+            try:
+                import subprocess as _sp
+                r = _sp.run(["systemctl", "is-enabled", "unattended-upgrades"], capture_output=True, text=True)
+                return self._send(200, {"enabled": r.stdout.strip() == "enabled"})
+            except Exception:
+                return self._send(200, {"enabled": False})
+        if p == "/api/users/list":
+            users = []
+            try:
+                import pwd as _pwd
+                for ent in _pwd.getpwall():
+                    if ent.pw_uid >= 1000:
+                        users.append({"name": ent.pw_name, "uid": ent.pw_uid, "home": ent.pw_dir, "shell": ent.pw_shell})
+            except Exception:
+                pass
+            return self._send(200, {"users": users})
+        if p == "/api/printers/list":
+            printers = []
+            try:
+                import subprocess as _sp
+                r = _sp.run(["lpstat", "-p"], capture_output=True, text=True)
+                for line in r.stdout.splitlines():
+                    if line.startswith("printer "):
+                        printers.append({"name": line.split()[1]})
+            except Exception:
+                pass
+            return self._send(200, {"printers": printers})
+        if p == "/api/clipboard/history":
+            return self._send(200, {"items": clipboard_history()})
         return self._send(404, {"error": "unknown endpoint " + p})
 
     def wall_path(self, name):
@@ -1745,8 +1788,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, notify(b.get("title", ""), b.get("body", ""), b.get("icon", ""), b.get("app", "LuminaOS")))
         if p == "/api/clipboard/copy":
             return self._send(200, clipboard_copy(b.get("index", 0)))
-        if p == "/api/clipboard/history":
-            return self._send(200, {"items": clipboard_history()})
         if p == "/api/clipboard/clear":
             return self._send(200, {"ok": clipboard_clear(b.get("index"), b.get("all", False))})
         if p == "/api/notifications/action":
@@ -1759,7 +1800,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         if p == "/api/notifications/snooze":
             minutes = max(1, min(1440, int(b.get("minutes", 15))))
-            L.setSettings({"focusUntil": time.time() + minutes * 60}) if L else None
+            set_settings({"focusUntil": time.time() + minutes * 60})
             return self._send(200, {"ok": True, "until": get_settings().get("focusUntil")})
         if p == "/api/notifications/clear":
             with _notif_lock:
@@ -1801,28 +1842,26 @@ class Handler(BaseHTTPRequestHandler):
             elif what == "android":
                 spawn(["lumina-app", "store", "--android"])
             return self._send(200, {"ok": True})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- power profiles (5.1)
         if p == "/api/power/profile":
             prof = b.get("profile", "balanced")
-            if prof not in ("balanced", "powersaver", "performance"):
+            target = {"powersaver": "low-power", "performance": "custom"}.get(prof, prof)
+            if target not in ("custom", "balanced", "low-power"):
                 return self._send(200, {"ok": False, "error": "unknown profile"})
-            set_settings({"performancePreset": prof})
-            preset = {"balanced": {"reduceMotion": False, "transparency": True, "dockMagnify": True, "perfShadows": True},
-                      "powersaver": {"reduceMotion": True, "transparency": False, "dockMagnify": False, "perfShadows": False},
-                      "performance": {"reduceMotion": False, "transparency": True, "dockMagnify": True, "perfShadows": True}}[prof]
-            set_settings(preset)
+            patch = {"performancePreset": target}
+            if prof == "performance":
+                patch.update({"reduceMotion": False, "transparency": True,
+                              "dockMagnify": True, "perfShadows": True})
+            set_settings(patch)
             try:
                 import subprocess as _sp
-                gov = {"powersaver": "powersave", "performance": "performance", "balanced": "schedutil"}[prof]
+                gov = {"powersaver": "powersave", "low-power": "powersave",
+                       "performance": "performance", "balanced": "schedutil"}[prof]
                 _sp.run(["cpupower", "frequency-set", "-g", gov], capture_output=True)
             except Exception:
                 pass
             HUB.emit("power-profile", {"profile": prof})
             return self._send(200, {"ok": True, "profile": prof})
-        if p == "/api/power/profile/get":
-            return self._send(200, {"profile": get_settings().get("performancePreset", "balanced")})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- display brightness (5.3)
         if p == "/api/display/brightness":
             level = max(0, min(100, int(b.get("level", 100))))
@@ -1834,12 +1873,7 @@ class Handler(BaseHTTPRequestHandler):
             set_settings({"brightness": level})
             HUB.emit("brightness", {"level": level})
             return self._send(200, {"ok": True, "level": level})
-        if p == "/api/display/brightness/get":
-            return self._send(200, {"level": get_settings().get("brightness", 100)})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- sound input devices (5.2)
-        if p == "/api/audio/input":
-            return self._send(200, {"devices": audio_inputs()})
         if p == "/api/audio/input/set":
             name = b.get("device", "")
             try:
@@ -1848,15 +1882,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._send(200, {"ok": False, "error": str(e)})
             return self._send(200, {"ok": True})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- firewall (5.4)
-        if p == "/api/firewall/status":
-            try:
-                import subprocess as _sp
-                r = _sp.run(["ufw", "status"], capture_output=True, text=True)
-                return self._send(200, {"enabled": "Status: active" in r.stdout, "rules": r.stdout})
-            except Exception as e:
-                return self._send(200, {"enabled": False, "error": str(e)})
         if p == "/api/firewall/toggle":
             on = bool(b.get("on", True))
             try:
@@ -1865,7 +1891,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "enabled": on})
             except Exception as e:
                 return self._send(200, {"ok": False, "error": str(e)})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- backup / restore (5.5)
         if p == "/api/backup/create":
             dest = b.get("dest", os.path.join(HOME, "lumina-backup.tar.gz"))
@@ -1889,7 +1914,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True})
             except Exception as e:
                 return self._send(200, {"ok": False, "error": str(e)})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- auto-updates (5.6)
         if p == "/api/update/auto":
             enable = bool(b.get("enable", True))
@@ -1902,25 +1926,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "enabled": enable})
             except Exception as e:
                 return self._send(200, {"ok": False, "error": str(e)})
-        if p == "/api/update/auto/get":
-            try:
-                import subprocess as _sp
-                r = _sp.run(["systemctl", "is-enabled", "unattended-upgrades"], capture_output=True, text=True)
-                return self._send(200, {"enabled": r.stdout.strip() == "enabled"})
-            except Exception:
-                return self._send(200, {"enabled": False})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- user accounts (5.7)
-        if p == "/api/users/list":
-            users = []
-            try:
-                import pwd as _pwd
-                for ent in _pwd.getpwall():
-                    if ent.pw_uid >= 1000:
-                        users.append({"name": ent.pw_name, "uid": ent.pw_uid, "home": ent.pw_dir, "shell": ent.pw_shell})
-            except Exception:
-                pass
-            return self._send(200, {"users": users})
         if p == "/api/users/add":
             name = b.get("name", "")
             if not re.fullmatch(r"[a-z_][a-z0-9_-]*", name):
@@ -1939,19 +1945,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True})
             except Exception as e:
                 return self._send(200, {"ok": False, "error": str(e)})
-        return self._send(404, {"error": "unknown endpoint " + p})
         # ---------------------------------------------------------------- printers (5.8)
-        if p == "/api/printers/list":
-            printers = []
-            try:
-                import subprocess as _sp
-                r = _sp.run(["lpstat", "-p"], capture_output=True, text=True)
-                for line in r.stdout.splitlines():
-                    if line.startswith("printer "):
-                        printers.append({"name": line.split()[1]})
-            except Exception:
-                pass
-            return self._send(200, {"printers": printers})
         if p == "/api/printers/add":
             uri = b.get("uri", "")
             name = b.get("name", "Printer")
