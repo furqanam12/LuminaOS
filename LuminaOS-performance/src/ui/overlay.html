@@ -1,0 +1,529 @@
+<!doctype html>
+<html class="dark"><head><meta charset="utf-8"><title>Overlay</title>
+<link rel="stylesheet" href="css/lumina.css">
+<link rel="stylesheet" href="css/overlay.css">
+</head>
+<body>
+<!-- Start -->
+<div id="start" class="pop glass">
+  <div class="top"><label class="search"><span id="s-ic"></span><input id="sq" placeholder="Search apps, files and the web" autocomplete="off"></label></div>
+  <div class="body">
+    <div class="pane" id="p-home">
+      <div class="sec"><b>Pinned</b><div class="pill" id="allbtn">All Apps <span id="chev1"></span></div></div>
+      <div class="grid6" id="pinned"></div>
+      <div class="sec"><b>Recommended</b><div class="pill" id="morebtn">More <span id="chev2"></span></div></div>
+      <div class="rec" id="recent"></div>
+    </div>
+    <div class="pane off-r" id="p-all">
+      <div class="sec"><b>All Apps</b><div class="pill" id="backbtn"><span id="chev3"></span> Back</div></div>
+      <div class="alist" id="alllist"></div>
+    </div>
+    <div class="pane off-r" id="p-search"><div class="sres has" id="sres1" style="border:0;padding:0"></div></div>
+  </div>
+  <div class="foot"><div class="user" id="userbtn"><div class="avatar" id="av1">L</div><span id="uname">Live User</span></div><div style="flex:1"></div>
+    <button class="icon-btn" id="pwrbtn" title="Power"></button></div>
+</div>
+
+<!-- Control Center -->
+<div id="cc" class="pop glass">
+  <div class="ccg stg">
+    <div class="tile" id="t-net"><div class="tc"></div><div><b>Network</b><small id="t-net-s">Checking…</small></div></div>
+    <div class="tile" id="t-dark"><div class="tc"></div><div><b>Dark Mode</b><small id="t-dark-s">On</small></div></div>
+    <div class="tile" id="t-bt"><div class="tc"></div><div><b>Bluetooth</b><small id="t-bt-s">Not available</small></div></div>
+    <div class="tile" id="t-focus"><div class="tc"></div><div><b>Focus</b><small id="t-focus-s">Off</small></div></div>
+  </div>
+  <div class="ccard"><div class="hd">Sound<span id="volv">0%</span></div>
+    <div class="fat-slider"><div class="fill" id="volf"></div><span id="voli"></span><input type="range" id="vol" min="0" max="100"></div></div>
+  <div class="ccard"><div class="hd">Display<span><label style="cursor:pointer" id="nl">Night light</label></span></div>
+    <div class="fat-slider"><div class="fill" id="brf"></div><span id="bri"></span><input type="range" id="br" min="30" max="100"></div></div>
+  <div class="ccb stg">
+    <div class="tile" id="t-task"><div class="tc"></div><div><b>Task view</b><small>Switch windows</small></div></div>
+    <div class="tile" id="b-snip"></div><div class="tile" id="b-set"></div><div class="tile" id="b-lock"></div><div class="tile" id="b-pow"></div>
+  </div>
+  <div class="ccard desks"><b>Desktops</b><div class="d" id="desks"></div></div>
+</div>
+
+<!-- Notification center -->
+<div id="nc">
+  <div class="panel glass" id="nlist-w"><div class="hd"><b>Notifications</b><div style="display:flex;gap:4px"><button class="btn small ghost" id="nsnooze" title="Snooze for 15 minutes">Snooze</button><button class="btn small ghost" id="nclear">Clear all</button></div></div><div id="nlist"></div></div>
+  <div class="panel glass focusrow"><div style="display:flex;align-items:center;gap:10px"><span id="fic"></span><div><b style="font-weight:600">Focus</b><br><small class="muted">Silence notification banners</small></div></div>
+    <label class="switch"><input type="checkbox" id="fsw"><span></span></label></div>
+  <div class="panel glass cal"><div class="big" id="cbig"></div><div class="ch"><b id="cmonth"></b><div><button class="icon-btn" id="cprev"></button><button class="icon-btn" id="cnext"></button></div></div><div class="grid" id="cgrid"></div></div>
+</div>
+
+<!-- Spotlight search -->
+<div id="search" class="pop glass"><div class="sbox"><span id="s2-ic"></span><input id="sq2" placeholder="Search LuminaOS" autocomplete="off"></div><div class="sres" id="sres2"></div></div>
+
+<!-- Command palette -->
+<div id="command" class="pop glass"><div class="sbox"><span id="c-ic"></span><input id="cq" placeholder="Type a command or setting…" autocomplete="off"><kbd>Ctrl K</kbd></div><div class="sres" id="cres"></div></div>
+
+<!-- Launchpad -->
+<div id="launchpad" class="layer"><div class="lpin"><label class="search"><span id="lp-ic"></span><input id="lpq" placeholder="Search" autocomplete="off"></label><div id="lpgrid"></div></div></div>
+
+<!-- Task view -->
+<div id="taskview" class="layer"><div id="tvwins"></div><div id="tvdesks"></div></div>
+
+<!-- Lock screen -->
+<div id="lock" class="layer"><div class="bg"></div><div class="bgb"></div><div class="shade"></div>
+  <div class="clock"><div class="d" id="ld"></div><div class="t" id="lt">00:00</div></div>
+  <div class="hint">Click or press any key to unlock</div>
+  <div class="authp"><div class="avatar" id="av2">L</div><div class="nm" id="lname">Live User</div>
+    <div class="pw" id="pwbox"><input type="password" id="pw" placeholder="Password"><button id="pwgo"></button></div><div class="msg" id="lmsg"></div></div>
+  <div class="lpow"><button class="icon-btn" id="l-restart" title="Restart"></button><button class="icon-btn" id="l-off" title="Shut down"></button></div>
+</div>
+
+<!-- Power -->
+<div id="power" class="layer"><div class="pc">
+  <div class="pb" data-a="lock"><i></i>Lock</div><div class="pb" data-a="suspend"><i></i>Sleep</div><div class="pb" data-a="logout"><i></i>Sign out</div>
+  <div class="pb" data-a="reboot"><i></i>Restart</div><div class="pb" data-a="shutdown"><i></i>Shut down</div></div><div class="note">Press Esc to cancel</div></div>
+
+<script src="js/lumina.js"></script>
+<script>
+const L = Lumina, $ = (s) => document.getElementById(s), I = L.icon;
+let closingEl = null, HOMEDIR = '', apps = [], byId = {}, mode = null, hideT = null, dockRects = [], windows = [], ws = { count: 4, active: 0 }, sys = {}, net = null, audio = null;
+const POPUPS = ['start', 'cc', 'notifications', 'search', 'command', 'menu'];
+const SETTINGS_PAGES = [
+  ['System', 'system', 'monitor'], ['Display', 'display', 'monitor'], ['Sound', 'sound', 'volume'], ['Notifications', 'notifications', 'bell'],
+  ['Bluetooth & devices', 'bluetooth', 'bluetooth'], ['Network & internet', 'network', 'wifi'], ['Personalisation', 'personalisation', 'palette'],
+  ['Wallpaper / Background', 'personalisation', 'image'], ['Dark mode / Colours', 'personalisation', 'contrast'], ['Dock & Taskbar', 'dock', 'apps'],
+  ['Apps', 'apps', 'apps'], ['Startup apps', 'apps', 'rocket'], ['Accounts', 'accounts', 'user'], ['Password', 'accounts', 'lock'],
+  ['Time & language', 'time', 'clock'], ['Windows programs & Android', 'compat', 'windows'], ['Update & drivers', 'update', 'update'], ['About', 'about', 'info'],
+  ['Storage', 'storage', 'disk'], ['Power', 'power', 'power'], ['Accessibility / Reduce motion', 'accessibility', 'access'],
+  ['Performance', 'performance', 'bolt'], ['First-run setup', 'setup', 'user'],
+];
+
+// ---------- static icons
+$('s-ic').innerHTML = I('search'); $('s2-ic').innerHTML = I('search'); $('c-ic').innerHTML = I('bolt'); $('lp-ic').innerHTML = I('search');
+$('chev1').innerHTML = I('chevr'); $('chev2').innerHTML = I('chevr'); $('chev3').innerHTML = I('chevl');
+$('pwrbtn').innerHTML = I('power'); $('pwgo').innerHTML = I('right'); $('l-restart').innerHTML = I('restart'); $('l-off').innerHTML = I('power');
+$('cprev').innerHTML = I('chevu'); $('cnext').innerHTML = I('chevd'); $('fic').innerHTML = I('focus');
+$('voli').innerHTML = I('volume'); $('bri').innerHTML = I('sun');
+$('t-net').querySelector('.tc').innerHTML = I('ethernet'); $('t-dark').querySelector('.tc').innerHTML = I('contrast');
+$('t-bt').querySelector('.tc').innerHTML = I('bluetooth'); $('t-focus').querySelector('.tc').innerHTML = I('focus');
+[['b-snip', 'snip', 'Snip'], ['b-set', 'gear', 'Settings'], ['b-lock', 'lock', 'Lock'], ['b-pow', 'power', 'Power']].forEach(([id, ic, t]) => $(id).innerHTML = I(ic) + t);
+document.querySelectorAll('.pb').forEach(b => b.querySelector('i').innerHTML = I({ lock: 'lock', suspend: 'sleep', logout: 'logout', reboot: 'restart', shutdown: 'power' }[b.dataset.a]));
+
+// ---------- mode management
+function el(m) { return { start: $('start'), cc: $('cc'), notifications: $('nc'), search: $('search'), command: $('command'), launchpad: $('launchpad'), taskview: $('taskview'), lock: $('lock'), power: $('power') }[m]; }
+function glassPos() {
+  document.querySelectorAll('.glass').forEach(g => {
+    let x = 0, y = 0, n = g; while (n) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    g.style.setProperty('--gx', x + 'px'); g.style.setProperty('--gy', y + 'px');
+  });
+}
+function inputRegion() {
+  if (!POPUPS.includes(mode)) return L.native('input', { rects: null });
+  const W = innerWidth, H = innerHeight, top = 30;
+  const ex = dockRects.map(r => r.map(Math.round));
+  const dt = ex.length ? Math.min(...ex.map(r => r[1])) : H;
+  const rects = [[0, top, W, dt - top]];
+  const xs = ex.map(r => [r[0], r[0] + r[2]]).sort((a, b) => a[0] - b[0]);
+  let x = 0; xs.forEach(([a, b]) => { if (a > x) rects.push([x, dt, a - x, H - dt]); x = Math.max(x, b); });
+  if (x < W) rects.push([x, dt, W - x, H - dt]);
+  L.native('input', { rects });
+}
+function open(m, arg) {
+  if (mode === 'lock' && m !== 'lock') return;
+  if (mode === m && m !== 'lock') return close();
+  clearTimeout(hideT);
+  if (closingEl) { closingEl.classList.remove('vis', 'unlock', 'auth'); closingEl = null; }
+  const prev = mode;
+  if (prev) { const p = el(prev); if (p) { p.classList.remove('show'); if (p.classList.contains('layer')) p.classList.remove('vis'); } if (prev === 'menu') L.closeMenu(); }
+  mode = m;
+  L.native('overlay', { show: true, full: m === 'lock' || m === 'power' });
+  const e = el(m);
+  prepare(m, arg);
+  if (e) { if (e.classList.contains('layer')) e.classList.add('vis'); glassPos(); requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add('show'))); }
+  inputRegion();
+  L.ui('overlay-state', { mode: m });
+  setTimeout(() => focusFor(m), 60);
+}
+function close(cb) {
+  if (!mode || mode === 'lock' && !cb) return;
+  const m = mode, e = el(m); mode = null; closingEl = e && e.classList.contains('layer') ? e : null;
+  if (e) e.classList.remove('show');
+  if (m === 'menu') L.closeMenu();
+  L.ui('overlay-state', { mode: null });
+  hideT = setTimeout(() => { closingEl = null; if (e && e.classList.contains('layer')) e.classList.remove('vis'); if (!mode) L.native('overlay', { show: false }); else L.native('overlay', { show: true, full: mode === 'lock' || mode === 'power' }); cb && cb(); }, m === 'lock' ? 620 : 240);
+}
+function focusFor(m) {
+  if (m === 'start') { $('sq').value = ''; showPane('p-home'); $('sq').focus(); }
+  if (m === 'search') { $('sq2').value = ''; $('sres2').classList.remove('has'); $('sq2').focus(); }
+  if (m === 'command') { $('cq').value = ''; renderCommands(''); $('cq').focus(); }
+  if (m === 'launchpad') { $('lpq').value = ''; $('lpq').focus(); }
+}
+function prepare(m, arg) {
+  if (m === 'start') renderStart();
+  if (m === 'cc') renderCC();
+  if (m === 'notifications') { renderNotifs(); renderCal(); }
+  if (m === 'command') renderCommands('');
+  if (m === 'launchpad') renderLaunchpad('');
+  if (m === 'taskview') renderTaskview();
+  if (m === 'lock') { $('lock').classList.remove('auth', 'unlock'); $('pw').value = ''; $('lmsg').textContent = ''; }
+  if (m === 'menu') showMenu(arg);
+}
+document.addEventListener('mousedown', (e) => {
+  if (!mode || mode === 'lock') return;
+  const e2 = el(mode);
+  if (mode === 'menu') return;
+  if (mode === 'launchpad' && (e.target.id === 'lpgrid' || e.target.classList.contains('lpin'))) return close();
+  if (mode === 'taskview' && (e.target.id === 'tvwins' || e.target.id === 'taskview')) return close();
+  if (mode === 'power' && e.target.id === 'power') return close();
+  if (POPUPS.includes(mode) && e2 && !e2.contains(e.target) && !(L._menu && L._menu.contains(e.target))) close();
+});
+document.addEventListener('keydown', (e) => {
+  if (mode === 'lock') { if (!$('lock').classList.contains('auth')) { showAuth(); if (e.key.length === 1) { $('pw').value = ''; } } return; }
+  if (e.key === 'Escape') { if (L._menu && mode !== 'menu') return L.closeMenu(); return close(); }
+  if (mode === 'start' && document.activeElement !== $('sq') && e.key.length === 1 && !e.ctrlKey) $('sq').focus();
+  if (mode === 'launchpad' && document.activeElement !== $('lpq') && e.key.length === 1) $('lpq').focus();
+  if (mode === 'command' && document.activeElement !== $('cq') && e.key.length === 1 && !e.ctrlKey && !e.altKey) $('cq').focus();
+});
+L.on('blur', () => { if (POPUPS.includes(mode) || mode === 'launchpad' || mode === 'taskview') setTimeout(() => { if (!document.hasFocus()) close(); }, 150); });
+
+// ---------- Start
+function gi(a) {
+  const d = document.createElement('div'); d.className = 'gi';
+  d.innerHTML = `<img src="${L.appIcon(a)}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(a.name)}</span>`;
+  d.onclick = (e) => { L.ripple(d, e); launch(a.id); };
+  d.oncontextmenu = (e) => { e.preventDefault(); appCtx(e, a, 'start'); };
+  return d;
+}
+function launch(id) { close(); L.ui('dock-launch', { id }); if (!(L.settings.pinned || []).includes(id)) L.launch(id); }
+function appCtx(e, a, where) {
+  const sp = L.settings.startPinned || [], dp = L.settings.pinned || [];
+  L.menu(e.clientX, e.clientY, [
+    { label: 'Open', icon: 'external', action: () => launch(a.id) },
+    sp.includes(a.id) ? { label: 'Unpin from Start', icon: 'pinned', action: () => L.setSettings({ startPinned: sp.filter(x => x !== a.id) }).then(renderStart) }
+                      : { label: 'Pin to Start', icon: 'pinned', action: () => L.setSettings({ startPinned: [...sp, a.id] }) },
+    dp.includes(a.id) ? { label: 'Unpin from dock', icon: 'apps', action: () => L.setSettings({ pinned: dp.filter(x => x !== a.id) }) }
+                      : { label: 'Pin to dock', icon: 'apps', action: () => L.setSettings({ pinned: [...dp, a.id] }) },
+    '-', { label: 'App settings', icon: 'gear', action: () => { close(); L.app('settings', ['apps']); } },
+  ]);
+}
+function showPane(id) {
+  ['p-home', 'p-all', 'p-search'].forEach(p => {
+    const e = $(p); e.classList.remove('off-l', 'off-r');
+    if (p !== id) e.classList.add(p === 'p-home' ? 'off-l' : 'off-r');
+  });
+}
+function fileThumb(f) {
+  if (/\.(png|jpe?g|gif|webp|bmp)$/i.test(f.path)) return '/api/fs/thumb?path=' + encodeURIComponent(f.path);
+  return '/api/icon?size=64&name=' + encodeURIComponent((f.mime || 'text-plain').replace('/', '-'));
+}
+async function renderStart() {
+  const box = $('pinned'); box.innerHTML = ''; box.classList.remove('stagger'); void box.offsetWidth; box.classList.add('stagger');
+  (L.settings.startPinned || []).map(id => byId[id]).filter(Boolean).slice(0, 18).forEach(a => box.appendChild(gi(a)));
+  const al = $('alllist'); al.innerHTML = '';
+  let letter = '';
+  apps.forEach(a => {
+    const l = (a.name[0] || '#').toUpperCase();
+    if (l !== letter) { letter = l; al.insertAdjacentHTML('beforeend', `<div class="letter">${L.esc(/[A-Z]/.test(l) ? l : '#')}</div>`); }
+    const d = document.createElement('div'); d.className = 'ai';
+    d.innerHTML = `<img src="${L.appIcon(a)}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(a.name)}</span>`;
+    d.onclick = () => launch(a.id); d.oncontextmenu = (e) => { e.preventDefault(); appCtx(e, a); };
+    al.appendChild(d);
+  });
+  const rec = await L.get('/api/fs/recent', { limit: 6 }).catch(() => []);
+  const rb = $('recent');
+  rb.innerHTML = rec.length ? '' : '<div class="empty" style="grid-column:1/-1">Files you open will show up here.</div>';
+  rec.forEach(f => {
+    const d = document.createElement('div'); d.className = 'ri2';
+    d.innerHTML = `<img src="${fileThumb(f)}" onerror="this.src='img/app-generic.svg'"><div><b>${L.esc(f.name)}</b><small>${L.rel(Date.parse(f.modified) / 1000)}</small></div>`;
+    d.onclick = () => { close(); L.post('/api/fs/open', { path: f.path }); };
+    rb.appendChild(d);
+  });
+  const n = (sys.fullname || sys.user || 'User');
+  $('uname').textContent = n; $('av1').textContent = n[0].toUpperCase();
+}
+$('allbtn').onclick = () => showPane('p-all');
+$('backbtn').onclick = () => showPane('p-home');
+$('morebtn').onclick = () => { close(); L.app('files', ['recent:']); };
+$('userbtn').onclick = (e) => L.menu(e.clientX, e.clientY - 120, [
+  { label: 'Change account settings', icon: 'user', action: () => { close(); L.app('settings', ['accounts']); } },
+  { label: 'Lock', icon: 'lock', action: () => open('lock') },
+  { label: 'Sign out', icon: 'logout', action: () => L.post('/api/power', { action: 'logout' }) }]);
+$('pwrbtn').onclick = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const m = L.menu(r.left - 150, r.top - 10, [
+    { label: 'Lock', icon: 'lock', action: () => open('lock') },
+    { label: 'Sleep', icon: 'sleep', action: () => { close(); L.post('/api/power', { action: 'suspend' }); } },
+    { label: 'Restart', icon: 'restart', action: () => L.post('/api/power', { action: 'reboot' }) },
+    { label: 'Shut down', icon: 'power', action: () => L.post('/api/power', { action: 'shutdown' }) }]);
+  m.style.top = (r.top - m.offsetHeight - 8) + 'px';
+};
+
+// ---------- search (shared by Start and Spotlight)
+let sel = 0, results = [];
+function calc(q) {
+  if (!/^[\d\s+\-*/().%^,]+$/.test(q) || !/[+\-*/^%]/.test(q)) return null;
+  try { const v = Function('"use strict";return (' + q.replace(/\^/g, '**').replace(/,/g, '.') + ')')(); return isFinite(v) ? +v.toFixed(10) : null; } catch (e) { return null; }
+}
+async function doSearch(q, box) {
+  q = q.trim(); results = []; sel = 0;
+  if (!q) { box.innerHTML = ''; box.classList.remove('has'); return; }
+  const ql = q.toLowerCase();
+  const score = (a) => { const n = a.name.toLowerCase(); if (n.startsWith(ql)) return 3; if (n.split(/\s+/).some(w => w.startsWith(ql))) return 2;
+    if (n.includes(ql) || (a.generic || '').toLowerCase().includes(ql) || (a.keywords || []).some(k => k.toLowerCase().startsWith(ql))) return 1; return 0; };
+  const ap = apps.map(a => [score(a), a]).filter(x => x[0]).sort((a, b) => b[0] - a[0]).slice(0, 6).map(x => x[1]);
+  const c = calc(q);
+  if (c !== null) results.push({ g: 'Calculator', calc: c, act: () => navigator.clipboard && navigator.clipboard.writeText(String(c)) });
+  ap.forEach(a => results.push({ g: 'Apps', name: a.name, img: L.appIcon(a), sub: a.generic || a.comment, act: () => launch(a.id) }));
+  SETTINGS_PAGES.filter(s => s[0].toLowerCase().includes(ql)).slice(0, 4).forEach(s => results.push({ g: 'Settings', name: s[0], gl: s[2], sub: 'Settings', act: () => { close(); L.app('settings', [s[1]]); } }));
+  render(box, q);
+  const files = await L.get('/api/fs/search', { q }).catch(() => []);
+  if ((mode === 'start' ? $('sq') : $('sq2')).value.trim() !== q) return;
+  (files.items || files).slice(0, 6).forEach(f => results.push({ g: 'Files', name: f.name, img: f.dir ? 'img/apps/files.svg' : fileThumb(f), sub: f.path.replace(HOMEDIR || '', '~'),
+    act: () => { close(); L.post('/api/fs/open', { path: f.path }); } }));
+  results.push({ g: 'Web', name: `Search the web for “${q}”`, gl: 'globe', sub: 'DuckDuckGo', act: () => { close(); L.post('/api/run', { cmd: 'xdg-open "https://duckduckgo.com/?q=' + encodeURIComponent(q) + '"' }); } });
+  render(box, q);
+}
+function render(box, q) {
+  box.innerHTML = ''; box.classList.add('has'); let g = '';
+  results.forEach((r, i) => {
+    if (r.g !== g) { g = r.g; box.insertAdjacentHTML('beforeend', `<div class="g">${g === 'Apps' && i === (results[0].g === 'Calculator' ? 1 : 0) ? 'Best match' : g}</div>`); }
+    const d = document.createElement('div'); d.className = 'ai' + (i === sel ? ' sel' : '');
+    if (r.calc !== undefined) { d.classList.add('calc'); d.innerHTML = `= ${r.calc}<span class="sub">Enter to copy</span>`; }
+    else d.innerHTML = (r.img ? `<img src="${r.img}" onerror="this.src='img/app-generic.svg'">` : `<span class="gl">${I(r.gl)}</span>`) + `<span>${L.esc(r.name)}</span><span class="sub">${L.esc(r.sub || '')}</span>`;
+    d.onmouseenter = () => { sel = i; box.querySelectorAll('.ai').forEach((x, j) => x.classList.toggle('sel', j === i)); };
+    d.onclick = () => r.act();
+    box.appendChild(d);
+  });
+}
+function keyNav(e, box) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % Math.max(1, results.length);
+    box.querySelectorAll('.ai').forEach((x, j) => { x.classList.toggle('sel', j === sel); if (j === sel) x.scrollIntoView({ block: 'nearest' }); }); }
+  if (e.key === 'Enter' && results[sel]) results[sel].act();
+}
+const ds1 = L.debounce(() => doSearch($('sq').value, $('sres1')), 90), ds2 = L.debounce(() => doSearch($('sq2').value, $('sres2')), 90);
+$('sq').oninput = () => { if ($('sq').value.trim()) { showPane('p-search'); ds1(); } else showPane('p-home'); };
+$('sq').onkeydown = (e) => keyNav(e, $('sres1'));
+$('sq2').oninput = ds2; $('sq2').onkeydown = (e) => keyNav(e, $('sres2'));
+
+// ---------- command palette
+let cmdResults = [], cmdSel = 0;
+function commandItems() {
+  const items = [
+    { g: 'Actions', name: 'Open Start menu', gl: 'apps', sub: 'Super', act: () => open('start') },
+    { g: 'Actions', name: 'Open Control Centre', gl: 'sliders', sub: 'Super + A', act: () => open('cc') },
+    { g: 'Actions', name: 'Show notifications', gl: 'bell', sub: 'Super + N', act: () => open('notifications') },
+    { g: 'Actions', name: 'Lock screen', gl: 'lock', sub: 'Super + L', act: () => open('lock') },
+    { g: 'Actions', name: 'Task view', gl: 'taskview', sub: 'Super + Tab', act: () => open('taskview') },
+    { g: 'Actions', name: 'Snip a region', gl: 'scissors', sub: 'Print', act: () => { close(); L.post('/api/snip', { mode: 'region', delay: .4 }); } },
+    { g: 'Actions', name: 'Open Terminal', gl: 'terminal', sub: 'Ctrl + Alt + T', act: () => { close(); L.post('/api/run', { cmd: 'x-terminal-emulator' }); } },
+    { g: 'Actions', name: 'Restart LuminaOS', gl: 'restart', act: () => L.post('/api/power', { action: 'reboot' }) },
+    { g: 'Actions', name: 'Shut down', gl: 'power', act: () => L.post('/api/power', { action: 'shutdown' }) },
+  ];
+  SETTINGS_PAGES.forEach(s => items.push({ g: 'Settings', name: s[0], gl: s[2], sub: 'Open setting',
+    act: () => { close(); if (s[1] === 'setup') L.app('setup'); else L.app('settings', [s[1]]); } }));
+  apps.forEach(a => items.push({ g: 'Apps', name: a.name, img: L.appIcon(a), sub: a.generic || a.comment,
+    act: () => launch(a.id) }));
+  return items;
+}
+function renderCommands(q) {
+  const ql = q.trim().toLowerCase(), box = $('cres');
+  cmdResults = commandItems().filter(c => !ql || c.name.toLowerCase().includes(ql) || (c.sub || '').toLowerCase().includes(ql)).slice(0, 24);
+  cmdSel = 0; box.innerHTML = ''; box.classList.toggle('has', !!cmdResults.length);
+  let group = '';
+  cmdResults.forEach((c, i) => {
+    if (c.g !== group) { group = c.g; box.insertAdjacentHTML('beforeend', `<div class="g">${group}</div>`); }
+    const d = document.createElement('div'); d.className = 'ai' + (i === cmdSel ? ' sel' : '');
+    d.innerHTML = (c.img ? `<img src="${c.img}" onerror="this.src='img/app-generic.svg'">` : `<span class="gl">${I(c.gl || 'bolt')}</span>`)
+      + `<span>${L.esc(c.name)}</span><span class="sub">${L.esc(c.sub || '')}</span>`;
+    d.onmouseenter = () => { cmdSel = i; box.querySelectorAll('.ai').forEach((x, j) => x.classList.toggle('sel', j === i)); };
+    d.onclick = () => c.act(); box.appendChild(d);
+  });
+}
+function commandNav(e) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault(); cmdSel = (cmdSel + (e.key === 'ArrowDown' ? 1 : -1) + cmdResults.length) % Math.max(1, cmdResults.length);
+    $('cres').querySelectorAll('.ai').forEach((x, j) => { x.classList.toggle('sel', j === cmdSel); if (j === cmdSel) x.scrollIntoView({ block: 'nearest' }); });
+  }
+  if (e.key === 'Enter' && cmdResults[cmdSel]) cmdResults[cmdSel].act();
+}
+$('cq').oninput = () => renderCommands($('cq').value);
+$('cq').onkeydown = commandNav;
+
+// ---------- Control Center
+async function renderCC() {
+  const s = L.settings;
+  $('t-dark').classList.toggle('on', s.theme !== 'light'); $('t-dark-s').textContent = s.theme !== 'light' ? 'On' : 'Off';
+  $('t-focus').classList.toggle('on', !!s.focus); $('t-focus-s').textContent = s.focus ? 'On' : 'Off';
+  setSlider('br', 'brf', s.brightness || 100, 30); $('nl').style.color = s.nightLight ? 'var(--accent)' : '';
+  $('desks').innerHTML = Array.from({ length: Math.max(1, Math.min(ws.count, 6)) }, (_, i) => `<i class="${i === ws.active ? 'on' : ''}" data-n="${i}">${i + 1}</i>`).join('');
+  const [a, n, bt] = await Promise.all([L.get('/api/audio'), L.get('/api/net'), L.get('/api/bt')]);
+  audio = a; net = n; setAudio(a);
+  const p = n.primary;
+  $('t-net').classList.toggle('on', !!p && n.enabled);
+  $('t-net').querySelector('.tc').innerHTML = I(p && p.type === 'wifi' ? 'wifi' : p ? 'ethernet' : 'globe');
+  $('t-net-s').textContent = !n.available ? 'Not available' : !n.enabled ? 'Off' : p ? (p.type === 'wifi' ? p.connection : 'Ethernet') : 'Disconnected';
+  $('t-bt').classList.toggle('na', !bt.available); $('t-bt-s').textContent = bt.available ? 'On' : 'Not available';
+}
+function setSlider(id, fill, v, min) { $(id).value = v; $(fill).style.width = ((v - (min || 0)) / (100 - (min || 0)) * 100) + '%'; }
+function setAudio(a) {
+  if (!a) return; setSlider('vol', 'volf', a.muted ? 0 : a.volume);
+  $('volv').textContent = a.available ? (a.muted ? 'Muted' : a.volume + '%') : 'No output device';
+  $('voli').innerHTML = I(a.muted || !a.volume ? 'volumex' : 'volume');
+}
+$('vol').oninput = (e) => { const v = +e.target.value; setSlider('vol', 'volf', v); $('volv').textContent = v + '%'; volPost(v); };
+const volPost = L.debounce(v => L.post('/api/audio', { volume: v, muted: false }), 60);
+$('voli').parentElement.addEventListener('dblclick', () => audio && L.post('/api/audio', { muted: !audio.muted }));
+$('br').oninput = (e) => { const v = +e.target.value; setSlider('br', 'brf', v, 30); brPost(v); };
+const brPost = L.debounce(v => L.setSettings({ brightness: v }), 120);
+$('nl').onclick = () => { L.setSettings({ nightLight: !L.settings.nightLight }); $('nl').style.color = L.settings.nightLight ? 'var(--accent)' : ''; };
+$('t-dark').onclick = () => { L.setSettings({ theme: L.settings.theme === 'light' ? 'dark' : 'light' }).then(renderCC); };
+$('t-focus').onclick = () => { L.setSettings({ focus: !L.settings.focus }); renderCC(); };
+$('t-net').onclick = (e) => { if (e.target.closest('.tc') && net && net.available) L.post('/api/net', { enabled: !net.enabled }).then(renderCC); else { close(); L.app('settings', ['network']); } };
+$('t-bt').onclick = () => { close(); L.app('settings', ['bluetooth']); };
+$('b-snip').onclick = () => { close(); L.post('/api/snip', { mode: 'region', delay: .4 }); };
+$('b-set').onclick = () => { close(); L.app('settings'); };
+$('b-lock').onclick = () => open('lock');
+$('b-pow').onclick = () => open('power');
+$('desks').onclick = (e) => { const n = e.target.dataset.n; if (n != null) { L.post('/api/workspace', { n: +n }); ws.active = +n; renderCC(); } };
+
+// ---------- Notifications + calendar
+function nIcon(n) {
+  const ic = n.icon || '';
+  if (ic.startsWith('lumina-')) return 'img/apps/' + ic.replace('lumina-', '') + '.svg';
+  if (ic.startsWith('/')) return '/api/fs/thumb?path=' + encodeURIComponent(ic);
+  return ic ? '/api/icon?size=64&name=' + encodeURIComponent(ic) : 'img/apps/logo.svg';
+}
+async function renderNotifs() {
+  const list = await L.get('/api/notifications');
+  const box = $('nlist'); box.innerHTML = '';
+  if (!list.length) box.innerHTML = `<div class="empty" style="margin:auto">${I('bell', 'ic')}<br>No new notifications</div>`;
+  list.forEach((n, i) => {
+    const d = document.createElement('div'); d.className = 'nitem' + (n.silent ? ' silent' : ''); d.style.animationDelay = Math.min(i, 8) * 30 + 'ms';
+    const actions = (n.actions || []).slice(0, 3).map((a, j) => `<button class="btn small" data-a="${j}">${L.esc(a.label || a)}</button>`).join('');
+    d.innerHTML = `<img src="${nIcon(n)}" onerror="this.src='img/apps/logo.svg'"><div style="flex:1;min-width:0"><div class="a"><span>${L.esc(n.app)}</span><span>${L.rel(n.time)}</span></div>
+      <b>${L.esc(n.title)}</b>${n.body ? `<p>${L.esc(n.body)}</p>` : ''}${actions ? `<div class="acts">${actions}</div>` : ''}</div><div class="x">${I('x')}</div>`;
+    d.querySelector('.x').onclick = (e) => { e.stopPropagation(); d.classList.add('gone'); setTimeout(() => L.post('/api/notifications/clear', { id: n.id }), 250); };
+    d.querySelectorAll('[data-a]').forEach(btn => btn.onclick = e => {
+      e.stopPropagation(); const action = n.actions[+btn.dataset.a];
+      L.post('/api/notifications/action', { id: n.id, action: action.id || action.label || action, cmd: action.cmd || '' });
+      d.classList.add('gone'); setTimeout(() => L.post('/api/notifications/clear', { id: n.id }), 250);
+    });
+    box.appendChild(d);
+  });
+  $('fsw').checked = !!L.settings.focus;
+}
+$('nclear').onclick = () => { document.querySelectorAll('.nitem').forEach((d, i) => setTimeout(() => d.classList.add('gone'), i * 40)); setTimeout(() => L.post('/api/notifications/clear', {}), 300); };
+$('nsnooze').onclick = async () => { await L.post('/api/notifications/snooze', { minutes: 15 }); L.notify('Notifications snoozed', 'Banners are silenced for 15 minutes.', 'lumina-bell', 'LuminaOS'); };
+$('fsw').onchange = (e) => L.setSettings({ focus: e.target.checked, focusUntil: 0 });
+let calOff = 0;
+function renderCal() {
+  const now = new Date(); const d = new Date(now.getFullYear(), now.getMonth() + calOff, 1);
+  $('cbig').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('cmonth').textContent = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const start = (d.getDay() + 6) % 7; const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); const prevDays = new Date(d.getFullYear(), d.getMonth(), 0).getDate();
+  let h = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(x => `<span class="h">${x}</span>`).join('');
+  for (let i = 0; i < 42; i++) {
+    const n = i - start + 1;
+    if (n < 1) h += `<span class="o">${prevDays + n}</span>`;
+    else if (n > days) h += `<span class="o">${n - days}</span>`;
+    else h += `<span class="${calOff === 0 && n === now.getDate() ? 't' : ''}">${n}</span>`;
+  }
+  $('cgrid').innerHTML = h;
+}
+$('cprev').onclick = () => { calOff--; renderCal(); }; $('cnext').onclick = () => { calOff++; renderCal(); };
+
+// ---------- Launchpad
+function renderLaunchpad(q) {
+  const g = $('lpgrid'); g.innerHTML = '';
+  const sw = (L.geom && L.geom.w) || screen.width; const cols = Math.max(4, Math.min(8, Math.floor((sw - 160) / 140)));
+  g.style.setProperty('--cols', cols);
+  const ql = q.toLowerCase();
+  apps.filter(a => !ql || a.name.toLowerCase().includes(ql)).forEach((a, i) => {
+    const d = document.createElement('div'); d.className = 'lpi';
+    d.style.animationDelay = (q ? 0 : Math.min(i, 40) * 12) + 'ms';
+    d.innerHTML = `<img src="${L.appIcon(a)}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(a.name)}</span>`;
+    d.onclick = () => { d.classList.add('launch'); setTimeout(() => launch(a.id), 160); };
+    d.oncontextmenu = (e) => { e.preventDefault(); appCtx(e, a); };
+    g.appendChild(d);
+  });
+}
+$('lpq').oninput = () => renderLaunchpad($('lpq').value);
+$('lpq').onkeydown = (e) => { if (e.key === 'Enter') { const f = $('lpgrid').querySelector('.lpi'); f && f.click(); } };
+
+// ---------- Task view
+async function renderTaskview() {
+  const [wl, w] = await Promise.all([L.get('/api/windows'), L.get('/api/workspaces')]);
+  ws = w; windows = wl;
+  const cur = wl.filter(x => x.workspace === w.active || x.workspace < 0);
+  const box = $('tvwins'); box.innerHTML = cur.length ? '' : '<div class="tvempty">No open windows on this desktop</div>';
+  cur.forEach((x, i) => {
+    const d = document.createElement('div'); d.className = 'tw'; d.style.animationDelay = i * 40 + 'ms';
+    const icon = x.appId ? L.appIcon(byId[x.appId] || x.appId) : x.icon;
+    d.innerHTML = `<div class="h"><img src="${icon}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(x.title)}</span><div class="x">${I('x')}</div></div>
+      <div class="th">${x.minimized ? `<img class="big" src="${icon}">` : `<img class="shot" src="/api/winthumb?xid=${x.xid}&w=520&t=${Date.now()}" onerror="this.className='big';this.src='${icon}'">`}</div>`;
+    d.querySelector('.th').onclick = () => { close(); L.post('/api/window', { xid: x.xid, action: 'activate' }); };
+    d.querySelector('.x').onclick = (e) => { e.stopPropagation(); L.post('/api/window', { xid: x.xid, action: 'close' }); d.style.transition = 'transform 260ms, opacity 200ms'; d.style.transform = 'scale(.8)'; d.style.opacity = 0; setTimeout(() => d.remove(), 260); };
+    box.appendChild(d);
+  });
+  const dk = $('tvdesks'); dk.innerHTML = '';
+  for (let i = 0; i < Math.min(w.count, 6); i++) {
+    const c = wl.filter(x => x.workspace === i).length;
+    const d = document.createElement('div'); d.className = 'tvd' + (i === w.active ? ' on' : ''); d.style.animationDelay = i * 40 + 'ms';
+    d.innerHTML = `<div class="p">${c ? `<em>${c} window${c > 1 ? 's' : ''}</em>` : ''}</div>Desktop ${i + 1}`;
+    d.onclick = () => { L.post('/api/workspace', { n: i }); setTimeout(renderTaskview, 250); };
+    dk.appendChild(d);
+  }
+}
+
+// ---------- Lock screen
+function lockTick() { const d = new Date(); $('lt').textContent = L.time(d); $('ld').textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }); }
+setInterval(lockTick, 1000); lockTick();
+function showAuth() {
+  $('lock').classList.add('auth'); setTimeout(() => $('pw').focus(), 100);
+  const n = sys.fullname || sys.user || 'User'; $('lname').textContent = n; $('av2').textContent = n[0].toUpperCase();
+  if (sys.live) $('lmsg').textContent = 'Live session — password is “live”';
+}
+$('lock').addEventListener('mousedown', (e) => { if (!$('lock').classList.contains('auth')) showAuth(); else if (!e.target.closest('.authp') && !e.target.closest('.lpow') && !$('pw').value) $('lock').classList.remove('auth'); });
+async function unlock() {
+  const r = await L.post('/api/auth', { password: $('pw').value });
+  if (r.ok) { $('lock').classList.add('unlock'); setTimeout(() => { close(true); setTimeout(() => $('lock').classList.remove('unlock', 'auth'), 700); }, 10); }
+  else { const b = $('pwbox'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); $('pw').select(); $('lmsg').textContent = 'The password is incorrect. Try again.'; }
+}
+$('pw').onkeydown = (e) => { if (e.key === 'Enter') unlock(); if (e.key === 'Escape') { $('pw').value = ''; $('lock').classList.remove('auth'); } };
+$('pwgo').onclick = unlock;
+$('l-restart').onclick = () => L.post('/api/power', { action: 'reboot' });
+$('l-off').onclick = () => L.post('/api/power', { action: 'shutdown' });
+
+// ---------- Power
+document.querySelectorAll('.pb').forEach(b => b.onclick = () => {
+  const a = b.dataset.a;
+  if (a === 'lock') return open('lock');
+  close(); L.post('/api/power', { action: a });
+});
+
+// ---------- menus requested by the top bar
+function showMenu(m) {
+  const items = m.items.map(it => it === '-' ? '-' : Object.assign({}, it, { action: () => { L.ui('menu-pick', { src: m.src, i: it.i }); } }));
+  setTimeout(() => { L.menu(m.x, m.y, items, () => { if (mode === 'menu') close(); }); }, 10);
+}
+document.addEventListener('mousedown', (e) => { if (mode === 'menu' && !(L._menu && L._menu.contains(e.target))) close(); }, true);
+
+// ---------- events
+L.on('ui', m => {
+  const c = m.cmd;
+  if (c === 'dockrect') { dockRects = m.rects; if (POPUPS.includes(mode)) inputRegion(); return; }
+  if (['start', 'cc', 'notifications', 'search', 'command', 'launchpad', 'taskview', 'lock', 'power'].includes(c)) open(c);
+  else if (c === 'menu') open('menu', m);
+  else if (c === 'close') close();
+});
+L.on('windows', w => { windows = w; if (mode === 'taskview') renderTaskview(); });
+L.on('apps-changed', () => setTimeout(loadApps, 400));
+L.on('audio', a => { audio = a; if (mode === 'cc') setAudio(a); });
+L.on('notifications-changed', () => { if (mode === 'notifications') renderNotifs(); });
+L.on('notification', () => { if (mode === 'notifications') renderNotifs(); });
+L.on('settings', () => { if (mode === 'cc') renderCC(); });
+L.on('sys', s => sys = s);
+L.on('geom', () => glassPos());
+addEventListener('resize', glassPos);
+async function loadApps() { apps = await L.get('/api/apps'); byId = {}; apps.forEach(a => byId[a.id] = a); }
+L.init().then(async () => {
+  await loadApps();
+  L.get('/api/workspaces').then(w => ws = w);
+  L.get('/api/fs/places').then(p => HOMEDIR = p.home);
+  if (L.qs.get('lock') === '1') open('lock');
+});
+</script></body></html>

@@ -1,0 +1,20 @@
+#!/bin/sh
+# LuminaOS: guarantee the live user exists, can sign in (password "live") and autologins
+if ! id lumina >/dev/null 2>&1; then
+  useradd -m -s /bin/bash -c "Lumina Live User" lumina
+  for g in audio cdrom dip floppy video plugdev netdev powerdev scanner bluetooth sudo users; do
+    getent group $g >/dev/null && usermod -aG $g lumina
+  done
+fi
+echo 'lumina:live' | chpasswd
+# Give the live user a correctly labelled installer shortcut instead of the
+# generic launcher supplied by calamares-settings-debian.
+mkdir -p /home/lumina/Desktop
+rm -f /home/lumina/Desktop/calamares*.desktop
+if [ -f /usr/share/applications/lumina-install.desktop ]; then
+  cp /usr/share/applications/lumina-install.desktop /home/lumina/Desktop/Install\ LuminaOS.desktop
+  chmod 644 /home/lumina/Desktop/Install\ LuminaOS.desktop
+fi
+getent group autologin >/dev/null || groupadd -r autologin
+getent group nopasswdlogin >/dev/null || groupadd -r nopasswdlogin
+usermod -aG autologin,nopasswdlogin,sudo lumina

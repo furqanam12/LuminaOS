@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=About LuminaOS
+GenericName=System Information
+Comment=Version and device information
+Exec=lumina-app about
+Icon=lumina-about
+Categories=System;
+Keywords=info;version;
+StartupWMClass=lumina-about
+StartupNotify=false
+Terminal=false

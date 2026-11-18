@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=File Explorer
+GenericName=Files
+Comment=Browse and manage your files
+Exec=lumina-app files %U
+Icon=lumina-files
+Categories=System;FileManager;Utility;
+Keywords=files;folders;explorer;finder;
+StartupWMClass=lumina-files
+StartupNotify=false
+Terminal=false
+MimeType=inode/directory;

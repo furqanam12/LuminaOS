@@ -1,0 +1,11 @@
+# Agent/tool metadata
+.workbuddy-ai/
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Temporary/partial downloads
+*.tmp
+*.part

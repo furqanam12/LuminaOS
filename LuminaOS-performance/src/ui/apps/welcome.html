@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Welcome to LuminaOS</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.titlebar .tt { display: none; }
+#win { background: transparent; }
+.bgw { position: absolute; inset: 0; background: var(--wall) center/cover; z-index: -2; }
+.bgw::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,14,.55), rgba(10,10,14,.88)); }
+.light .bgw::after { background: linear-gradient(180deg, rgba(250,250,252,.55), rgba(250,250,252,.9)); }
+.titlebar { background: transparent; }
+.stage { flex: 1; position: relative; overflow: hidden; }
+.step { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 50px 80px; text-align: center;
+  opacity: 0; pointer-events: none; transform: translateX(60px); transition: opacity 420ms var(--ease-out), transform 520ms var(--spring-soft); }
+.step.on { opacity: 1; pointer-events: auto; transform: none; }
+.step.past { transform: translateX(-60px); }
+.step h1 { font-size: 34px; font-weight: 700; margin: 0 0 8px; letter-spacing: -.02em; }
+.step p { color: var(--fg-2); max-width: 520px; line-height: 1.55; margin: 0 0 22px; }
+.hello { font-size: 64px; font-weight: 700; letter-spacing: -.03em; background: linear-gradient(90deg, #ff9a9e, var(--accent), #a18cd1, #fbc2eb); background-size: 300% 100%;
+  -webkit-background-clip: text; color: transparent; animation: shimmer 6s linear infinite; }
+@keyframes shimmer { to { background-position: 300% 0; } }
+.logo { width: 96px; height: 96px; margin-bottom: 14px; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 12px 30px rgba(var(--accent-rgb), .5)); }
+@keyframes float { 50% { transform: translateY(-8px) rotate(4deg); } }
+.opts { display: flex; gap: 16px; }
+.opt { width: 200px; border-radius: 14px; border: 2px solid var(--line-2); overflow: hidden; background: var(--card); transition: transform var(--t) var(--spring), border-color var(--t-fast); }
+.opt:hover { transform: translateY(-4px); } .opt.on { border-color: var(--accent); }
+.opt .pv { height: 112px; background: var(--wall) center/cover; position: relative; }
+.opt .pv i { position: absolute; left: 22px; right: 22px; top: 20px; bottom: 16px; border-radius: 8px; }
+.opt .pv i::before { content: ""; position: absolute; left: 10px; top: 12px; width: 50%; height: 7px; border-radius: 4px; background: var(--accent); }
+.opt span { display: block; padding: 9px; font-weight: 500; }
+.sw { display: flex; gap: 10px; margin-bottom: 22px; }
+.sw div { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; transition: transform var(--t-fast) var(--spring); }
+.sw div:hover { transform: scale(1.15); } .sw div.on { border-color: var(--fg); }
+.walls { display: grid; grid-template-columns: repeat(4, 120px); gap: 8px; }
+.walls img { width: 120px; height: 72px; object-fit: cover; border-radius: 8px; border: 2px solid transparent; transition: transform var(--t-fast) var(--spring); }
+.walls img:hover { transform: scale(1.05); } .walls img.on { border-color: var(--accent); }
+.feat { display: grid; grid-template-columns: repeat(3, 190px); gap: 12px; text-align: left; }
+.feat .card { padding: 14px; }
+.feat img { width: 34px; height: 34px; margin-bottom: 8px; }
+.feat b { display: block; font-weight: 600; margin-bottom: 3px; } .feat small { color: var(--fg-3); font-size: 11.5px; line-height: 1.45; display: block; }
+.keys { display: grid; grid-template-columns: repeat(2, 300px); gap: 6px 22px; text-align: left; }
+.keys div { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+kbd { font-family: var(--font); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: var(--card-a); border: 1px solid var(--line-2); border-bottom-width: 2px; margin-left: 3px; }
+.foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; padding: 18px 26px; gap: 10px; }
+.dots { flex: 1; display: flex; gap: 6px; justify-content: center; }
+.dots i { width: 7px; height: 7px; border-radius: 4px; background: var(--fg-4); transition: width var(--t) var(--spring), background var(--t); }
+.dots i.on { width: 22px; background: var(--accent); }
+</style></head>
+<body><div class="bgw"></div><div class="stage" id="stage">
+  <div class="step"><img class="logo" src="/ui/img/apps/logo.svg"><div class="hello">Hello</div><p>Welcome to LuminaOS, a desktop that brings together the Windows 11 layout, the polish of macOS and the soft, fluid feel of HarmonyOS. Let's set it up in a minute.</p></div>
+  <div class="step"><h1>Choose your look</h1><p>You can change this any time in Settings > Personalisation.</p><div class="opts" id="themes"></div></div>
+  <div class="step"><h1>Make it yours</h1><p>Pick an accent colour and a wallpaper.</p><div class="sw" id="acc"></div><div class="walls" id="walls"></div></div>
+  <div class="step"><h1>Your apps, your way</h1><p>LuminaOS includes everyday apps and can run many Windows programs. Get more from the Lumina Store.</p>
+    <div class="feat"><div class="card"><img src="/ui/img/apps/store.svg"><b>Lumina Store</b><small>Browsers, office, media and games, installed in one click.</small></div>
+    <div class="card"><img src="/ui/img/apps/windows.svg"><b>Windows programs</b><small>Double-click an .exe or .msi to run it with Wine.</small></div>
+    <div class="card"><img src="/ui/img/apps/android.svg"><b>Android apps</b><small>Experimental support through Waydroid on installed systems.</small></div></div>
+    <div style="margin-top:20px"><button class="btn primary" id="ess">Get the essentials</button></div></div>
+  <div class="step" id="sk"><h1>Handy shortcuts</h1><p>Work faster with the keyboard.</p><div class="keys">
+    <div>Start menu<span><kbd>Super</kbd></span></div><div>Search<span><kbd>Super</kbd><kbd>S</kbd></span></div>
+    <div>Control Centre<span><kbd>Super</kbd><kbd>A</kbd></span></div><div>Task view<span><kbd>Super</kbd><kbd>Tab</kbd></span></div>
+    <div>File Explorer<span><kbd>Super</kbd><kbd>E</kbd></span></div><div>Lock<span><kbd>Super</kbd><kbd>L</kbd></span></div>
+    <div>Task Manager<span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Esc</kbd></span></div><div>Snip<span><kbd>Super</kbd><kbd>Shift</kbd><kbd>S</kbd></span></div>
+    <div>Terminal<span><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>T</kbd></span></div><div>Switch windows<span><kbd>Alt</kbd><kbd>Tab</kbd></span></div>
+    <div>Snap window<span><kbd>Super</kbd><kbd>←</kbd><kbd>→</kbd></span></div><div>Close window<span><kbd>Alt</kbd><kbd>F4</kbd></span></div></div></div>
+  <div class="step"><img class="logo" src="/ui/img/apps/logo.svg"><h1>You're all set</h1><p id="donep">Enjoy LuminaOS.</p><div style="display:flex;gap:8px"><button class="btn primary" id="fin">Get started</button><button class="btn" id="inst" style="display:none">Install LuminaOS</button></div></div>
+</div>
+<div class="foot"><button class="btn ghost" id="skip">Skip</button><div class="dots" id="dots"></div><button class="btn" id="prev">Back</button><button class="btn primary" id="next">Next</button></div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+const ACC = ['#ff375f', '#ff9f0a', '#30d158', '#00c7be', '#0a84ff', '#5e5ce6', '#bf5af2', '#8e8e93'];
+let i = 0; const steps = [...document.querySelectorAll('.step')];
+function goStep(n) {
+  i = Math.max(0, Math.min(steps.length - 1, n));
+  steps.forEach((s, k) => { s.classList.toggle('on', k === i); s.classList.toggle('past', k < i); });
+  $('#dots').innerHTML = steps.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+  $('#prev').style.visibility = i ? 'visible' : 'hidden'; $('#next').style.display = i === steps.length - 1 ? 'none' : ''; $('#skip').style.visibility = i === steps.length - 1 ? 'hidden' : 'visible';
+}
+function finish() { L.setSettings({ welcomed: true }); LWin.close(); }
+LWin.init({ icon: false, onArgs: a => goStep(a[0] === 'shortcuts' ? 4 : 0) }).then(async () => {
+  const s = L.settings;
+  $('#themes').innerHTML = ['dark', 'light'].map(t => `<div class="opt ${s.theme === t ? 'on' : ''}" data-t="${t}"><div class="pv"><i style="background:${t === 'dark' ? 'rgba(24,24,30,.92)' : 'rgba(246,246,250,.95)'}"></i></div><span>${t === 'dark' ? 'Dark' : 'Light'}</span></div>`).join('');
+  $('#themes').querySelectorAll('.opt').forEach(o => o.onclick = () => { L.setSettings({ theme: o.dataset.t }); $('#themes').querySelectorAll('.opt').forEach(x => x.classList.toggle('on', x === o)); });
+  $('#acc').innerHTML = ACC.map(a => `<div data-a="${a}" class="${s.accent === a ? 'on' : ''}" style="background:${a}"></div>`).join('');
+  $('#acc').querySelectorAll('div').forEach(d => d.onclick = () => { L.setSettings({ accent: d.dataset.a }); $('#acc').querySelectorAll('div').forEach(x => x.classList.toggle('on', x === d)); });
+  const w = await L.get('/api/wallpapers');
+  $('#walls').innerHTML = w.items.filter(x => !x.name.startsWith('user:')).slice(0, 8).map(x => `<img src="${x.url}" data-n="${x.name}" class="${s.wallpaper === x.name ? 'on' : ''}">`).join('');
+  $('#walls').querySelectorAll('img').forEach(im => im.onclick = () => { L.setSettings({ wallpaper: im.dataset.n }); $('#walls').querySelectorAll('img').forEach(x => x.classList.toggle('on', x === im)); });
+  $('#next').onclick = () => goStep(i + 1); $('#prev').onclick = () => goStep(i - 1); $('#skip').onclick = finish; $('#fin').onclick = finish;
+  $('#ess').onclick = () => L.app('store', ['--essentials']);
+  const sys = await L.get('/api/sys');
+  if (sys.live) { $('#inst').style.display = ''; $('#donep').textContent = "You're running LuminaOS live from the ISO. Install it to keep your files and settings."; }
+  $('#inst').onclick = () => { L.post('/api/run', { cmd: 'lumina-install' }); finish(); };
+  document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'Enter') goStep(i + 1); if (e.key === 'ArrowLeft') goStep(i - 1); });
+  goStep(LWin.args[0] === 'shortcuts' ? 4 : 0);
+});
+</script></body></html>

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Install LuminaOS
+GenericName=Install LuminaOS
+Comment=Install LuminaOS on this computer
+Exec=lumina-install
+TryExec=calamares
+Icon=lumina-logo
+Categories=System;
+Keywords=install;setup;calamares;
+StartupWMClass=calamares
+StartupNotify=true
+Terminal=false

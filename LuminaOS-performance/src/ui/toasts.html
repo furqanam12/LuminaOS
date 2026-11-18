@@ -1,0 +1,60 @@
+<!doctype html>
+<html class="dark"><head><meta charset="utf-8"><title>Toasts</title>
+<link rel="stylesheet" href="css/lumina.css">
+<style>
+  #stack { position: fixed; top: 10px; right: 10px; width: 360px; display: flex; flex-direction: column; gap: 10px; }
+  .toast { display: flex; gap: 12px; padding: 13px 14px; border-radius: 16px; background: rgba(28,28,36,.9); color: #fff;
+    border: 1px solid rgba(255,255,255,.12); box-shadow: 0 12px 40px rgba(0,0,0,.4); position: relative;
+    animation: tIn 560ms var(--spring) both; transition: transform 320ms var(--spring-soft), opacity 260ms, margin 320ms var(--ease-out); }
+  .light .toast { background: rgba(252,252,254,.95); color: #1c1c22; border-color: rgba(0,0,0,.08); }
+  .toast.out { transform: translateX(110%); opacity: 0; }
+  @keyframes tIn { from { transform: translateX(115%) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  .toast img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; flex: none; }
+  .toast .b { flex: 1; min-width: 0; }
+  .toast .a { font-size: 11px; color: var(--fg-3); display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .toast b { display: block; font-weight: 600; font-size: 13px; }
+  .toast p { margin: 2px 0 0; font-size: 12.5px; color: var(--fg-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .toast .x { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    opacity: 0; background: rgba(255,255,255,.12); transition: opacity 120ms; }
+  .toast:hover .x { opacity: 1; }
+  .toast .x svg { width: 12px; height: 12px; }
+  .toast .bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 2px; border-radius: 2px; background: rgba(var(--accent-rgb), .6);
+    transform-origin: left; animation: life 6s linear forwards; }
+  .toast:hover .bar { animation-play-state: paused; }
+  @keyframes life { to { transform: scaleX(0); } }
+  #osd { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); }
+</style></head>
+<body>
+<div id="stack"></div>
+<script src="js/lumina.js"></script>
+<script>
+const L = Lumina, stack = document.getElementById('stack');
+function iconUrl(n) {
+  const ic = n.icon || '';
+  if (ic.startsWith('lumina-')) return '/ui/img/apps/' + ic.replace('lumina-', '') + '.svg';
+  if (ic.startsWith('/')) return /\.(png|jpe?g|svg|webp)$/i.test(ic) ? '/api/fs/thumb?path=' + encodeURIComponent(ic) : '/api/icon?size=64&name=' + encodeURIComponent(ic);
+  if (ic) return '/api/icon?size=64&name=' + encodeURIComponent(ic);
+  return '/ui/img/apps/logo.svg';
+}
+function hit() { setTimeout(() => L.hit('.toast'), 30); }
+function show(n) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<img src="${iconUrl(n)}" onerror="this.src='/ui/img/apps/logo.svg'"><div class="b"><div class="a"><span>${L.esc(n.app)}</span><span>now</span></div>
+    <b>${L.esc(n.title)}</b>${n.body ? `<p>${L.esc(n.body)}</p>` : ''}</div><div class="x">${L.icon('x')}</div><div class="bar"></div>`;
+  let timer, left = 6000, started = Date.now();
+  const close = () => { t.classList.add('out'); t.style.marginTop = -(t.offsetHeight + 10) + 'px'; setTimeout(() => { t.remove(); hit(); }, 330); };
+  const arm = () => { started = Date.now(); timer = setTimeout(close, left); };
+  t.onmouseenter = () => { clearTimeout(timer); left -= Date.now() - started; };
+  t.onmouseleave = arm;
+  t.querySelector('.x').onclick = (e) => { e.stopPropagation(); close(); };
+  t.onclick = () => { close(); L.ui('notifications'); };
+  stack.prepend(t);
+  while (stack.children.length > 4) stack.lastChild.remove();
+  arm(); hit();
+}
+L.on('notification', d => { if (!d.silent) show(d.n); });
+L.on('ui', m => { if (m.cmd === 'overlay-state' && m.mode === 'notifications') { stack.innerHTML = ''; hit(); } });
+L.on('reshape', () => { L._lastHit = null; hit(); });
+L.init();
+</script></body></html>

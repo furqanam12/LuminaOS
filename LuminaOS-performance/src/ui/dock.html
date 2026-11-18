@@ -1,0 +1,235 @@
+<!doctype html>
+<html class="dark"><head><meta charset="utf-8"><title>Dock</title>
+<link rel="stylesheet" href="css/lumina.css">
+<style>
+  :root { --s: 44px; }
+  #dock { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end;
+    padding: 6px 7px; border-radius: 18px; gap: 0; height: calc(var(--s) + 14px); animation: dockIn 700ms var(--spring) both;
+    transition: opacity var(--t), transform var(--t-slow) var(--spring); }
+  #dock.glass::after { background: rgba(20,20,28,.5); }
+  .light #dock.glass::after { background: rgba(250,250,253,.55); }
+  @keyframes dockIn { from { transform: translate(-50%, 120%); } to { transform: translate(-50%, 0); } }
+  .it { position: relative; width: calc(var(--s) * var(--k, 1) + 6px); height: calc(var(--s) + 2px); display: flex; align-items: flex-end; justify-content: center;
+    transition: width 120ms var(--ease-out); }
+  .it .ic { width: calc(var(--s) * var(--k, 1)); height: calc(var(--s) * var(--k, 1)); transition: width 120ms var(--ease-out), height 120ms var(--ease-out);
+    display: grid; place-items: center; border-radius: 12px; position: relative; bottom: calc((var(--k, 1) - 1) * 10px); }
+  .it .ic img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); transition: transform 160ms var(--spring); }
+  .it:active .ic img { transform: scale(.88); filter: brightness(.8) drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+  .it.sys .ic { color: #fff; border-radius: 12px; transition: background var(--t-fast), width 120ms var(--ease-out), height 120ms var(--ease-out); }
+  .light .it.sys .ic { color: #222; }
+  .it.sys .ic svg { width: 46%; height: 46%; }
+  .it.sys:hover .ic { background: rgba(255,255,255,.12); }
+  .light .it.sys:hover .ic { background: rgba(0,0,0,.06); }
+  .it.sys.on .ic { background: rgba(255,255,255,.16); }
+  .it .ic.logo img { width: 70%; height: 70%; transition: transform 500ms var(--spring); }
+  .it.on .ic.logo img { transform: rotate(90deg); }
+  .dot { position: absolute; bottom: -5px; left: 50%; width: 5px; height: 3px; border-radius: 3px; background: var(--fg-3); transform: translateX(-50%) scaleX(0);
+    transition: transform var(--t) var(--spring), width var(--t) var(--spring), background var(--t); }
+  .run .dot { transform: translateX(-50%) scaleX(1); background: var(--accent); width: 6px; }
+  .act .dot { width: 16px; background: var(--accent); }
+  .act .ic::before { content: ""; position: absolute; inset: -2px; border-radius: 13px; background: rgba(255,255,255,.1); z-index: -1; }
+  .sep { width: 1px; height: calc(var(--s) - 10px); background: rgba(255,255,255,.16); margin: 0 6px 6px; align-self: flex-end; }
+  .light .sep { background: rgba(0,0,0,.12); }
+  .bounce .ic { animation: bounce 700ms cubic-bezier(.3,.8,.4,1) infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-20px); } }
+  .tip { position: absolute; bottom: calc(100% + 18px + (var(--k, 1) - 1) * 18px); left: 50%; transform: translateX(-50%) translateY(4px); white-space: nowrap;
+    padding: 5px 10px; border-radius: 8px; font-size: 12px; background: rgba(28,28,36,.92); color: #fff; border: 1px solid rgba(255,255,255,.12);
+    opacity: 0; pointer-events: none; transition: opacity 120ms, transform 200ms var(--spring); box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+  .light .tip { background: rgba(255,255,255,.95); color: #222; border-color: rgba(0,0,0,.08); }
+  .it:hover .tip { opacity: 1; transform: translateX(-50%); }
+  .new { animation: popIn 420ms var(--spring) both; }
+  .out { animation: popIn 260ms reverse both; }
+  #bell { position: fixed; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; color: #fff;
+    animation: dockIn2 700ms var(--spring) 120ms both; transition: transform var(--t-fast) var(--spring); }
+  #bell.glass::after { background: rgba(20,20,28,.5); }
+  .light #bell { color: #222; } .light #bell.glass::after { background: rgba(250,250,253,.55); }
+  #bell:hover { transform: scale(1.06); } #bell:active { transform: scale(.92); }
+  #bell svg { width: 18px; height: 18px; }
+  #bell .n { position: absolute; display: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px;
+    font-weight: 700; place-items: center; animation: popIn 400ms var(--spring); }
+  #bell.has .n { display: grid; } #bell.has svg { display: none; }
+  #bell.ring svg { animation: ring 900ms ease; }
+  @keyframes ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(18deg); } 30% { transform: rotate(-16deg); } 45% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } }
+  @keyframes dockIn2 { from { transform: translateY(140%); } to { transform: none; } }
+  .menu { position: fixed; }
+</style></head>
+<body>
+<div id="dock" class="glass" data-hit></div>
+<div id="bell" class="glass" data-hit title="Notifications"><span class="n" id="bn">0</span></div>
+<script src="js/lumina.js"></script>
+<script>
+const L = Lumina, $ = (s) => document.getElementById(s);
+let apps = [], appsById = {}, windows = [], launching = {}, overlayMode = null, nCount = 0;
+$('bell').insertAdjacentHTML('afterbegin', L.icon('bell'));
+
+function sysItems() {
+  return [
+    { key: 'start', sys: true, name: 'Start', html: '<div class="ic logo"><img src="img/apps/logo.svg"></div>', click: () => L.ui('start') },
+    { key: 'search', sys: true, name: 'Search', html: `<div class="ic">${L.icon('search')}</div>`, click: () => L.ui('search') },
+    { key: 'taskview', sys: true, name: 'Task view', html: `<div class="ic">${L.icon('taskview')}</div>`, click: () => L.ui('taskview') },
+    { key: 'launchpad', sys: true, name: 'Launchpad', html: `<div class="ic">${L.icon('apps')}</div>`, click: () => L.ui('launchpad') },
+  ];
+}
+function winsFor(id) { return windows.filter(w => w.appId === id); }
+function build() {
+  const pinned = (L.settings.pinned || []).filter(id => appsById[id]);
+  const running = [...new Set(windows.map(w => w.appId || ('x:' + w.class)))].filter(id => !pinned.includes(id));
+  const items = sysItems();
+  pinned.forEach(id => items.push({ key: id, app: appsById[id] }));
+  running.forEach(id => {
+    if (id.startsWith('x:')) { const w = windows.find(w => 'x:' + w.class === id); items.push({ key: id, xwin: w, name: w.app }); }
+    else items.push({ key: id, app: appsById[id] || { id, name: id } });
+  });
+  items.push({ key: 'sep2', sep: true });
+  items.push({ key: 'trash', sys: false, name: 'Trash', html: '<div class="ic"><img src="img/apps/trash.svg"></div>', click: () => L.app('files', ['trash:']) });
+
+  const dock = $('dock');
+  const existing = {}; [...dock.children].forEach(c => existing[c.dataset.key] = c);
+  const keep = new Set();
+  let prev = null;
+  items.forEach((it, idx) => {
+    let el = existing[it.key];
+    if (!el) {
+      el = document.createElement('div');
+      el.dataset.key = it.key;
+      if (it.sep) el.className = 'sep';
+      else {
+        el.className = 'it' + (it.sys ? ' sys' : '') + (L.ready && Date.now() - startT > 1500 ? ' new' : '');
+        const name = it.name || (it.app && it.app.name) || '';
+        const img = it.app ? `<div class="ic"><img src="${L.appIcon(it.app)}" onerror="this.src='img/app-generic.svg'"></div>`
+                  : it.xwin ? `<div class="ic"><img src="/api/winicon?xid=${it.xwin.xid}" onerror="this.src='img/app-generic.svg'"></div>` : it.html;
+        el.innerHTML = img + `<div class="dot"></div><div class="tip">${L.esc(name)}</div>`;
+        el.onclick = (e) => { L.ripple; it.click ? it.click() : clickApp(it); };
+        el.oncontextmenu = (e) => { e.preventDefault(); ctx(e, it); };
+      }
+    }
+    keep.add(it.key);
+    if (prev) { if (prev.nextSibling !== el) prev.after(el); } else if (dock.firstChild !== el) dock.prepend(el);
+    prev = el;
+    if (!it.sys && !it.sep) {
+      const ws = it.xwin ? windows.filter(w => 'x:' + w.class === it.key) : winsFor(it.key);
+      el.classList.toggle('run', ws.length > 0);
+      el.classList.toggle('act', ws.some(w => w.active && !w.minimized));
+      if (ws.length && launching[it.key]) { el.classList.remove('bounce'); delete launching[it.key]; }
+    }
+    if (it.sys) el.classList.toggle('on', overlayMode === it.key);
+  });
+  Object.entries(existing).forEach(([k, el]) => { if (!keep.has(k)) { el.classList.add('out'); setTimeout(() => el.remove(), 250); } });
+  requestAnimationFrame(updateGlass);
+}
+function clickApp(it) {
+  const ws = it.xwin ? windows.filter(w => 'x:' + w.class === it.key) : winsFor(it.key);
+  if (!ws.length) return launch(it.key);
+  const act = ws.find(w => w.active && !w.minimized);
+  if (act && ws.length === 1) return L.post('/api/window', { xid: act.xid, action: 'minimize' });
+  if (act) { const i = ws.indexOf(act); return L.post('/api/window', { xid: ws[(i + 1) % ws.length].xid, action: 'activate' }); }
+  const top = ws[ws.length - 1];
+  L.post('/api/window', { xid: top.xid, action: 'activate' });
+}
+function launch(id) {
+  const el = [...$('dock').children].find(c => c.dataset.key === id);
+  if (el && !L.settings.reduceMotion) { el.classList.add('bounce'); launching[id] = 1; setTimeout(() => { el.classList.remove('bounce'); delete launching[id]; }, 4200); }
+  L.launch(id);
+}
+function ctx(e, it) {
+  const ws = it.app ? winsFor(it.key) : it.xwin ? windows.filter(w => 'x:' + w.class === it.key) : [];
+  const pinned = L.settings.pinned || [];
+  const items = [];
+  if (it.sys) {
+    items.push({ label: 'Settings', icon: 'gear', action: () => L.app('settings', ['personalisation']) });
+    items.push({ label: 'Task Manager', icon: 'activity', action: () => L.app('taskmgr') });
+    items.push({ label: 'File Explorer', icon: 'folder', action: () => L.app('files') });
+    items.push('-', { label: 'Lock', icon: 'lock', action: () => L.ui('lock') }, { label: 'Power options', icon: 'power', action: () => L.ui('power') });
+  } else if (it.key === 'trash') {
+    items.push({ label: 'Open', icon: 'external', action: () => L.app('files', ['trash:']) });
+    items.push({ label: 'Empty Trash', icon: 'trash', danger: true, action: () => L.post('/api/fs/emptytrash') });
+  } else {
+    ws.forEach(w => items.push({ label: w.title.slice(0, 44), icon: 'window', action: () => L.post('/api/window', { xid: w.xid, action: 'activate' }) }));
+    if (ws.length) items.push('-');
+    if (it.app) items.push({ label: ws.length ? 'New window' : 'Open', icon: 'plus', action: () => launch(it.key) });
+    if (it.app) items.push(pinned.includes(it.key)
+      ? { label: 'Unpin from dock', icon: 'pinned', action: () => L.setSettings({ pinned: pinned.filter(x => x !== it.key) }).then(build) }
+      : { label: 'Pin to dock', icon: 'pinned', action: () => L.setSettings({ pinned: [...pinned, it.key] }).then(build) });
+    if (ws.length) items.push({ label: ws.length > 1 ? 'Close all windows' : 'Close window', icon: 'x', danger: true,
+      action: () => ws.forEach(w => L.post('/api/window', { xid: w.xid, action: 'close' })) });
+  }
+  const r = e.currentTarget.getBoundingClientRect();
+  const m = L.menu(r.left + r.width / 2 - 100, r.top - 12, items, () => setTimeout(() => L.hit(), 20));
+  m.setAttribute('data-hit', ''); m.style.transformOrigin = 'bottom center';
+  const mr = m.getBoundingClientRect(); m.style.top = (r.top - mr.height - 14) + 'px';
+  L.hit();
+}
+
+/* macOS-style magnification */
+let mx = null, magnifyFrame = null;
+function magnifyEnabled() { return L.settings.dockMagnify !== false && !L.settings.reduceMotion; }
+function magnify() {
+  const on = magnifyEnabled() && mx != null;
+  const S = on ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')) : 0;
+  const scales = [...$('dock').children].filter(el => el.classList.contains('it')).map(el => {
+    let k = 1;
+    if (on) {
+      const r = el.getBoundingClientRect(); const c = r.left + r.width / 2;
+      const d = Math.abs(mx - c); const range = S * 2.6;
+      if (d < range) k = 1 + 0.45 * Math.cos((d / range) * Math.PI / 2) ** 2;
+    }
+    return { el, k: k.toFixed(3) };
+  });
+  // Read the current hit regions before changing widths. ResizeObserver updates
+  // the final dock geometry after layout without a forced synchronous reflow.
+  updateGlass();
+  scales.forEach(({ el, k }) => { if (el.style.getPropertyValue('--k') !== k) el.style.setProperty('--k', k); });
+}
+function queueMagnify() {
+  if (magnifyFrame === null) magnifyFrame = requestAnimationFrame(() => { magnifyFrame = null; magnify(); });
+}
+function resetMagnify() {
+  if (magnifyFrame !== null) { cancelAnimationFrame(magnifyFrame); magnifyFrame = null; }
+  mx = null; magnify(); setTimeout(updateGlass, 160);
+}
+$('dock').addEventListener('mousemove', (e) => {
+  if (!magnifyEnabled()) return;
+  mx = e.clientX; queueMagnify();
+});
+$('dock').addEventListener('mouseleave', () => {
+  if (!magnifyEnabled()) return;
+  mx = null; queueMagnify(); setTimeout(updateGlass, 160);
+});
+
+function updateGlass() {
+  const g = L.geom || { w: innerWidth, h: screen.height, dockH: innerHeight };
+  const off = (g.h || screen.height) - innerHeight;
+  const panels = [$('dock'), $('bell')].map(el => ({ el, rect: el.getBoundingClientRect() }));
+  const d = panels[0].rect, b = panels[1].rect;
+  L.hit();
+  panels.forEach(({ el, rect }) => {
+    const gx = rect.left + 'px', gy = (off + rect.top) + 'px';
+    if (el.style.getPropertyValue('--gx') !== gx) el.style.setProperty('--gx', gx);
+    if (el.style.getPropertyValue('--gy') !== gy) el.style.setProperty('--gy', gy);
+  });
+  const key = [d.left, d.right, b.left].map(Math.round).join(',');
+  if (key !== updateGlass.k) { updateGlass.k = key; L.ui('dockrect', { rects: [[d.left, off + d.top - 30, d.width, d.height + 40], [b.left, off + b.top, b.width, b.height]] }); }
+}
+new ResizeObserver(() => updateGlass()).observe($('dock'));
+
+$('bell').onclick = () => L.ui('notifications');
+async function loadApps() { apps = await L.get('/api/apps'); appsById = {}; apps.forEach(a => appsById[a.id] = a); build(); }
+async function loadNotifs() { const n = await L.get('/api/notifications'); setCount((n.items || n).length); }
+function setCount(c) { nCount = c; $('bn').textContent = c > 9 ? '9+' : c; $('bell').classList.toggle('has', c > 0); }
+const startT = Date.now();
+function applySize() { document.documentElement.style.setProperty('--s', (L.settings.dockSize || 44) + 'px'); setTimeout(updateGlass, 50); }
+L.on('windows', ws => { windows = ws || []; build(); });
+L.on('apps-changed', () => setTimeout(loadApps, 500));
+L.on('launching', d => { /* app started from elsewhere */ });
+L.on('settings', s => { applySize(); if (!magnifyEnabled()) resetMagnify(); build(); });
+L.on('notification', d => { if (!d.silent) { $('bell').classList.remove('ring'); void $('bell').offsetWidth; $('bell').classList.add('ring'); } loadNotifs(); });
+L.on('notifications-changed', loadNotifs);
+L.on('geom', () => setTimeout(updateGlass, 50));
+L.on('reshape', () => { L._lastHit = null; updateGlass(); });
+L.on('ui', m => { if (m.cmd === 'overlay-state') { overlayMode = m.mode; build(); } if (m.cmd === 'dock-launch') launch(m.id); });
+L.init().then(async () => {
+  applySize();
+  await loadApps();
+  windows = await L.get('/api/windows') || []; build(); loadNotifs();
+});
+</script></body></html>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+GenericName=Calculator
+Comment=Standard and scientific calculator
+Exec=lumina-app calculator
+Icon=lumina-calculator
+Categories=Utility;Calculator;
+Keywords=math;calc;
+StartupWMClass=lumina-calculator
+StartupNotify=false
+Terminal=false

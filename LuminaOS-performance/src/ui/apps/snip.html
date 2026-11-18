@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Snipping Tool</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px 12px; }
+.bar .btn.ghost { height: 32px; }
+.seg { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: transparent; height: 28px; padding: 0 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 12.5px; white-space: nowrap; color: var(--fg-2); transition: background var(--t-fast); }
+.seg button svg { width: 15px; height: 15px; }
+.seg button.on { background: var(--card-a); color: var(--fg); }
+.hint { flex: 1; display: grid; place-items: center; color: var(--fg-3); font-size: 12.5px; text-align: center; padding: 10px; }
+.shot { flex: 1; min-height: 0; display: none; padding: 0 12px 12px; }
+.shot img { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; background: repeating-conic-gradient(var(--card) 0 25%, transparent 0 50%) 0 0/16px 16px; animation: popIn 380ms var(--spring); }
+.has .shot { display: block; } .has .hint { display: none; }
+</style></head>
+<body><div class="col" id="col">
+  <div class="bar"><button class="btn primary" id="new"></button>
+    <div class="seg" id="seg"><button data-m="region" title="Rectangle"></button><button data-m="window" title="Window"></button><button data-m="full" title="Full screen"></button></div>
+    <select class="input" id="delay" style="height:32px"><option value="0">No delay</option><option value="3">3 s</option><option value="5">5 s</option><option value="10">10 s</option></select>
+    <div style="flex:1"></div><button class="icon-btn" id="copy" title="Copy" disabled></button><button class="icon-btn" id="save" title="Open in File Explorer" disabled></button><button class="icon-btn" id="edit" title="Open in Photos" disabled></button></div>
+  <div class="hint" id="hint">Press Print Screen or Super+Shift+S at any time to snip.<br>Choose a mode and press New.</div>
+  <div class="shot"><img id="img"></div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+let mode = localStorage.snipMode || 'region', last = null, waiting = false;
+LWin.init({ icon: '/ui/img/apps/snip.svg', onArgs: a => { if (a[0]) { mode = a[0]; paint(); snip(); } } }).then(() => {
+  $('#new').innerHTML = L.icon('plus') + 'New'; $('#copy').innerHTML = L.icon('copy'); $('#save').innerHTML = L.icon('folder'); $('#edit').innerHTML = L.icon('image');
+  const ic = { region: 'region', window: 'window', full: 'fullscreen' }, lab = { region: 'Rectangle', window: 'Window', full: 'Full screen' };
+  document.querySelectorAll('#seg button').forEach(b => { b.innerHTML = L.icon(ic[b.dataset.m]) + lab[b.dataset.m]; b.onclick = () => { mode = b.dataset.m; localStorage.snipMode = mode; paint(); }; });
+  paint();
+  $('#new').onclick = snip;
+  $('#copy').onclick = () => L.post('/api/run', { cmd: `xclip -selection clipboard -t image/png -i '${last.replace(/'/g, "'\\''")}'` });
+  $('#save').onclick = () => L.app('files', [last.replace(/\/[^/]+$/, '')]);
+  $('#edit').onclick = () => L.app('photos', [last]);
+  L.on('snip', d => { if (!waiting) return; waiting = false; last = d.path; $('#img').src = '/api/fs/raw?path=' + encodeURIComponent(d.path) + '&t=' + Date.now();
+    $('#col').classList.add('has'); ['copy', 'save', 'edit'].forEach(i => $('#' + i).disabled = false); L.native('size', { w: 760, h: 520 }); L.native('present'); });
+  if (LWin.args[0]) { mode = LWin.args[0]; paint(); snip(); }
+});
+function paint() { document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode)); }
+function snip() { waiting = true; LWin.minimize(); setTimeout(() => L.post('/api/snip', { mode, delay: +$('#delay').value }), 350);
+  setTimeout(() => { if (waiting) { waiting = false; L.native('present'); } }, 60000); }
+</script></body></html>

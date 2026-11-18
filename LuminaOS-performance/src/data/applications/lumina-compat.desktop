@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Compatibility Wizard
+GenericName=Application Compatibility
+Comment=Set up Wine, Flatpak and experimental Android support
+Exec=lumina-app compat
+Icon=lumina-windows
+Categories=System;Settings;
+Keywords=wine;flatpak;android;waydroid;compatibility;
+StartupWMClass=lumina-compat
+StartupNotify=true
+Terminal=false

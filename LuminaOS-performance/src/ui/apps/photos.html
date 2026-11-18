@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Photos</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+.bar { display: flex; align-items: center; gap: 4px; padding: 4px 12px 8px; }
+.bar .ttl { flex: 1; font-size: 13px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gal { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+.gal h2 { font-size: 20px; font-weight: 600; margin: 6px 0 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.grid div { aspect-ratio: 4/3; border-radius: 6px; overflow: hidden; background: var(--card); animation: popIn 300ms var(--spring-soft) both; transition: transform var(--t-fast) var(--spring); }
+.grid div:hover { transform: scale(1.03); }
+.grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.view { flex: 1; display: none; position: relative; overflow: hidden; background: rgba(0,0,0,.25); }
+.viewing .view { display: block; } .viewing .gal { display: none; }
+.view img { position: absolute; left: 50%; top: 50%; max-width: none; transform-origin: center; transition: transform 320ms var(--spring-soft); will-change: transform; }
+.view img.enter { animation: zoomIn 380ms var(--spring); }
+@keyframes zoomIn { from { opacity: 0; scale: .92; } to { opacity: 1; scale: 1; } }
+.nav-a { position: absolute; top: 50%; margin-top: -22px; width: 44px; height: 44px; border-radius: 50%; background: var(--glass-strong); border: 1px solid var(--line-2); display: grid; place-items: center; opacity: 0; transition: opacity var(--t-fast); }
+.view:hover .nav-a { opacity: 1; } .nav-a svg { width: 18px; height: 18px; }
+.strip { display: none; gap: 4px; padding: 8px 12px; overflow-x: auto; justify-content: center; }
+.viewing .strip { display: flex; }
+.strip img { width: 54px; height: 40px; object-fit: cover; border-radius: 4px; opacity: .55; transition: opacity var(--t-fast), transform var(--t-fast) var(--spring); flex: none; }
+.strip img.on { opacity: 1; outline: 2px solid var(--accent); transform: scale(1.06); }
+</style></head>
+<body><div class="col" id="col">
+  <div class="bar"><button class="icon-btn" id="back" style="display:none"></button><div class="ttl" id="ttl">Gallery</div>
+    <span id="vtools" style="display:none;gap:2px"><button class="icon-btn" id="zo" title="Zoom out"></button><span id="zl" class="muted" style="font-size:12px;width:44px;text-align:center;display:inline-block">Fit</span><button class="icon-btn" id="zi" title="Zoom in"></button>
+    <button class="icon-btn" id="rot" title="Rotate (Ctrl+R)"></button><button class="icon-btn" id="wall" title="Set as wallpaper"></button><button class="icon-btn" id="del" title="Delete"></button><button class="icon-btn" id="info" title="Open folder"></button><button class="icon-btn" id="play" title="Slideshow"></button></span></div>
+  <div class="gal" id="gal"></div>
+  <div class="view" id="view"><img id="img"><button class="nav-a" id="pv" style="left:14px"></button><button class="nav-a" id="nx" style="right:14px"></button></div>
+  <div class="strip" id="strip"></div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+let list = [], idx = 0, zoom = 0, rot = 0, pan = [0, 0], show = null;
+const isImg = n => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n);
+const src = p => p.startsWith('/ui/') ? p : '/api/fs/raw?path=' + encodeURIComponent(p);
+async function gallery() {
+  const pl = await L.get('/api/fs/places'); const pics = (pl.places.find(p => p.icon === 'pictures') || {}).path;
+  let mine = [];
+  if (pics) { const r = await L.get('/api/fs/list', { path: pics }); mine = r.items.filter(i => isImg(i.name)).map(i => i.path);
+    const sh = r.items.find(i => i.dir && i.name === 'Screenshots'); if (sh) { const r2 = await L.get('/api/fs/list', { path: sh.path }); mine = mine.concat(r2.items.filter(i => isImg(i.name)).map(i => i.path)); } }
+  const w = await L.get('/api/wallpapers');
+  const walls = w.items.filter(x => !x.name.startsWith('user:')).map(x => x.url);
+  $('#gal').innerHTML = `<h2>Pictures</h2>${mine.length ? `<div class="grid">${mine.map((p, i) => `<div data-g="m" data-i="${i}" style="animation-delay:${i * 20}ms"><img loading="lazy" src="/api/fs/thumb?path=${encodeURIComponent(p)}"></div>`).join('')}</div>` : '<div class="card empty">Pictures and screenshots you save show up here.</div>'}
+    <h2 style="margin-top:22px">LuminaOS wallpapers</h2><div class="grid">${walls.map((p, i) => `<div data-g="w" data-i="${i}" style="animation-delay:${i * 30}ms"><img loading="lazy" src="${p}"></div>`).join('')}</div>`;
+  $('#gal').querySelectorAll('[data-g]').forEach(d => d.onclick = () => open(d.dataset.g === 'm' ? mine : walls, +d.dataset.i));
+}
+async function openPath(p) {
+  const dir = p.replace(/\/[^/]+$/, ''); const r = await L.get('/api/fs/list', { path: dir });
+  const l = (r.items || []).filter(i => isImg(i.name)).map(i => i.path); open(l.length ? l : [p], Math.max(0, l.indexOf(p)));
+}
+function open(l, i) {
+  list = l; idx = i; $('#col').classList.add('viewing'); $('#back').style.display = ''; $('#vtools').style.display = 'flex';
+  $('#strip').innerHTML = list.map((p, k) => `<img data-k="${k}" loading="lazy" src="${p.startsWith('/ui/') ? p : '/api/fs/thumb?path=' + encodeURIComponent(p)}">`).join('');
+  $('#strip').querySelectorAll('img').forEach(im => im.onclick = () => { idx = +im.dataset.k; load(); });
+  load();
+}
+function load() {
+  const p = list[idx], im = $('#img'); zoom = 0; rot = 0; pan = [0, 0];
+  im.classList.remove('enter'); im.onload = () => { fit(); void im.offsetWidth; im.classList.add('enter'); };
+  im.src = src(p); const n = decodeURIComponent(p.split('/').pop());
+  $('#ttl').textContent = n + `  ·  ${idx + 1} of ${list.length}`; LWin.setTitle(n + ' - Photos');
+  $('#strip').querySelectorAll('img').forEach(x => x.classList.toggle('on', +x.dataset.k === idx));
+  const on = $('#strip .on'); on && on.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  $('#del').style.display = p.startsWith('/ui/') ? 'none' : '';
+}
+function fit() { const im = $('#img'), v = $('#view'); const sw = v.clientWidth / (rot % 180 ? im.naturalHeight : im.naturalWidth), sh = v.clientHeight / (rot % 180 ? im.naturalWidth : im.naturalHeight); apply(Math.min(1, sw, sh), true); }
+function apply(z, isFit) { const im = $('#img'); zoom = z; im.style.transform = `translate(calc(-50% + ${pan[0]}px), calc(-50% + ${pan[1]}px)) scale(${z}) rotate(${rot}deg)`; $('#zl').textContent = isFit ? 'Fit' : Math.round(z * 100) + '%'; }
+function step(d) { if (list.length < 2) return; idx = (idx + d + list.length) % list.length; load(); }
+LWin.init({ icon: '/ui/img/apps/photos.svg', onArgs: a => a[0] && openPath(a[0]) }).then(() => {
+  const I = L.icon; $('#back').innerHTML = I('left'); $('#zo').innerHTML = I('zoomout'); $('#zi').innerHTML = I('zoomin'); $('#rot').innerHTML = I('rotate'); $('#wall').innerHTML = I('desktop');
+  $('#del').innerHTML = I('trash'); $('#info').innerHTML = I('folder'); $('#play').innerHTML = I('play'); $('#pv').innerHTML = I('chevl'); $('#nx').innerHTML = I('chevr');
+  $('#back').onclick = () => { $('#col').classList.remove('viewing'); $('#back').style.display = 'none'; $('#vtools').style.display = 'none'; $('#ttl').textContent = 'Gallery'; LWin.setTitle('Photos'); clearInterval(show); };
+  $('#zi').onclick = () => apply(zoom * 1.25); $('#zo').onclick = () => apply(zoom / 1.25);
+  $('#rot').onclick = () => { rot = (rot + 90) % 360; fit(); };
+  $('#pv').onclick = () => step(-1); $('#nx').onclick = () => step(1);
+  $('#wall').onclick = async () => { const p = list[idx]; if (p.startsWith('/ui/')) L.setSettings({ wallpaper: p.split('/').pop() }); else await L.post('/api/wallpaper/upload', { path: p }); L.notify('Wallpaper changed', '', 'lumina-photos', 'Photos'); };
+  $('#del').onclick = async () => { if (!(await L.dialog({ title: 'Move this photo to the Trash?', buttons: ['Move to Trash', 'Cancel'] }))) return; await L.post('/api/fs/trash', { paths: [list[idx]] }); list.splice(idx, 1); if (!list.length) return $('#back').onclick(); idx = Math.min(idx, list.length - 1); open(list, idx); };
+  $('#info').onclick = () => { const p = list[idx]; if (!p.startsWith('/ui/')) L.app('files', [p.replace(/\/[^/]+$/, '')]); };
+  $('#play').onclick = () => { if (show) { clearInterval(show); show = null; $('#play').innerHTML = I('play'); } else { show = setInterval(() => step(1), 3500); $('#play').innerHTML = I('pause'); } };
+  const v = $('#view');
+  v.addEventListener('wheel', e => { e.preventDefault(); if (e.ctrlKey || true) apply(Math.max(.05, Math.min(8, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)))); }, { passive: false });
+  v.addEventListener('mousedown', e => { if (e.target.closest('.nav-a')) return; const s = [e.clientX - pan[0], e.clientY - pan[1]]; $('#img').style.transition = 'none';
+    const mv = ev => { pan = [ev.clientX - s[0], ev.clientY - s[1]]; apply(zoom, $('#zl').textContent === 'Fit'); };
+    const up = () => { $('#img').style.transition = ''; removeEventListener('mousemove', mv); removeEventListener('mouseup', up); }; addEventListener('mousemove', mv); addEventListener('mouseup', up); });
+  v.addEventListener('dblclick', () => { pan = [0, 0]; $('#zl').textContent === 'Fit' ? apply(1) : fit(); });
+  addEventListener('resize', () => { if ($('#zl').textContent === 'Fit') fit(); });
+  document.addEventListener('keydown', e => { if (!$('#col').classList.contains('viewing')) return;
+    if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); if (e.key === 'Escape') $('#back').onclick(); if (e.key === 'Delete') $('#del').onclick();
+    if (e.ctrlKey && e.key === 'r') { e.preventDefault(); $('#rot').onclick(); } if (e.key === '+' || e.key === '=') $('#zi').onclick(); if (e.key === '-') $('#zo').onclick(); if (e.key === '0') fit(); });
+  if (LWin.args[0]) openPath(LWin.args[0]); else gallery();
+});
+</script></body></html>

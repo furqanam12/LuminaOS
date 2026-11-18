@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>LuminaOS setup</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+body { font-size: 13px; }
+.wrap { display: flex; flex-direction: column; height: 100%; background: var(--bg-win); }
+.hero { padding: 22px 30px 12px; border-bottom: 1px solid var(--line); }
+.hero h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.01em; }
+.hero p { margin: 6px 0 0; color: var(--fg-3); line-height: 1.5; }
+.body { flex: 1; overflow-y: auto; padding: 24px 30px; }
+.step { display: none; max-width: 720px; }
+.step.on { display: block; }
+h2 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+.hint { color: var(--fg-3); line-height: 1.6; margin: 0 0 18px; }
+.card { padding: 18px; margin-bottom: 12px; }
+.field { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 12px; margin-bottom: 12px; }
+.field label { color: var(--fg-2); }
+.field .input { width: 100%; }
+.field small { grid-column: 2; color: var(--fg-3); margin-top: -6px; }
+.rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+.rowline:last-child { border-bottom: 0; }
+.note { padding: 13px 16px; border-radius: 10px; background: rgba(255,159,10,.12); border: 1px solid rgba(255,159,10,.35); color: var(--fg); line-height: 1.6; margin: 0 30px 12px; }
+.error { padding: 10px 14px; border-radius: 8px; background: rgba(255,69,58,.12); border: 1px solid rgba(255,69,58,.35); color: #ff8a80; margin: 0 30px 12px; }
+.ok { color: #4ade80; } .bad { color: #ff9f0a; }
+.checks { display: grid; gap: 8px; }
+.check { display: flex; justify-content: space-between; gap: 16px; padding: 10px 12px; border-radius: 8px; background: var(--card); }
+.check small { color: var(--fg-3); text-align: right; max-width: 320px; word-break: break-word; }
+.foot { display: flex; align-items: center; gap: 10px; padding: 14px 30px; border-top: 1px solid var(--line); }
+.foot .sp { flex: 1; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 7px; height: 7px; border-radius: 4px; background: var(--fg-4); }
+.dots i.on { width: 22px; background: var(--accent); }
+[hidden] { display: none !important; }
+</style></head><body>
+<div class="wrap">
+  <div class="hero"><h1>Set up LuminaOS</h1><p>A short, optional setup for your installed system. You can change every setting later.</p></div>
+  <div class="note" id="liveNote" hidden><span id="liveText"></span> <button class="btn small" id="installLive">Install LuminaOS</button></div>
+  <div class="error" id="errorBox" hidden></div>
+  <div class="body">
+    <section class="step on" data-step="0">
+      <h2>Secure your account</h2>
+      <p class="hint">Leave the new password blank to keep the password you entered during installation.</p>
+      <div class="card">
+        <div class="rowline"><span>Signed in as</span><b id="userVal">—</b></div>
+        <div class="field"><label for="cur">Current password</label><input class="input" id="cur" type="password" autocomplete="current-password"></div>
+        <div class="field"><label for="pw1">New password</label><input class="input" id="pw1" type="password" autocomplete="new-password"><small>Use at least 8 characters.</small></div>
+        <div class="field"><label for="pw2">Confirm new password</label><input class="input" id="pw2" type="password" autocomplete="new-password"></div>
+      </div>
+    </section>
+    <section class="step" data-step="1">
+      <h2>Name this device</h2>
+      <p class="hint">The name appears on your network and in Settings → About.</p>
+      <div class="card"><div class="field"><label for="host">Device name</label><input class="input" id="host" maxlength="63"><small>Letters, numbers and hyphens only.</small></div></div>
+    </section>
+    <section class="step" data-step="2">
+      <h2>Region and time</h2>
+      <p class="hint">Choose your time zone so the clock and updates use the correct local time.</p>
+      <div class="card"><div class="field"><label for="zone">Time zone</label><select class="input" id="zone"></select></div></div>
+    </section>
+    <section class="step" data-step="3">
+      <h2>Make it yours</h2>
+      <p class="hint">These choices are saved with your Lumina settings.</p>
+      <div class="card">
+        <div class="field"><label for="theme">Appearance</label><select class="input" id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+        <div class="field"><label for="accent">Accent colour</label><select class="input" id="accent"><option value="#ff375f">Pink</option><option value="#0a84ff">Blue</option><option value="#30d158">Green</option><option value="#ff9f0a">Orange</option><option value="#bf5af2">Purple</option></select></div>
+        <div class="field"><label for="preset">Performance</label><select class="input" id="preset"><option value="balanced">Balanced — full visual effects</option><option value="low-power">VM / low-power — fewer effects</option><option value="custom">Custom — keep my choices</option></select></div>
+      </div>
+    </section>
+    <section class="step" data-step="4">
+      <h2>You're ready</h2>
+      <p class="hint">This final check confirms that the installed system has the expected Lumina components and recovery option.</p>
+      <div class="card"><div class="checks" id="checks">Checking your system…</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="finish">Finish setup</button><button class="btn" id="essentials">Get Store essentials</button></div>
+    </section>
+  </div>
+  <div class="foot"><button class="btn ghost" id="skip">Skip</button><div class="sp"></div><div class="dots" id="dots"></div><div class="sp"></div><button class="btn" id="prev">Back</button><button class="btn primary" id="next">Next</button></div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+const steps = [...document.querySelectorAll('.step')];
+let status = {}, sys = {}, zones = [], step = 0, busy = false;
+function error(message) { const box = $('#errorBox'); box.hidden = !message; box.textContent = message || ''; }
+function go(n) {
+  step = Math.max(0, Math.min(steps.length - 1, n));
+  steps.forEach((s, i) => s.classList.toggle('on', i === step));
+  $('#dots').innerHTML = steps.map((_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
+  $('#prev').disabled = step === 0;
+  $('#next').hidden = step === steps.length - 1;
+  error('');
+  if (step === steps.length - 1) renderChecks();
+}
+async function get(path) { const r = await L.get(path); if (r && r.error) throw new Error(r.error); return r; }
+async function post(path, body) { const r = await L.post(path, body); if (r && r.error) throw new Error(r.error); return r; }
+function validHost(value) { return /^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(value); }
+async function applyStep() {
+  if (busy || status.live) return;
+  busy = true; $('#next').disabled = true;
+  try {
+    if (step === 0 && $('#pw1').value) {
+      if ($('#pw1').value.length < 8) throw new Error('Use at least 8 characters for the new password.');
+      if ($('#pw1').value !== $('#pw2').value) throw new Error('The new passwords do not match.');
+      const auth = await post('/api/auth', { password: $('#cur').value });
+      if (!auth.ok) throw new Error('Your current password is not correct.');
+      const changed = await post('/api/password', { old: $('#cur').value, new: $('#pw1').value });
+      if (!changed.ok) throw new Error(changed.error || 'The password could not be changed.');
+      $('#cur').value = ''; $('#pw1').value = ''; $('#pw2').value = '';
+    }
+    if (step === 1) {
+      const host = $('#host').value.trim();
+      if (!validHost(host)) throw new Error('Enter a valid device name.');
+      const r = await post('/api/hostname', { name: host });
+      if (!r.ok) throw new Error(r.msg || 'The device name could not be changed.');
+    }
+    if (step === 2) {
+      const r = await post('/api/timezone', { zone: $('#zone').value });
+      if (!r.ok) throw new Error(r.msg || 'The time zone could not be changed.');
+    }
+    if (step === 3) {
+      await L.setSettings({ theme: $('#theme').value, accent: $('#accent').value, performancePreset: $('#preset').value });
+    }
+    error(''); go(step + 1);
+  } catch (e) { error(e.message || 'That setting could not be saved.'); }
+  finally { busy = false; $('#next').disabled = false; }
+}
+async function renderChecks() {
+  if (status.live) return;
+  const box = $('#checks');
+  try {
+    const r = await get('/api/system/check');
+    box.innerHTML = r.checks.map(c =>
+      `<div class="check"><span>${L.esc(c.name)} <b class="${c.ok ? 'ok' : 'bad'}">${c.ok ? 'OK' : 'Check'}</b></span><small>${L.esc(c.detail || '')}</small></div>`).join('');
+  } catch (e) { box.innerHTML = `<div class="check"><span>System check unavailable</span><small>${L.esc(e.message)}</small></div>`; }
+}
+async function finish() {
+  if (busy) return;
+  busy = true; $('#finish').disabled = true;
+  try { await post('/api/first-run/complete', {}); LWin.close(); }
+  catch (e) { error(e.message || 'Setup could not be completed.'); busy = false; $('#finish').disabled = false; }
+}
+LWin.init({ icon: '/ui/img/apps/welcome.svg', title: 'LuminaOS setup' }).then(async () => {
+  try {
+    status = await get('/api/first-run/status');
+    sys = await get('/api/sys');
+    zones = await get('/api/timezones');
+    $('#userVal').textContent = status.user || '—';
+    $('#host').value = status.hostname || sys.hostname || '';
+    $('#zone').innerHTML = zones.zones.map(z => `<option value="${L.esc(z)}" ${z === zones.current ? 'selected' : ''}>${L.esc(z)}</option>`).join('');
+    $('#theme').value = L.settings.theme || 'dark';
+    $('#accent').value = L.settings.accent || '#ff375f';
+    $('#preset').value = L.settings.performancePreset || 'balanced';
+    if (status.live) {
+      $('#liveNote').hidden = false;
+      $('#liveText').textContent = 'You are in the live session. Install LuminaOS to save users, settings and boot options.';
+      document.querySelectorAll('.step input, .step select').forEach(el => el.disabled = true);
+      $('#next').hidden = true; $('#finish').hidden = true; $('#skip').textContent = 'Close';
+    }
+    go(0);
+  } catch (e) { error(e.message || 'Setup could not load system information.'); }
+});
+$('#next').onclick = applyStep;
+$('#prev').onclick = () => go(step - 1);
+$('#skip').onclick = () => status.live ? LWin.close() : finish();
+$('#finish').onclick = finish;
+$('#essentials').onclick = () => L.app('store', ['--essentials']);
+$('#installLive').onclick = () => L.post('/api/run', { cmd: 'lumina-install' });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') LWin.close();
+  if (e.key === 'Enter' && !e.target.matches('button')) { e.preventDefault(); if (step < steps.length - 1) applyStep(); }
+});
+</script></body></html>

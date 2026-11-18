@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=LuminaOS
+Comment=Lumina desktop (Windows 11 layout, macOS motion, HarmonyOS softness)
+Exec=lumina-session
+TryExec=lumina-session
+Type=Application
+DesktopNames=Lumina;XFCE

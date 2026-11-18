@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=System Settings
+Comment=Personalise and configure LuminaOS
+Exec=lumina-app settings
+Icon=lumina-settings
+Categories=Settings;System;
+Keywords=preferences;control panel;display;network;wallpaper;
+StartupWMClass=lumina-settings
+StartupNotify=false
+Terminal=false

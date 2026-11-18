@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Settings</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.side { width: 290px; padding: 4px 14px 14px; }
+.me { display: flex; align-items: center; gap: 12px; padding: 10px 6px 16px; }
+.av { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-2), var(--accent)); display: grid; place-items: center;
+  font-size: 22px; font-weight: 600; color: #fff; flex: none; }
+.me b { display: block; font-weight: 600; } .me small { color: var(--fg-3); font-size: 11.5px; }
+.side .search { margin-bottom: 10px; height: 32px; border-radius: 6px; flex: none; }
+.main { padding: 10px 34px 34px 22px; }
+.crumbs { display: flex; align-items: center; gap: 8px; font-size: 26px; font-weight: 600; margin: 4px 0 22px; letter-spacing: -.01em; }
+.crumbs a { color: var(--fg-3); transition: color var(--t-fast); } .crumbs a:hover { color: var(--fg); }
+.crumbs svg { width: 18px; height: 18px; color: var(--fg-3); }
+.hero { display: flex; gap: 18px; align-items: center; margin-bottom: 18px; }
+.prev { width: 190px; height: 112px; border-radius: 8px; background-size: cover; background-position: center; position: relative; overflow: hidden; flex: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35); border: 2px solid var(--line-2); }
+.prev i { position: absolute; left: 50%; bottom: 7px; width: 70px; height: 9px; margin-left: -35px; border-radius: 4px; background: rgba(20,20,26,.7); }
+.prev u { position: absolute; left: 0; right: 0; top: 0; height: 6px; background: rgba(20,20,26,.6); }
+.prev s { position: absolute; left: 34%; top: 26%; width: 34%; height: 40%; border-radius: 3px; background: rgba(28,28,34,.9); }
+.hero h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.hero .lnk { color: var(--accent); font-size: 12.5px; margin-top: 8px; display: inline-block; }
+.lnk { color: var(--accent); cursor: pointer; } .lnk:hover { text-decoration: underline; }
+.quick { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.quick .q { display: flex; gap: 10px; align-items: center; padding: 10px 14px 10px 10px; border-radius: 8px; min-width: 210px; }
+.quick .q:hover { background: var(--hover); }
+.quick .ri { width: 36px; height: 36px; border-radius: 10px; }
+.group { margin-bottom: 4px; }
+.row .ctl { display: flex; align-items: center; gap: 10px; flex: none; }
+.row.sub { margin-top: -4px; border-top-left-radius: 0; border-top-right-radius: 0; padding-left: 58px; }
+.row .slider { width: 220px; }
+.sw-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; transition: transform var(--t-fast) var(--spring), border-color var(--t-fast); box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.swatch:hover { transform: scale(1.12); }
+.swatch.on { border-color: var(--fg); transform: scale(1.06); }
+.themes { display: grid; grid-template-columns: repeat(2, 200px); gap: 14px; }
+.theme { border-radius: 10px; border: 2px solid var(--line-2); overflow: hidden; transition: border-color var(--t-fast), transform var(--t-fast) var(--spring); }
+.theme:hover { transform: translateY(-2px); }
+.theme.on { border-color: var(--accent); }
+.theme .tp { height: 110px; background-size: cover; position: relative; }
+.theme .tp i { position: absolute; left: 24px; top: 22px; right: 24px; bottom: 18px; border-radius: 6px; }
+.theme .tp i::after { content: ""; position: absolute; left: 10px; top: 12px; width: 50%; height: 7px; border-radius: 4px; background: var(--accent); }
+.theme span { display: block; padding: 8px 12px; font-size: 12.5px; }
+.walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.wall { border-radius: 8px; overflow: hidden; position: relative; aspect-ratio: 16/10; border: 2px solid transparent; transition: transform var(--t-fast) var(--spring), border-color var(--t-fast);
+  animation: popIn 300ms var(--spring-soft) both; }
+.wall img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wall:hover { transform: scale(1.03); }
+.wall.on { border-color: var(--accent); }
+.wall.on::after { content: ""; position: absolute; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat; }
+.credit { font-size: 11px; color: var(--fg-3); margin-top: 8px; line-height: 1.6; }
+.credit a { color: var(--fg-2); }
+.kv { display: grid; grid-template-columns: 180px 1fr; gap: 10px 16px; font-size: 13px; padding: 16px; }
+.kv dt { color: var(--fg-3); } .kv dd { margin: 0; user-select: text; -webkit-user-select: text; }
+.bar { height: 8px; border-radius: 6px; background: var(--fg-4); overflow: hidden; display: flex; }
+.bar i { display: block; height: 100%; background: var(--accent); transition: width 600ms var(--ease-out); }
+.stat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.stat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--fg-3)); }
+.applist .row { min-height: 52px; padding: 8px 16px; }
+.applist img { width: 28px; height: 28px; }
+.empty-ill { text-align: center; padding: 30px; color: var(--fg-3); }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--card-a); color: var(--fg-2); }
+.pill.ok { background: rgba(48,209,88,.16); color: #30d158; } .pill.no { background: rgba(255,159,10,.16); color: #ff9f0a; }
+.switch input[id^="perf-"] { display: block; position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; }
+.switch:focus-within span { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style></head>
+<body>
+<div class="side">
+  <div class="me"><div class="av" id="av">U</div><div><b id="uname">User</b><small id="usub">Local account · Administrator</small></div></div>
+  <div class="search"><input id="find" placeholder="Find a setting"><span id="fic"></span></div>
+  <div id="nav"></div>
+</div>
+<div class="main" id="main"></div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s), I = n => L.icon(n);
+const SECTIONS = [
+  ['system', 'System', 'monitor'], ['bluetooth', 'Bluetooth & devices', 'bluetooth'], ['network', 'Network & internet', 'wifi'],
+  ['personalisation', 'Personalisation', 'palette'], ['accessibility', 'Accessibility', 'access'],
+  ['apps', 'Apps', 'apps'], ['accounts', 'Accounts', 'user'],
+  ['time', 'Time & language', 'language'], ['compat', 'Windows programs & Android', 'windows'], ['update', 'Update & drivers', 'update'],
+];
+const SUB = { display: ['system', 'Display'], sound: ['system', 'Sound'], notifications: ['system', 'Notifications'], power: ['system', 'Power & battery'],
+  performance: ['system', 'Performance'], storage: ['system', 'Storage'], about: ['system', 'About'], dock: ['personalisation', 'Dock & taskbar'], startup: ['apps', 'Startup'], walls: ['personalisation', 'Background'] };
+const ACCENTS = ['#ff375f', '#ff453a', '#ff9f0a', '#ffd60a', '#30d158', '#00c7be', '#0a84ff', '#5e5ce6', '#bf5af2', '#ff2d92', '#8e8e93', '#ac8e68'];
+const INDEX = [ // searchable settings
+  ['Display', 'brightness resolution night light screen', 'display'], ['Sound', 'volume speaker mute audio', 'sound'], ['Notifications', 'do not disturb focus alerts', 'notifications'],
+  ['Performance', 'performance vm low power preset animations transparency shadows cpu', 'performance'],
+  ['Power & battery', 'shutdown restart sleep lock', 'power'], ['Storage', 'disk space drives', 'storage'], ['About', 'device name processor memory version hostname rename', 'about'],
+  ['Bluetooth & devices', 'bluetooth mouse keyboard printer', 'bluetooth'], ['Network & internet', 'wifi ethernet airplane ip', 'network'],
+  ['Theme', 'dark light mode colours', 'personalisation'], ['Accent colour', 'accent colour color', 'personalisation'], ['Background', 'wallpaper picture desktop', 'walls'],
+  ['Transparency effects', 'blur glass transparency', 'personalisation'], ['Animation effects', 'reduce motion animation', 'personalisation'],
+  ['Accessibility', 'scale text focus keyboard contrast', 'accessibility'], ['UI scaling', 'text size scale display', 'accessibility'],
+  ['High contrast', 'contrast readability accessibility', 'accessibility'], ['Strong focus', 'keyboard focus outline', 'accessibility'],
+  ['Command palette', 'commands search shortcut ctrl k', 'accessibility'],
+  ['Dock & taskbar', 'dock size magnification taskbar pinned', 'dock'], ['Installed apps', 'apps uninstall programs', 'apps'], ['Startup apps', 'autostart startup login', 'startup'],
+  ['Your info', 'account user name', 'accounts'], ['Password', 'password sign-in security', 'accounts'], ['Date & time', 'time zone clock 24-hour', 'time'],
+  ['Windows programs', 'wine exe msi windows', 'compat'], ['Android apps', 'android apk waydroid', 'compat'], ['Updates', 'update upgrade drivers', 'update'],
+];
+let page = 'system', SYS = {}, timers = [];
+const S = () => L.settings;
+const sw = (id, on) => `<label class="switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span></span></label>`;
+const row = (ic, t, sub, ctl, attrs) => `<div class="row ${attrs && attrs.click ? 'click' : ''}" ${attrs && attrs.go ? `data-go="${attrs.go}"` : ''} ${attrs && attrs.id ? `id="${attrs.id}"` : ''}>
+  ${ic ? `<div class="ri">${I(ic)}</div>` : ''}<div class="rt"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</div>${ctl ? `<div class="ctl">${ctl}</div>` : ''}</div>`;
+const link = (ic, t, sub, go) => row(ic, t, sub, I('chevr').replace('class="ic"', 'class="chev"'), { click: 1, go });
+const slider = (id, v, min = 0, max = 100) => `<input type="range" class="slider" id="${id}" min="${min}" max="${max}" value="${v}" style="--v:${(v - min) / (max - min) * 100}%">`;
+
+function renderNav() {
+  const top = SUB[page] ? SUB[page][0] : page;
+  $('#nav').innerHTML = SECTIONS.map(([id, t, ic]) => `<div class="nav ${id === top ? 'on' : ''}" data-p="${id}"><div class="ni">${I(ic)}</div><span>${t}</span></div>`).join('');
+  $('#nav').querySelectorAll('.nav').forEach(n => n.onclick = () => go(n.dataset.p));
+}
+function go(p) { page = p; timers.forEach(clearInterval); timers = []; renderNav(); render(); }
+function head(title) {
+  const s = SUB[page];
+  if (!s) return `<div class="crumbs">${title}</div>`;
+  const parent = SECTIONS.find(x => x[0] === s[0]);
+  return `<div class="crumbs"><a data-go="${s[0]}">${parent[1]}</a>${I('chevr')}<span>${s[1]}</span></div>`;
+}
+function wire(m) {
+  m.querySelectorAll('[data-go]').forEach(e => e.onclick = () => go(e.dataset.go));
+  m.querySelectorAll('input[type=range].slider').forEach(r => r.addEventListener('input', () => r.style.setProperty('--v', (r.value - r.min) / (r.max - r.min) * 100 + '%')));
+}
+const on = (id, ev, f) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, f); };
+
+async function render() {
+  const m = $('#main'); m.scrollTop = 0;
+  const fn = PAGES[page] || PAGES.system;
+  m.innerHTML = '<div class="page-in" id="pg"></div>';
+  const pg = $('#pg');
+  await fn(pg);
+  wire(pg);
+}
+const PAGES = {
+  async system(pg) {
+    const d = await L.get('/api/stats');
+    pg.innerHTML = head('System') + `<div class="hero"><div class="prev" style="background-image:var(--wall)"><u></u><s></s><i></i></div>
+      <div><h2>${L.esc(SYS.hostname)}</h2><div class="muted">${L.esc([SYS.vendor, SYS.product].filter(Boolean).join(' ') || SYS.os)}</div><a class="lnk" id="ren">Rename</a></div></div>
+      <div class="quick"><div class="q" data-go="update"><div class="ri" style="background:var(--accent);color:#fff;display:grid;place-items:center">${I('update')}</div><div><b style="font-weight:500">Update & drivers</b><div class="muted" style="font-size:11.5px">${localStorage.lastCheck ? 'Last checked ' + new Date(+localStorage.lastCheck).toLocaleDateString('en-GB') : 'Not checked yet'}</div></div></div>
+      <div class="q" data-go="personalisation"><div class="ri" style="background:var(--accent);color:#fff;display:grid;place-items:center">${I('palette')}</div><div><b style="font-weight:500">Personalisation</b><div class="muted" style="font-size:11.5px">${S().theme === 'light' ? 'Light' : 'Dark'} theme</div></div></div></div>
+      ${link('monitor', 'Display', 'Brightness, resolution, night light', 'display')}${link('volume', 'Sound', 'Volume, output devices', 'sound')}
+      ${link('bell', 'Notifications', 'Alerts from apps, do not disturb', 'notifications')}${link('power', 'Power & battery', 'Power mode, screen and sleep, lock screen', 'power')}
+      ${link('leaf', 'Performance', 'VM/low-power preset, animations, transparency and shadows', 'performance')}
+      ${link('hdd', 'Storage', `${L.bytes(d.disk.total - d.disk.used)} free of ${L.bytes(d.disk.total)}`, 'storage')}${link('info', 'About', 'Device name, processor, memory, version', 'about')}`;
+    on('ren', 'click', rename);
+  },
+  async performance(pg) {
+    const s = S();
+    pg.innerHTML = head() + `<div class="muted" style="margin-bottom:16px">Use fewer visual effects on virtual machines and older PCs. Changes are saved for your next sign-in.</div>`
+      + row('leaf', 'Performance preset', 'Custom preserves your choices. Balanced restores visual effects.', `<select class="input" id="perf-preset" aria-label="Performance preset"><option value="custom">Custom</option><option value="balanced">Balanced</option><option value="low-power">VM / low-power</option></select>`)
+      + row('sparkle', 'Animation effects', 'Disable repeating animations and dock motion', sw('perf-anim', !s.reduceMotion))
+      + row('layout', 'Transparency & blur', 'Use solid panels instead of blurred wallpaper', sw('perf-glass', s.transparency !== false))
+      + row('zoomin', 'Dock magnification', 'Grow icons under the pointer; requires animation effects', sw('perf-dock', s.dockMagnify !== false))
+      + row('window', 'Window shadows', 'Native and built-in app shadows; compositing stays enabled', sw('perf-shadow', s.perfShadows !== false))
+      + `<div class="muted" style="margin-top:16px" id="perf-status" role="status" aria-live="polite"></div>`;
+    syncPerformance();
+    const save = async patch => {
+      pg.querySelectorAll('input,select').forEach(el => el.disabled = true);
+      try {
+        await L.setSettings(patch);
+        if (page === 'performance' && pg.isConnected) {
+          syncPerformance(); $('#perf-status').textContent = 'Performance settings saved.';
+        }
+      } catch (e) {
+        if (page === 'performance' && pg.isConnected) {
+          syncPerformance(); $('#perf-status').textContent = e.message || 'Could not save settings. Please try again.';
+        }
+      } finally {
+        pg.querySelectorAll('input,select').forEach(el => el.disabled = false);
+        if (page === 'performance' && pg.isConnected) syncPerformance();
+      }
+    };
+    on('perf-preset', 'change', e => save({ performancePreset: e.target.value }));
+    on('perf-anim', 'change', e => save({ reduceMotion: !e.target.checked }));
+    on('perf-glass', 'change', e => save({ transparency: e.target.checked }));
+    on('perf-dock', 'change', e => save({ dockMagnify: e.target.checked }));
+    on('perf-shadow', 'change', e => save({ perfShadows: e.target.checked }));
+    for (const [id, label] of [['perf-anim', 'Animation effects'], ['perf-glass', 'Transparency and blur'], ['perf-dock', 'Dock magnification'], ['perf-shadow', 'Window shadows']]) {
+      document.getElementById(id).setAttribute('aria-label', label);
+    }
+  },
+  async display(pg) {
+    const d = await L.get('/api/display');
+    const o = d.outputs[0];
+    pg.innerHTML = head() + `<div class="h2">Brightness & colour</div>
+      ${row('sun', 'Brightness', 'Adjust the brightness of the built-in display', slider('br', S().brightness ?? 100, 20, 100))}
+      ${row('moon', 'Night light', 'Use warmer colours to help block blue light', sw('nl', S().nightLight))}
+      ${row('contrast', 'Theme', 'Choose between light and dark', `<select class="input" id="thm"><option value="dark">Dark</option><option value="light" ${S().theme === 'light' ? 'selected' : ''}>Light</option></select>`)}
+      <div class="h2">Scale & layout</div>
+      ${row('monitor', 'Display resolution', o ? `${L.esc(o.name)} · currently ${o.current}` : 'No display information', o ? `<select class="input" id="res">${o.modes.map(x => `<option ${x === o.current ? 'selected' : ''}>${x}</option>`).join('')}</select>` : '')}
+      ${row('access', 'Animation effects', 'Spring animations when opening windows and menus', sw('anim', !S().reduceMotion))}`;
+    on('br', 'change', e => L.setSettings({ brightness: +e.target.value }));
+    on('nl', 'change', e => L.setSettings({ nightLight: e.target.checked }));
+    on('thm', 'change', e => L.setSettings({ theme: e.target.value }));
+    on('anim', 'change', e => L.setSettings({ reduceMotion: !e.target.checked }));
+    on('res', 'change', async e => {
+      const old = o.current, r = await L.post('/api/display', { output: o.name, mode: e.target.value });
+      if (!r.ok) return L.dialog({ title: "Couldn't change resolution", text: r.msg });
+      let n = 12; const keep = await Promise.race([L.dialog({ title: 'Keep these display settings?', text: 'Reverting to previous resolution in 12 seconds.', buttons: ['Keep changes', 'Revert'] }), new Promise(res => setTimeout(() => res(null), n * 1000))]);
+      if (!keep) { await L.post('/api/display', { output: o.name, mode: old }); document.querySelector('.modal-bg') && document.querySelector('.modal-bg').remove(); render(); }
+    });
+  },
+  async sound(pg) {
+    const a = await L.get('/api/audio');
+    pg.innerHTML = head() + `<div class="h2">Output</div>${a.available ? row(a.muted ? 'volumex' : 'volume', 'Volume', 'Default output device', slider('vol', a.volume) + `<button class="icon-btn" id="mute" title="Mute">${I(a.muted ? 'volumex' : 'volume')}</button>`)
+      : row('volumex', 'No output devices found', 'In VirtualBox, enable Audio in the VM settings (Intel HD Audio).')}
+      <div class="h2">Advanced</div>${row('sliders', 'System sounds', 'Play a sound for notifications', sw('snd', S().sounds !== false))}`;
+    on('vol', 'input', L.debounce(e => L.post('/api/audio', { volume: +e.target.value }), 60));
+    on('mute', 'click', async () => { await L.post('/api/audio', { muted: !a.muted }); render(); });
+    on('snd', 'change', e => L.setSettings({ sounds: e.target.checked }));
+  },
+  async notifications(pg) {
+    const n = await L.get('/api/notifications'), s = S();
+    const apps = [...new Set(n.map(x => x.app).filter(Boolean))].slice(0, 12);
+    const rules = s.notificationRules || {};
+    pg.innerHTML = head() + row('bell', 'Notifications', 'Get notifications from apps and other senders', sw('nt', s.notifications !== false))
+      + row('focus', 'Do not disturb', 'Notifications go straight to the notification centre', sw('dnd', s.focus))
+      + `<div class="h2">Quiet hours</div>`
+      + row('clock', 'Start time', 'Leave blank to disable the schedule', `<input class="input" type="time" id="qs" value="${L.esc(s.quietStart || '')}" style="width:120px">`)
+      + row('clock', 'End time', 'Notifications resume after this time', `<input class="input" type="time" id="qe" value="${L.esc(s.quietEnd || '')}" style="width:120px">`)
+      + `<div class="h2">App rules</div>` + (apps.length ? apps.map(a => row('bell', L.esc(a), 'Choose how notifications behave', `<select class="input" data-rule="${L.esc(a)}"><option value="normal">Normal</option><option value="silent" ${rules[a] === 'silent' ? 'selected' : ''}>Silent</option><option value="off" ${rules[a] === 'off' ? 'selected' : ''}>Off</option></select>`)).join('') : '<div class="card empty">Rules appear after apps send notifications.</div>')
+      + `<div class="h2">Recent notifications</div>` + (n.length ? n.slice(0, 8).map(x => row('', L.esc(x.title), L.esc(x.app + (x.body ? ' · ' + x.body : '')))).join('') + `<button class="btn" id="clr" style="margin-top:8px">Clear all</button>` : '<div class="card empty">No notifications</div>');
+    on('nt', 'change', e => L.setSettings({ notifications: e.target.checked }));
+    on('dnd', 'change', e => L.setSettings({ focus: e.target.checked, focusUntil: 0 }));
+    on('qs', 'change', e => L.setSettings({ quietStart: e.target.value }));
+    on('qe', 'change', e => L.setSettings({ quietEnd: e.target.value }));
+    pg.querySelectorAll('[data-rule]').forEach(el => el.onchange = () => { const r = Object.assign({}, S().notificationRules || {}); r[el.dataset.rule] = el.value; L.setSettings({ notificationRules: r }); });
+    on('clr', 'click', async () => { await L.post('/api/notifications/clear', {}); render(); });
+  },
+  async printers(pg) {
+    const pr = await L.get('/api/printers/list');
+    pg.innerHTML = head('Printers & scanners') + `<div class=\"muted\" style=\"margin-bottom:10px\">Connect, manage and set default printers.</div>`
+      + (pr.printers.length ? pr.printers.map((p, i) =>
+          `<div class=\"card\" style=\"padding:12px;margin-bottom:8px\"><div style=\"display:flex;justify-content:space-between;align-items:center\"><b style=\"font-weight:600\">${L.esc(p.name)}</b><span class=\"muted\" style=\"font-size:11px\">${i+1}/${pr.printers.length}</span></div>`
+          + '<div style=\"margin-top:6px\"><button class="btn small" id="prm-' + i + '">Set as default</button></div></div>'
+        ).join('') : '<div class=\"card empty\">No printers configured. Add one below.</div>')
+      + `<div class=\"h2\">Add printer</div>`
+      + `<div class=\"row\"><div class=\"rt\"><b>Printer name</b></div><input class=\"input\" id=\"pnm\" style=\"width:220px\" placeholder=\"My Printer\"></div>`
+      + `<div class=\"row\"><div class=\"rt\"><b>Device/URI</b></div><input class=\"input\" id=\"puri\" style=\"width:220px\" placeholder=\"socket://localhost:9100\"></div>`
+      + `<div style=\"margin-top:6px\"><button class="btn primary" id=\"padd\">Add printer</button></div>`;
+    on('padd', 'click', async () => {
+      const name = $('#pnm').value.trim();
+      const uri = $('#puri').value.trim();
+      if (!name || !uri) return L.dialog({ title: 'Missing fields', text: 'Enter a printer name and device URI.' });
+      const r = await L.post('/api/printers/add', { name, uri });
+      if (r.ok) L.notify('Printer added', name, 'printer', 'Settings');
+      else L.dialog({ title: 'Failed', text: r.error || 'Could not add printer.' });
+    });
+    pg.querySelectorAll('[id^="prm-"]').forEach(b => b.onclick = async () => {
+      const i = b.id.split('-')[1];
+      if (pr.printers.length) {
+        // Not implemented in API yet - placeholder
+        L.notify('Printer', 'Set as default (API endpoint pending)', 'printer', 'Settings');
+      }
+    });
+  },
+  async power(pg) {
+    pg.innerHTML = head() + `<div class="h2">Power</div>` + row('lock', 'Lock screen', 'Super + L', '<button class="btn" id="plock">Lock</button>')
+      + row('sleep', 'Sleep', 'Save power while you are away', '<button class="btn" id="psleep">Sleep</button>')
+      + row('restart', 'Restart', 'Close all apps and restart', '<button class="btn" id="preb">Restart</button>')
+      + row('power', 'Shut down', 'Close all apps and turn off', '<button class="btn primary" id="poff">Shut down</button>')
+      + `<div class="h2">Screen</div>` + row('timer', 'Turn off screen after', 'When plugged in', `<select class="input" id="blank">${[['0', 'Never'], ['300', '5 minutes'], ['600', '10 minutes'], ['1800', '30 minutes']].map(([v, t]) => `<option value="${v}" ${String(S().blank || 0) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`);
+    const pw = a => L.post('/api/power', { action: a });
+    on('plock', 'click', () => pw('lock')); on('psleep', 'click', () => pw('suspend'));
+    on('preb', 'click', () => L.ui('power')); on('poff', 'click', () => L.ui('power'));
+    on('blank', 'change', e => L.setSettings({ blank: +e.target.value }));
+  },
+  async power(pg) {
+    const s = S();
+    pg.innerHTML = head('Power') + row('lock', 'Lock screen', 'Super + L', '<button class="btn" id="plock">Lock</button>')
+      + row('sleep', 'Sleep', 'Save power while away', '<button class="btn" id="psleep">Sleep</button>')
+      + row('restart', 'Restart', 'Close all apps and restart', '<button class="btn" id="preb">Restart</button>')
+      + row('power', 'Shut down', 'Close all apps and turn off', '<button class="btn primary" id="poff">Shut down</button>')
+      + `<div class="h2">Screen</div>` + row('timer', 'Turn off screen after', 'When on AC', `<select class="input" id="blank">${[['0','Never'],['300','5 minutes'],['600','10 minutes'],['1800','30 minutes']].map(([v,t])=>`<option value="${v}" ${String(s.blank||0)===v?'selected':''}>${t}</option>`).join('')}</select>`)
+      + `<div class="h2">Profiles</div>${row('power', 'Current profile', s.performancePreset, `<select class="input" id="prof" style="width:200px"><option ${s.performancePreset==='balanced'?'selected':''}>Balanced</option><option ${s.performancePreset==='powersaver'?'selected':''}>Power Saver</option><option ${s.performancePreset==='performance'?'selected':''}>Performance</option></select>`)}
+      + `<div style="margin-top:6px"><button class="btn small primary" id="prof-apply">Apply</button></div>`
+      + `<div class="h2">Display</div>` + row('monitor', 'Brightness', 'Screen brightness', slider('brt', s.brightness||100, 0, 100))
+      + `<div class="h2">Sound</div>` + row('volume', 'Input mic', 'Default input device', `<select class="input" id="in-dev" style="width:200px"></select>`);
+    on('prof', 'change', e => L.setSettings({ performancePreset: e.target.value }));
+    on('prof-apply', 'click', async () => { const r = await L.post('/api/power/profile', { profile: S().performancePreset }); if (r.ok) L.notify('Profile applied', r.profile + ' profile', 'lumina-power', 'Settings'); });
+    on('brt', 'input', e => L.post('/api/display/brightness', { level: +e.target.value }));
+    const inp = async () => {
+      const d = await L.get('/api/audio/input');
+      const sel = $('#in-dev');
+      sel.innerHTML = d.devices.map(x => `<option value="${L.esc(x.name)}">${L.esc(x.description || x.name)}</option>`).join('');
+    };
+    inp();
+    on('in-dev', 'change', e => L.post('/api/audio/input/set', { device: e.target.value }));
+  },
+  async display(pg) {
+    const d = await L.get('/api/display');
+    const out = o => `<option>${L.esc(o)}</option>`;
+    pg.innerHTML = head('Display') + `<div class="hero"><div style="flex:1"><h2>Displays</h2><div class="muted">Arrange, resolution and brightness for each connected display.</div></div></div>`
+      + (d.outputs || []).map(o => `<div class="card" style="padding:16px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-weight:600">${L.esc(o.name)}${o.primary ? '  <span class="pill ok">primary</span>' : ''}</b><span class="muted">${o.current}</span></div>`
+      + `<div class="h2" style="margin-top:6px">Resolution</div><select class="input" id="disp-${L.esc(o.name)}" style="width:220px">${(o.modes || []).map(m => out(m)).join('') || '<option>None</option>'}</select>`
+      + `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn small primary" data-out="${L.esc(o.name)}" id="apply-disp-${L.esc(o.name)}">Apply</button></div></div>`).join('')
+      + (d.outputs && d.outputs.length ? `<div class="h2" style="margin-top:14px">Note</div><div class="card muted">Resolution changes take effect immediately. If the screen goes blank, it will revert in 15 seconds.</div>` : '<div class="card empty">No displays detected</div>');
+    d.outputs?.forEach(o => {
+      const sel = $(`#disp-${L.esc(o.name)}`);
+      if (sel) { sel.value = o.current; sel.onchange = e => { $(`#apply-disp-${L.esc(o.name)}`).dataset.new = e.target.value; }; }
+      const btn = $(`#apply-disp-${L.esc(o.name)}`);
+      if (btn) btn.onclick = async () => { const m = btn.dataset.new || o.current; const r = await L.post('/api/display', { output: o.name, mode: m }); if (!r.ok) L.dialog({ title: 'Couldn't apply resolution', text: r.msg || 'Try a different resolution.' }); };
+    });
+  },
+  async storage(pg) {
+    const [d, pl] = await Promise.all([L.get('/api/stats'), L.get('/api/fs/places')]);
+    const pct = Math.round(d.disk.used / d.disk.total * 100);
+    pg.innerHTML = head() + `<div class="card" style="padding:18px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b style="font-weight:600">System (/)</b><span class="muted">${L.bytes(d.disk.used)} used of ${L.bytes(d.disk.total)}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div><div style="display:flex;gap:16px;margin-top:10px"><span class="stat" style="--c:var(--accent)">Used ${pct}%</span><span class="stat">Free ${L.bytes(d.disk.total - d.disk.used)}</span></div></div>
+      <div class="h2">Drives</div>${(pl.drives || []).map(x => row(x.removable ? 'usb' : 'hdd', L.esc(x.name), `${L.esc(x.dev)} · ${x.fs} · ${L.bytes(x.size)}${x.mount ? ' · mounted at ' + L.esc(x.mount) : ''}`, x.mount ? `<button class="btn small" data-open="${L.esc(x.mount)}">Open</button>` : '')).join('') || '<div class="card empty">No other drives</div>'}
+      <div class="h2">Clean up</div>${row('trash', 'Empty Trash', 'Permanently delete the files in Trash', '<button class="btn" id="et">Empty</button>')}`;
+    pg.querySelectorAll('[data-open]').forEach(b => b.onclick = () => L.app('files', [b.dataset.open]));
+    on('et', 'click', async () => { if (await L.dialog({ title: 'Empty Trash?', text: "This can't be undone.", buttons: ['Empty', 'Cancel'] })) { await L.post('/api/fs/emptytrash'); L.notify('Trash emptied', '', 'lumina-trash', 'Storage'); } });
+  },
+  async about(pg) {
+    const s = SYS;
+    pg.innerHTML = head() + `<div class="hero"><img src="/ui/img/apps/logo.svg" style="width:64px;height:64px"><div><h2>${L.esc(s.hostname)}</h2><div class="muted">${L.esc(s.product || 'Virtual machine')}</div><a class="lnk" id="ren">Rename this PC</a></div></div>
+      <div class="h2">Device specifications</div><div class="card"><dl class="kv"><dt>Device name</dt><dd>${L.esc(s.hostname)}</dd><dt>Processor</dt><dd>${L.esc(s.cpu)} (${s.cores} cores)</dd>
+      <dt>Installed RAM</dt><dd>${L.bytes(s.mem)}</dd><dt>Graphics</dt><dd>${L.esc(s.gpu || 'Unknown')}</dd><dt>Storage</dt><dd>${L.bytes(s.disk)}</dd><dt>System type</dt><dd>64-bit operating system, ${s.arch}</dd>
+      <dt>Manufacturer</dt><dd>${L.esc(s.vendor || '-')}</dd></dl></div>
+      <div class="h2">LuminaOS specifications</div><div class="card"><dl class="kv"><dt>Edition</dt><dd>${L.esc(s.os)}</dd><dt>Version</dt><dd>${L.esc(s.version)} ${L.esc(s.codename || '')}</dd>
+      <dt>Kernel</dt><dd>Linux ${L.esc(s.kernel)}</dd><dt>Desktop</dt><dd>Lumina Shell (WebKitGTK) on xfwm4</dd><dt>Mode</dt><dd>${s.live ? 'Live session (not installed)' : 'Installed'}</dd></dl></div>
+      <div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="cp">${I('copy')} Copy</button><button class="btn" id="ab">About LuminaOS</button></div>`;
+    on('ren', 'click', rename);
+    on('cp', 'click', () => { navigator.clipboard.writeText(pg.innerText); });
+    on('ab', 'click', () => L.app('about'));
+  },
+  async bluetooth(pg) {
+    const b = await L.get('/api/bt');
+    const devList = b.available ? `<div class="h2">Paired devices</div><div class="card" id="bt-devices"><div class="muted" style="padding:14px">No devices paired yet. Put your device in pairing mode and it will appear here.</div></div>` : '';
+    pg.innerHTML = head('Bluetooth & devices') + (b.available ? row('bluetooth', 'Bluetooth', 'Discoverable as "' + L.esc(SYS.hostname) + '"', sw('bt', true))
+      : row('bluetooth', 'Bluetooth', 'No Bluetooth adapter was found on this device. VirtualBox can pass a USB Bluetooth adapter through to the VM.', '<span class="pill">Unavailable</span>'))
+      + devList
+      + `<div class="h2">Input devices</div>` + row('mouse', 'Mouse & touchpad', 'Pointer speed, scrolling', `<input type="range" class="slider" id="ptr" min="-10" max="10" value="${S().pointer || 0}" style="--v:${((S().pointer || 0) + 10) * 5}%">`)
+      + row('keyboard', 'Keyboard', 'Layout and shortcuts: Super opens Start, Super+A Control Centre, Super+E File Explorer', `<button class="btn small" id="kb">Shortcuts</button>`)
+      + row('printer', 'Printers & scanners', 'Add a printer through CUPS', `<button class="btn small" id="pr">Open</button>`);
+    on('ptr', 'change', e => { L.setSettings({ pointer: +e.target.value }); L.post('/api/run', { cmd: `xinput list --id-only 2>/dev/null | while read i; do xinput set-prop $i 'libinput Accel Speed' ${(+e.target.value / 10).toFixed(2)} 2>/dev/null; done` }); });
+    on('kb', 'click', () => L.app('welcome', ['shortcuts']));
+    on('pr', 'click', () => L.post('/api/run', { cmd: 'system-config-printer || xdg-open http://localhost:631' }));
+  },
+  async network(pg) {
+    pg.innerHTML = head('Network & internet') + '<div class="card empty"><div class="spinner" style="margin:0 auto"></div></div>';
+    const n = await L.get('/api/net');
+    const p = n.primary;
+    pg.innerHTML = head('Network & internet') + `<div class="hero"><div class="ri" style="width:64px;height:64px;border-radius:18px;background:var(--accent);color:#fff;display:grid;place-items:center">${I(p && p.type === 'wifi' ? 'wifi' : 'ethernet').replace('class="ic"', 'class="ic" style="width:30px;height:30px"')}</div>
+      <div><h2>${p ? L.esc(p.connection || p.device) : 'Not connected'}</h2><div class="muted">${p ? (p.type === 'wifi' ? 'Wi-Fi' : 'Ethernet') + ' · Connected, secured' + (n.ip ? ' · ' + n.ip : '') : n.available ? 'No network connection' : 'NetworkManager is not running'}</div></div></div>
+      ${row('globe', 'Networking', 'Turn all network connections on or off', sw('neten', n.enabled))}
+      ${row('send', 'Airplane mode', 'Stop all wireless communication', sw('air', !n.enabled))}
+      <div class="h2">Adapters</div>${n.devices.map(d => row(d.type === 'wifi' ? 'wifi' : 'ethernet', L.esc(d.device), `${d.type} · ${d.state}${d.connection ? ' · ' + L.esc(d.connection) : ''}`, `<span class="pill ${d.state === 'connected' ? 'ok' : ''}">${d.state}</span>`)).join('') || '<div class="card empty">No adapters</div>'}
+      ${n.wifi.length ? `<div class="h2">Wi-Fi networks</div>` + n.wifi.map(w => row('wifi', L.esc(w.ssid), `${w.signal}% · ${w.secure ? 'Secured' : 'Open'}`, w.active ? '<span class="pill ok">Connected</span>' : `<button class="btn small" data-ssid="${L.esc(w.ssid)}" data-sec="${w.secure ? 1 : 0}">Connect</button>`)).join('') : ''}
+      <div class="h2">More</div>${row('sliders', 'Advanced network settings', 'IP, DNS and proxy', '<button class="btn small" id="adv">Open</button>')}`;
+    const toggle = async en => { await L.post('/api/net', { enabled: en }); setTimeout(render, 1200); };
+    on('neten', 'change', e => toggle(e.target.checked)); on('air', 'change', e => toggle(!e.target.checked));
+    on('adv', 'click', () => L.post('/api/run', { cmd: 'nm-connection-editor' }));
+    pg.querySelectorAll('[data-ssid]').forEach(b => b.onclick = async () => {
+      let pw = '';
+      if (b.dataset.sec === '1') { pw = await L.dialog({ title: 'Connect to ' + b.dataset.ssid, text: 'Enter the network security key', input: 'password', buttons: ['Connect', 'Cancel'] }); if (pw == null) return; }
+      b.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
+      const r = await L.post('/api/net', { connect: b.dataset.ssid, password: pw });
+      if (!r.ok) L.dialog({ title: "Couldn't connect", text: r.msg }); render();
+    });
+  },
+  async personalisation(pg) {
+    const s = S();
+    pg.innerHTML = head('Personalisation') + `<div class="hero"><div class="prev" style="background-image:var(--wall);width:240px;height:140px"><u></u><s></s><i></i></div>
+      <div><h2>Make it yours</h2><div class="muted">Wallpaper, colours and effects apply instantly across LuminaOS.</div></div></div>
+      <div class="h2">Theme</div><div class="themes">${['dark', 'light'].map(t => `<div class="theme ${s.theme === t ? 'on' : ''}" data-t="${t}"><div class="tp" style="background-image:var(--wall)"><i style="background:${t === 'dark' ? 'rgba(24,24,30,.92)' : 'rgba(246,246,250,.94)'}"></i></div><span>${t === 'dark' ? 'Dark' : 'Light'}</span></div>`).join('')}</div>
+      <div class="h2">Accent colour</div><div class="card" style="padding:16px"><div class="sw-row">${ACCENTS.map(a => `<div class="swatch ${s.accent === a ? 'on' : ''}" data-a="${a}" style="background:${a}"></div>`).join('')}
+        <label class="swatch" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);position:relative" title="Custom colour"><input type="color" id="cust" value="${s.accent}" style="opacity:0;position:absolute;inset:0;width:100%;height:100%"></label></div></div>
+      <div class="h2">Background</div>${link('image', 'Background', 'Choose a picture for your desktop and lock screen', 'walls')}
+      <div class="h2">Effects</div>${row('layout', 'Transparency effects', 'Frosted glass on the dock, menus and Control Centre', sw('tr', s.transparency !== false))}
+      ${row('sparkle', 'Animation effects', 'Spring, genie and fade animations', sw('an', !s.reduceMotion))}
+      ${link('pin', 'Dock & taskbar', 'Size, magnification, pinned apps', 'dock')}
+      ${row('clock', '24-hour clock', 'Show time as 18:30 instead of 6:30 PM', sw('c24', s.clock24 !== false))}`;
+    pg.querySelectorAll('.theme').forEach(t => t.onclick = () => { L.setSettings({ theme: t.dataset.t }); pg.querySelectorAll('.theme').forEach(x => x.classList.toggle('on', x === t)); });
+    pg.querySelectorAll('.swatch[data-a]').forEach(w => w.onclick = () => { L.setSettings({ accent: w.dataset.a }); pg.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x === w)); });
+    on('cust', 'change', e => L.setSettings({ accent: e.target.value }));
+    on('tr', 'change', e => L.setSettings({ transparency: e.target.checked }));
+    on('an', 'change', e => L.setSettings({ reduceMotion: !e.target.checked }));
+    on('c24', 'change', e => L.setSettings({ clock24: e.target.checked }));
+  },
+  async walls(pg) {
+    const w = await L.get('/api/wallpapers');
+    pg.innerHTML = head() + `<div class="walls">${w.items.map((x, i) => `<div class="wall ${S().wallpaper === x.name ? 'on' : ''}" data-n="${L.esc(x.name)}" style="animation-delay:${i * 30}ms"><img src="${x.url}" loading="lazy"></div>`).join('')}</div>
+      <div style="margin-top:14px;display:flex;gap:8px"><button class="btn" id="browse">${I('folder')} Browse photos</button></div>
+      <div class="h2">Photo credits</div><div class="credit">${(w.credits || []).map(c => `<div><b>${L.esc((c.title || c.file).replace(/^File:/, "").replace(/\.jpe?g$/i, ""))}</b> by ${L.esc(c.artist || c.author)} · ${L.esc(c.license)} · <a href="${L.esc(c.source || c.url)}" target="_blank">Wikimedia Commons</a></div>`).join('')}</div>`;
+    pg.querySelectorAll('.wall').forEach(t => t.onclick = () => { L.setSettings({ wallpaper: t.dataset.n }); pg.querySelectorAll('.wall').forEach(x => x.classList.toggle('on', x === t)); });
+    on('browse', 'click', async () => {
+      const p = await L.dialog({ title: 'Use your own picture', text: 'Path to an image file (or right-click any picture in File Explorer and choose "Set as wallpaper").', input: 'text', value: (SYS.home || '~') + '/Pictures/', buttons: ['Set as wallpaper', 'Cancel'] });
+      if (p) { const r = await L.post('/api/wallpaper/upload', { path: p }); if (r.ok) setTimeout(render, 400); }
+    });
+  },
+  async dock(pg) {
+    const s = S();
+    pg.innerHTML = head() + row('apps', 'Icon size', 'Size of the icons in the dock', slider('ds', s.dockSize || 44, 32, 64))
+      + row('zoomin', 'Magnification', 'Icons grow under the pointer, like macOS', sw('dm', s.dockMagnify !== false))
+      + row('layout', 'Desktop widgets', 'Show clock and weather widgets on the desktop', sw('wd', s.widgets))
+      + `<div class="h2">Pinned apps</div><div class="card applist" id="pins"></div>`;
+    on('ds', 'change', e => L.setSettings({ dockSize: +e.target.value }));
+    on('dm', 'change', e => L.setSettings({ dockMagnify: e.target.checked }));
+    on('wd', 'change', e => L.setSettings({ widgets: e.target.checked }));
+    const apps = await L.get('/api/apps');
+    const draw = () => { $('#pins').innerHTML = (S().pinned || []).map(id => { const a = apps.find(x => x.id === id) || { id, name: id };
+      return `<div class="row" style="border:0;margin:0;background:transparent"><img src="${L.appIcon(a)}"><div class="rt"><b>${L.esc(a.name)}</b></div><button class="icon-btn" data-un="${L.esc(id)}" title="Unpin">${I('x')}</button></div>`; }).join('');
+      $('#pins').querySelectorAll('[data-un]').forEach(b => b.onclick = () => { L.setSettings({ pinned: S().pinned.filter(x => x !== b.dataset.un) }); draw(); }); };
+    draw();
+  },
+  async accessibility(pg) {
+    const s = S();
+    pg.innerHTML = head('Accessibility') + `<div class="muted" style="margin-bottom:16px">Make LuminaOS easier to see and navigate. Changes apply across all built-in apps.</div>
+      <div class="h2">Display</div>
+      ${row('zoomin', 'Interface scale', 'Scale windows and controls', slider('scale', s.uiScale || 100, 80, 150))}
+      ${row('contrast', 'High contrast', 'Use stronger text, borders and panel colours', sw('hc', s.highContrast))}
+      ${row('sparkle', 'Animation effects', 'Disable repeating motion and transitions', sw('acc-anim', !s.reduceMotion))}
+      ${row('layout', 'Transparency effects', 'Use solid panels instead of blurred glass', sw('acc-tr', s.transparency !== false))}
+      <div class="h2">Keyboard</div>
+      ${row('access', 'Strong focus indicator', 'Show a thick outline around the focused control', sw('focus-ring', s.strongFocus))}
+      ${row('keyboard', 'Command palette', 'Open the command palette with Ctrl + K', '<button class="btn small" id="cmdhelp">Show commands</button>')}
+      <div class="muted" style="line-height:1.7;margin-top:12px">Use Tab and Shift+Tab to move between controls, Enter or Space to activate them, and Esc to close menus and overlays. The File Explorer supports Ctrl+T for a new tab, F2 to rename, and Ctrl+L to edit the address.</div>`;
+    on('scale', 'change', e => L.setSettings({ uiScale: +e.target.value }));
+    on('hc', 'change', e => L.setSettings({ highContrast: e.target.checked }));
+    on('acc-anim', 'change', e => L.setSettings({ reduceMotion: !e.target.checked }));
+    on('acc-tr', 'change', e => L.setSettings({ transparency: e.target.checked }));
+    on('focus-ring', 'change', e => L.setSettings({ strongFocus: e.target.checked }));
+    on('cmdhelp', 'click', () => L.ui('command'));
+  },
+  async users(pg) {
+    const u = await L.get('/api/users/list');
+    pg.innerHTML = head('User accounts') + `<div class="muted" style="margin-bottom:12px">Create additional user accounts and manage who can sign into this computer.</div>`
+      + (u.users.length ? u.users.map(x =>
+          `<div class="card" style="padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-weight:600">${L.esc(x.name)}</b>
+            <span class="muted" style="font-size:11px">UID ${x.uid} • ${x.shell}</span>
+          </div>
+          <div style="margin-top:6px"><button class="btn small" id="usr-del-${x.uid}" ${x.name === 'lumina' ? 'disabled' : ''}>Delete</button></div>
+        </div>`).join('') : '<div class="card empty">No additional users found.</div>')
+      + `<div class="h2">Create new account</div>`
+      + `<div class="row"><div class="rt"><b>Username</b></div><input class="input" id="uname" style="width:220px" placeholder="newuser"></div>`
+      + `<div class="row"><div class="rt"><b>Password</b></div><input class="input" id="upass" style="width:220px" type="password" placeholder="Choose a password"></div>`
+      + `<div class="row"><div class="rt"><b>Confirm</b></div><input class="input" id="upass2" style="width:220px" type="password" placeholder="Repeat password"></div>`
+      + `<div style="margin-top:6px"><button class="btn primary" id="uadd">Create</button></div>`;
+    on('uadd', 'click', async () => {
+      const name = $('#uname').value.trim();
+      const pass = $('#upass').value;
+      const pass2 = $('#upass2').value;
+      if (!name || !pass || pass !== pass2) return L.dialog({ title: 'Invalid input', text: 'Enter a username and matching passwords.' });
+      const r = await L.post('/api/users/add', { name });
+      if (r.ok) L.notify('User created', name + ' can now sign in.', 'user', 'Settings');
+      else L.dialog({ title: 'Failed', text: r.error || 'Could not create user.' });
+    });
+    pg.querySelectorAll('[id^="usr-del-"]').forEach(b => b.onclick = async () => {
+      const uid = b.id.split('-')[2];
+      const name = u.users.find(x => x.uid == uid)?.name;
+      if (!name || name === 'lumina') return;
+      if (await L.dialog({ title: 'Delete user', text: 'Delete ' + name + ' and their home folder?', buttons: ['Delete', 'Cancel'] })) {
+        const r = await L.post('/api/users/remove', { name });
+        if (r.ok) L.notify('Deleted', name + ' removed.', 'user', 'Settings');
+        else L.dialog({ title: 'Failed', text: r.error || 'Could not delete user.' });
+      }
+    });
+  },
+  async apps(pg) {
+    pg.innerHTML = head('Apps') + `${link('rocket', 'Startup', 'Apps that start automatically when you sign in', 'startup')}${link('bag', 'Lumina Store', 'Get more apps', '')}
+      <div class="h2" style="display:flex;align-items:center">Installed apps <span style="flex:1"></span><div class="search" style="width:240px;height:30px"><span>${I('search')}</span><input id="af" placeholder="Search apps"></div></div><div id="al" class="applist"></div>`;
+    pg.querySelector('[data-go=""]').onclick = () => L.app('store');
+    const apps = await L.get('/api/apps');
+    const draw = q => { $('#al').innerHTML = apps.filter(a => !q || a.name.toLowerCase().includes(q)).map(a => row('', `<span style="display:flex;align-items:center;gap:12px"><img src="${L.appIcon(a)}">${L.esc(a.name)}</span>`,
+      L.esc(a.comment || a.generic || a.id), `<span class="pill">${a.world === 'windows' ? 'Windows' : a.world === 'android' ? 'Android' : a.lumina ? 'LuminaOS' : 'Linux'}</span><button class="icon-btn" data-m="${L.esc(a.id)}">${I('more')}</button>`)).join(''); 
+      $('#al').querySelectorAll('[data-m]').forEach(b => b.onclick = e => { const id = b.dataset.m; L.menu(e.clientX, e.clientY, [{ label: 'Open', icon: 'external', action: () => L.launch(id) },
+        { label: 'Pin to dock', icon: 'pin', action: () => L.setSettings({ pinned: [...new Set([...(S().pinned || []), id])] }) },
+        { label: 'Uninstall', icon: 'trash', danger: true, disabled: id.startsWith('lumina-'), action: () => L.app('store', ['--uninstall', id]) }]); }); };
+    draw(''); on('af', 'input', e => draw(e.target.value.toLowerCase()));
+  },
+  async startup(pg) {
+    const l = await L.get('/api/startup');
+    pg.innerHTML = head() + '<div class="muted" style="margin-bottom:14px">Apps can be configured to start when you sign in. Turning them off makes sign-in faster.</div>'
+      + (l.map((x, i) => row('', L.esc(x.name), L.esc(x.comment || x.id), sw('st' + i, x.enabled))).join('') || '<div class="card empty">No startup apps</div>');
+    l.forEach((x, i) => on('st' + i, 'change', e => L.post('/api/startup', { id: x.id, enabled: e.target.checked })));
+  },
+  async accounts(pg) {
+    pg.innerHTML = head('Accounts') + `<div class="hero"><div class="av" style="width:80px;height:80px;font-size:32px">${L.esc((SYS.fullname || 'U')[0].toUpperCase())}</div><div><h2>${L.esc(SYS.fullname)}</h2><div class="muted">${L.esc(SYS.user)} · Local account · Administrator</div></div></div>
+      <div class="h2">Account settings</div>${row('user', 'Your info', 'Name and picture', '')}
+      ${row('lock', 'Password', SYS.live ? 'The live session password is "live"' : 'Change the password you use to sign in', '<button class="btn small" id="pwb">Change</button>')}
+      ${row('lock', 'Lock automatically', 'Show the lock screen when waking from sleep', sw('al', S().autolock !== false))}
+      ${row('sparkle', 'First-run setup', 'Review your password, device name, time zone and appearance', '<button class="btn small" id="setup">Open</button>')}`;
+    on('al', 'change', e => L.setSettings({ autolock: e.target.checked }));
+    on('setup', 'click', () => L.app('setup'));
+    on('pwb', 'click', async () => {
+      const old = await L.dialog({ title: 'Change password', text: 'Current password', input: 'password', buttons: ['Next', 'Cancel'] }); if (old == null) return;
+      const nw = await L.dialog({ title: 'Change password', text: 'New password', input: 'password', buttons: ['Next', 'Cancel'] }); if (!nw) return;
+      const nw2 = await L.dialog({ title: 'Change password', text: 'Confirm the new password', input: 'password', buttons: ['Change', 'Cancel'] }); if (nw2 == null) return;
+      if (nw !== nw2) return L.dialog({ title: "Passwords don't match" });
+      const r = await L.post('/api/password', { old, new: nw }); L.dialog({ title: r.ok ? 'Password changed' : "Couldn't change password", text: r.ok ? '' : r.error });
+    });
+  },
+  async clipboard(pg) {
+    pg.innerHTML = head('Clipboard') + `<div class="h2">History</div>`;
+    const load = async () => {
+      try {
+        const r = await L.get('/api/clipboard/history');
+        const items = r.items || [];
+        pg.innerHTML += (items.length ? items.map((it, i) =>
+          `<div class="card" style="padding:8px 10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between"><button class="btn small danger" id="del-${i}">Delete</button><span class="muted" style="font-size:10px">Item ${i+1}</span></div><div style="word-break:break-all;color:var(--fg-2)">${L.esc(it.text.slice(0, 100))}${it.text.length > 100 ? '...' : ''}|length:${it.text.length}</div></div>`
+        ).join('') : '<div class="card empty">No clipboard history yet. Select text in any app to save it.</div>');
+        pg.querySelectorAll('[id^="del-"]').forEach(b => b.onclick = async () => {
+          const i = b.id.split('-')[1];
+          await L.post('/api/clipboard/clear', { index: i });
+          load();
+        });
+      } catch(e) {
+        pg.innerHTML += '<div class="card empty">Could not load clipboard history.</div>';
+      }
+    };
+    pg.innerHTML += `<div style="margin-bottom:10px"><button class="btn" id="copy-top">Copy top item</button><button class="btn" id="clear">Clear all</button></div>`;
+    pg.querySelectorAll('#copy-top, #clear').forEach(b => b.onclick = async () => {
+      if (b.id === 'copy-top') { await L.post('/api/clipboard/copy', { index: 0 }); L.notify('Copied', 'Top item copied to clipboard', 'clipboard', 'Settings'); }
+      else if (b.id === 'clear') await L.post('/api/clipboard/clear', { all: true });
+      load();
+    });
+    load();
+  },
+  async time(pg) {
+    const tz = await L.get('/api/timezones');
+    pg.innerHTML = head('Time & language') + `<div class="hero"><div><div style="font-size:44px;font-weight:300;letter-spacing:-.02em" id="clk">${L.time(new Date(), true)}</div><div class="muted" id="dt">${new Date().toLocaleDateString('en-GB', { dateStyle: 'full' })}</div></div></div>
+      ${row('globe', 'Time zone', 'Currently ' + L.esc(tz.current), `<select class="input" id="tz" style="width:240px">${tz.zones.map(z => `<option ${z === tz.current ? 'selected' : ''}>${z}</option>`).join('')}</select>`)}
+      ${row('clock', '24-hour clock', '', sw('c24', S().clock24 !== false))}
+      ${row('language', 'Language', 'English (United Kingdom)', '<span class="pill">More languages after install</span>')}`;
+    timers.push(setInterval(() => { const c = $('#clk'); if (c) c.textContent = L.time(new Date(), true); }, 1000));
+    on('tz', 'change', async e => { const r = await L.post('/api/timezone', { zone: e.target.value }); if (!r.ok) L.dialog({ title: "Couldn't set time zone", text: r.msg }); });
+    on('c24', 'change', e => L.setSettings({ clock24: e.target.checked }));
+  },
+  async compat(pg) {
+    const c = await L.get('/api/compat');
+    const st = (ok, y, n) => `<span class="pill ${ok ? 'ok' : 'no'}">${ok ? y : n}</span>`;
+    pg.innerHTML = head('Windows programs & Android') + `<div class="muted" style="margin-bottom:16px;max-width:640px">LuminaOS runs many Windows programs (.exe, .msi) through Wine, and Android apps (.apk) through Waydroid. Compatibility varies from app to app.</div>
+      <div style="margin-bottom:14px"><button class="btn primary" id="compat-wizard">Open compatibility wizard</button></div>
+      <div class="h2">Windows programs</div>${row('windows', 'Wine', c.wine ? L.esc(c.wineVersion) : 'Not installed. Get it from the Lumina Store.', st(c.wine, 'Installed', 'Not installed'))}
+      ${c.wine ? row('sliders', 'Windows environment', c.winePrefix ? 'Ready. Double-click any .exe to run it.' : 'Create the C: drive used by Windows programs', c.winePrefix ? '<button class="btn small" id="wcfg">Configure</button>' : '<button class="btn small primary" id="wset">Set up</button>')
+        : row('download', 'Install Wine', 'About 400 MB download', '<button class="btn small primary" id="wins">Get</button>')}
+      <div class="h2">Android apps (experimental)</div>${row('android', 'Waydroid', c.waydroid ? 'Installed' : 'Not installed', st(c.waydroid, 'Installed', 'Not installed'))}
+      ${row('shield', 'Kernel support (binder)', c.binder ? 'Available' : 'The kernel does not expose binder; Android needs a kernel with binder support', st(c.binder, 'Available', 'Missing'))}
+      ${row('rocket', 'Set up Android', 'Downloads the Android image (about 1 GB). Needs Wayland support; works best on an installed system.', '<button class="btn small" id="aset">Set up</button>')}
+      <div class="h2">Linux apps</div>${row('bag', 'Flatpak & Flathub', c.flatpak ? 'Flatpak is installed' : 'Flatpak is not installed', st(c.flatpak, 'Ready', 'Optional'))}`;
+    on('compat-wizard', 'click', () => L.app('compat'));
+    on('wins', 'click', () => L.app('store', ['wine']));
+    on('wset', 'click', async () => { await L.post('/api/compat/setup', { what: 'wine' }); L.notify('Setting up Windows programs', 'This takes a minute.', 'lumina-windows', 'Settings'); });
+    on('wcfg', 'click', () => L.post('/api/compat/setup', { what: 'winecfg' }));
+    on('aset', 'click', () => L.post('/api/compat/setup', { what: 'android' }));
+  },
+  async update(pg) {
+    pg.innerHTML = head('Update & drivers') + `<div class="hero"><div class="ri" style="width:64px;height:64px;border-radius:18px;background:var(--accent);color:#fff;display:grid;place-items:center" id="uic">${I('update').replace('class="ic"', 'class="ic" style="width:30px;height:30px"')}</div>
+      <div style="flex:1"><h2 id="ut">${localStorage.upCount ? localStorage.upCount + ' updates available' : "You're up to date"}</h2><div class="muted" id="us">${localStorage.lastCheck ? 'Last checked: ' + new Date(+localStorage.lastCheck).toLocaleString('en-GB') : 'Not checked yet'}</div>
+      <div class="progress" id="up" style="margin-top:10px;display:none;width:280px"><i style="display:block;height:100%;width:0;background:var(--accent);transition:width .4s"></i></div></div>
+      <button class="btn primary" id="chk">Check for updates</button><button class="btn" id="ins" style="display:${localStorage.upCount ? '' : 'none'}">Install all</button></div>
+      <div class="h2">Drivers</div>${row('monitor', 'Graphics', L.esc(SYS.gpu || 'Unknown'), '<span class="pill ok">In use</span>')}
+      ${row('puzzle', 'VirtualBox Guest Additions', 'Shared clipboard, display resizing, shared folders', `<span class="pill ${/virtualbox|innotek/i.test(SYS.vendor + SYS.product) ? 'ok' : ''}">${/virtualbox|innotek/i.test(SYS.vendor + SYS.product) ? 'Active' : 'Not a VirtualBox VM'}</span>`)}
+      ${row('cpu', 'Firmware & microcode', 'Provided by the Linux kernel ' + L.esc(SYS.kernel), '<span class="pill ok">Built in</span>')}`;
+    const upd = j => {
+      if (j.kind !== 'update') return;
+      const bar = $('#up'); if (!bar) return; bar.style.display = j.state === 'running' ? '' : 'none'; bar.firstElementChild.style.width = (j.progress || 5) + '%';
+      if (j.state === 'done' && j.updates) { localStorage.lastCheck = Date.now(); localStorage.upCount = j.updates.length || ''; $('#ut').textContent = j.updates.length ? j.updates.length + ' updates available' : "You're up to date"; $('#us').textContent = j.updates.slice(0, 6).join(', ') + (j.updates.length > 6 ? '…' : ''); $('#ins').style.display = j.updates.length ? '' : 'none'; }
+      else if (j.state === 'done') { localStorage.upCount = ''; $('#ut').textContent = 'Updates installed'; $('#ins').style.display = 'none'; }
+      else if (j.state === 'failed') { $('#ut').textContent = "Couldn't check for updates"; $('#us').textContent = 'Check your internet connection and try again.'; }
+      else $('#ut').textContent = j.updates === undefined && j.progress ? 'Installing updates…' : 'Checking for updates…';
+    };
+    if (!PAGES._jobHooked) { L.on('job', j => upd(j)); PAGES._jobHooked = true; }
+    on('chk', 'click', async () => { const j = await L.post('/api/update/check'); upd(j); });
+    on('ins', 'click', async () => { const j = await L.post('/api/update/install'); upd(j); });
+  },
+  async backup(pg) {
+    const b = S();
+    pg.innerHTML = head('Backup & restore') + `<div class="card" style="padding:18px;margin-bottom:12px"><div class="muted" style="line-height:1.6">Backup and restore your settings, applications and configuration to keep your LuminaOS setup.</div></div>`
+      + `<div class="h2">Create backup</div>` + row('backup', 'Backup now', 'Copy settings, apps, configs to a tar.gz file', '<button class="btn primary" id="creat">Create</button>')
+      + `<div class="h2">Restore backup</div>` + row('restore', 'Restore from file', 'Import a previous backup', '<button class="btn primary" id="rest">Choose file</button>')
+      + `<div class="h2">Auto-updates</div>` + row('clock', 'Automatic updates', 'Daily security updates at random time', sw('au', !b.autoUpdate))
+      + `<div class="h2">Advanced</div>` + row('trash', 'Clear clipboard history', 'Delete all saved clipboard entries', '<button class="btn small danger" id="clb">Clear all</button>');
+    on('creat', 'click', async () => {
+      const r = await L.post('/api/backup/create', { dest: '~/lumina-backup-' + new Date().toISOString().slice(0,10) + '.tar.gz' });
+      if (r.ok) L.notify('Backup created', 'Saved to ' + r.dest, 'backup', 'Settings');
+      else L.dialog({ title: 'Backup failed', text: r.error || 'Could not create backup.' });
+    });
+    on('rest', 'click', async () => {
+      const r = await L.dialog({ title: 'Restore backup', text: 'Choose a previous backup file (.tar.gz):', input: 'text', buttons: ['Restore', 'Cancel'] });
+      if (r) { const res = await L.post('/api/backup/restore', { src: r }); if (res.ok) L.notify('Restored', 'Settings restored from backup.', 'backup', 'Settings'); else L.dialog({ title: 'Restore failed', text: res.error || 'Could not restore.' }); }
+    });
+    on('au', 'change', e => L.post('/api/update/auto', { enable: e.target.checked }));
+    on('clb', 'click', async () => { if (await L.dialog({ title: 'Clear clipboard?', text: 'Delete all clipboard history entries?', buttons: ['Clear', 'Cancel'] })) { await L.post('/api/clipboard/clear', { all: true }); L.notify('Cleared', 'Clipboard history is empty.', 'clipboard', 'Settings'); } });
+  },
+};
+function syncPerformance() {
+  const preset = $('#perf-preset'); if (!preset) return;
+  const s = S(); preset.value = s.performancePreset || 'custom';
+  $('#perf-anim').checked = !s.reduceMotion;
+  $('#perf-glass').checked = s.transparency !== false;
+  $('#perf-dock').checked = s.dockMagnify !== false;
+  $('#perf-dock').disabled = !!s.reduceMotion;
+  $('#perf-shadow').checked = s.perfShadows !== false;
+}
+async function rename() {
+  const n = await L.dialog({ title: 'Rename your PC', text: 'You can use letters, numbers and hyphens.', input: 'text', value: SYS.hostname, buttons: ['Rename', 'Cancel'] });
+  if (!n || n === SYS.hostname) return;
+  const r = await L.post('/api/hostname', { name: n.replace(/[^A-Za-z0-9-]/g, '-') });
+  if (r.ok) { SYS = await L.get('/api/sys'); render(); } else L.dialog({ title: "Couldn't rename", text: r.msg });
+}
+function search(q) {
+  q = q.trim().toLowerCase(); if (!q) return go(page);
+  const res = INDEX.filter(([t, k]) => (t + ' ' + k).toLowerCase().includes(q));
+  $('#main').innerHTML = `<div class="page-in"><div class="crumbs">Search results</div>${res.map(([t, k, p]) => link('search', t, k, p)).join('') || '<div class="card empty">No results for "' + L.esc(q) + '"</div>'}</div>`;
+  wire($('#main'));
+}
+const PAGE_ARG = { system: 'system', display: 'display', sound: 'sound', notifications: 'notifications', bluetooth: 'bluetooth', network: 'network', personalisation: 'personalisation',
+  personalization: 'personalisation', wallpaper: 'walls', walls: 'walls', background: 'walls', dock: 'dock', apps: 'apps', startup: 'startup', accounts: 'accounts', time: 'time', compat: 'compat', android: 'compat',
+  update: 'update', about: 'about', storage: 'storage', power: 'power', performance: 'performance',
+  accessibility: 'accessibility', a11y: 'accessibility' };
+LWin.init({ icon: '/ui/img/apps/settings.svg', onArgs: a => go(PAGE_ARG[(a[0] || '').replace(/^--/, '')] || page) }).then(async () => {
+  SYS = await L.get('/api/sys');
+  $('#av').textContent = (SYS.fullname || 'U')[0].toUpperCase(); $('#uname').textContent = SYS.fullname; $('#fic').innerHTML = I('search');
+  $('#find').oninput = L.debounce(e => search(e.target.value), 120);
+  L.on('settings', () => {
+    if (page === 'performance') syncPerformance();
+    if (['personalisation', 'walls'].includes(page)) { document.querySelectorAll('.prev,.tp').forEach(p => p.style.backgroundImage = 'var(--wall)'); }
+  });
+  go(PAGE_ARG[(LWin.args[0] || '').replace(/^--/, '')] || 'system');
+});
+</script></body></html>

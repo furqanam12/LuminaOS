@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>File Explorer</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.tabs { display: flex; align-items: flex-end; gap: 2px; align-self: stretch; padding-top: 6px; min-width: 0; }
+.tab { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 12px; border-radius: 8px 8px 0 0; font-size: 12px;
+  width: 190px; min-width: 90px; flex-shrink: 1; color: var(--fg-2); transition: background var(--t-fast); animation: tabIn 260ms var(--spring) both; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(6px) scaleX(.8); } to { opacity: 1; transform: none; } }
+.tab:hover { background: var(--hover); }
+.tab.on { background: var(--card-a); color: var(--fg); }
+.tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab .tx { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; opacity: .6; }
+.tab .tx:hover { background: var(--hover); opacity: 1; }
+.tab .tx svg { width: 10px; height: 10px; }
+.newtab { width: 26px; height: 26px; margin-bottom: 1px; }
+.titlebar .ti { display: none; }
+.titlebar .tt { display: none; }
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.navbar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: var(--card-a); border-top: 1px solid var(--line); }
+.addr { flex: 1; display: flex; align-items: center; height: 30px; border-radius: 6px; background: var(--input); border: 1px solid var(--line); padding: 0 8px; gap: 2px; min-width: 0; overflow: hidden; }
+.addr .crumb { padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-size: 12.5px; }
+.addr .crumb:hover { background: var(--hover); }
+.addr .sepc { color: var(--fg-3); width: 12px; height: 12px; }
+.addr input { flex: 1; border: 0; outline: 0; background: transparent; height: 100%; }
+.navbar .search { width: 240px; height: 30px; border-radius: 6px; }
+.toolbar .btn.ghost { height: 30px; padding: 0 9px; }
+.side .h { font-size: 11.5px; color: var(--fg-3); padding: 10px 10px 4px; }
+.side .nav { height: 32px; }
+.side .nav img { width: 18px; height: 18px; }
+.drv { padding: 4px 10px 8px 40px; margin-top: -6px; }
+.drv .progress { height: 3px; margin: 4px 0 3px; }
+.drv small { font-size: 11px; color: var(--fg-3); }
+.content { flex: 1; overflow: auto; padding: 14px 18px 18px; position: relative; }
+.greet { font-size: 26px; font-weight: 600; margin: 6px 0 2px; }
+.qa { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.qa .tile { padding: 12px 12px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); transition: background var(--t-fast), transform var(--t-fast) var(--spring);
+  animation: slideUp 360ms var(--spring-soft) both; }
+.qa .tile:hover { background: var(--card-h); }
+.qa .tile:active { transform: scale(.97); }
+.qa .tile img { width: 34px; height: 34px; display: block; margin-bottom: 8px; }
+.qa .tile b { display: block; font-weight: 500; font-size: 12.5px; }
+.qa .tile small { color: var(--fg-3); font-size: 11.5px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(102px, 1fr)); gap: 4px; align-content: start; }
+.it { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 8px; border-radius: 6px; border: 1px solid transparent; text-align: center;
+  animation: popIn 260ms var(--spring-soft) both; }
+.it:hover { background: var(--hover); }
+.it.sel { background: var(--sel); border-color: rgba(var(--accent-rgb), .35); }
+.it img { width: 52px; height: 52px; object-fit: contain; }
+.it img.th { object-fit: cover; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.it span { font-size: 12px; line-height: 1.3; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.it input { width: 100%; font-size: 12px; text-align: center; }
+table.list td img { width: 18px; height: 18px; vertical-align: middle; margin-right: 8px; object-fit: contain; }
+.details { width: 260px; border-left: 1px solid var(--line); padding: 18px; overflow-y: auto; flex: none; animation: slideIn 300ms var(--spring-soft); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+.details img { width: 100%; max-height: 160px; object-fit: contain; margin-bottom: 12px; }
+.details dl { font-size: 12px; display: grid; grid-template-columns: 80px 1fr; gap: 6px; }
+.details dt { color: var(--fg-3); } .details dd { margin: 0; word-break: break-all; }
+.recent .r { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 6px; font-size: 12.5px; }
+.recent .r:hover { background: var(--hover); }
+.recent .r img { width: 20px; height: 20px; }
+.recent .r span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-box { position: absolute; border: 1px solid var(--accent); background: rgba(var(--accent-rgb), .12); pointer-events: none; z-index: 5; }
+.drop-hint { outline: 2px dashed var(--accent); outline-offset: -6px; }
+.splitpane { width: 46%; min-width: 260px; border-left: 1px solid var(--line); display: none; flex-direction: column; background: var(--bg-win); }
+.splitpane.on { display: flex; }
+.splitpane .saddr { height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--fg-2); overflow: hidden; }
+.splitpane .saddr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.splitpane .content { flex: 1; }
+</style></head>
+<body>
+<div class="col">
+  <div class="navbar">
+    <button class="icon-btn" id="bk" title="Back (Alt+Left)"></button><button class="icon-btn" id="fw" title="Forward"></button>
+    <button class="icon-btn" id="upb" title="Up (Alt+Up)"></button><button class="icon-btn" id="rf" title="Refresh (F5)"></button>
+    <div class="addr" id="addr"></div>
+    <div class="search"><span id="sic"></span><input id="q" placeholder="Search"></div>
+  </div>
+  <div class="toolbar" id="tbar"></div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div class="side" id="side" style="width:220px;border-right:1px solid var(--line)"></div>
+    <div class="col" id="mainpane"><div class="content" id="ct" tabindex="0"></div><div class="statusbar" id="sb"></div></div>
+    <div class="splitpane" id="splitpane"><div class="saddr" id="saddr"></div><div class="content" id="ct2" tabindex="0"></div></div>
+    <div class="details" id="det" style="display:none"></div>
+  </div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+const FOLDER_GLYPH = { home: 'M9 14.5l3-2.6 3 2.6V18h-6z', desktop: 'M8.5 13h7v4.5h-7zM11 19.5h2', documents: 'M9.5 12.5h5M9.5 15h5M9.5 17.5h3', download: 'M12 12v5.5M9.6 15.4L12 17.8l2.4-2.4',
+  pictures: 'M8.5 18l2.5-3 2 2 1.5-1.5L16 18zM14.5 13a1 1 0 1 0 0 .01', music: 'M11 17.5V12.5l4-1v4.5M11 17.5a1.2 1.2 0 1 1-1.2-1.2M15 16a1.2 1.2 0 1 1-1.2-1.2',
+  videos: 'M9 12.5h4.5v5H9zM13.5 14l2.5-1.5v5L13.5 16', trash: '', computer: '' };
+function folderIcon(kind) {
+  const g = FOLDER_GLYPH[kind] || '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd76a"/><stop offset="1" stop-color="#f5b52e"/></linearGradient></defs>
+    <path d="M2 6.2C2 5 3 4 4.2 4h4.6l2 2h8.9C20.9 6 22 7 22 8.2V9H2z" fill="#e0a21f"/><rect x="2" y="7.6" width="20" height="13" rx="2" fill="url(#a)"/>
+    ${g ? `<path d="${g}" fill="none" stroke="#a86b00" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>` : ''}</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+function fileIcon(it) {
+  const m = it.mime || '', n = it.name.toLowerCase();
+  let c = '#7b8794', lab = (n.split('.').pop() || '').slice(0, 4).toUpperCase();
+  if (m.startsWith('image/')) c = '#34c759'; else if (m.startsWith('audio/')) c = '#ff9f0a'; else if (m.startsWith('video/')) c = '#bf5af2';
+  else if (m.startsWith('text/') || /\.(md|json|py|js|sh|conf|log)$/.test(n)) c = '#0a84ff'; else if (/\.(zip|tar|gz|xz|7z|rar|deb)$/.test(n)) c = '#ac8e68';
+  else if (/\.(exe|msi)$/.test(n)) c = '#0078d4'; else if (n.endsWith('.apk')) c = '#3ddc84'; else if (n.endsWith('.pdf')) c = '#ff453a';
+  if (!n.includes('.')) lab = '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5.5 2h9l5 5v13.5c0 .8-.7 1.5-1.5 1.5h-12.5c-.8 0-1.5-.7-1.5-1.5v-17C4 2.7 4.7 2 5.5 2z" fill="#f4f5f7"/>
+    <path d="M14.5 2v3.5c0 .8.7 1.5 1.5 1.5h3.5z" fill="#c9ccd3"/><rect x="4" y="13" width="${lab ? 4 + lab.length * 2.6 : 0}" height="6" rx="1" fill="${c}"/>
+    <text x="5.2" y="17.6" font-family="Inter,Arial" font-size="4.2" font-weight="700" fill="#fff">${lab}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+const isImg = it => /^image\/(png|jpe?g|gif|webp|bmp|svg)/.test(it.mime || '');
+const iconFor = it => it.dir ? folderIcon(placeKind(it.path)) : fileIcon(it);
+
+let PLACES = [], DRIVES = [], HOME = '', TRASH = '';
+let tabs = [], cur = 0, view = localStorage.fview || 'grid', sortKey = localStorage.fsort || 'name', sortDir = 1, hidden = false, showDet = false;
+let clip = null, items = [], selected = new Set(), lastIdx = -1;
+let undoStack = [], redoStack = [], splitOn = false, splitPath = '', splitItems = [];
+const placeKind = p => (PLACES.find(x => x.path === p) || {}).icon;
+const T = () => tabs[cur];
+const isArchive = it => /\.(zip|tar|tgz|tar\.gz|tbz2|tar\.bz2)$/i.test(it.name || '');
+function record(label, undo, redo) { undoStack.push({ label, undo, redo }); redoStack = []; renderToolbar(); }
+async function applyHistory(entry, reverse) {
+  try { await (reverse ? entry.undo : entry.redo)(); await load(); }
+  catch (e) { L.dialog({ title: reverse ? 'Could not undo' : 'Could not redo', text: e.message || entry.label }); }
+}
+async function undo() { const e = undoStack.pop(); if (!e) return; redoStack.push(e); await applyHistory(e, true); renderToolbar(); }
+async function redo() { const e = redoStack.pop(); if (!e) return; undoStack.push(e); await applyHistory(e, false); renderToolbar(); }
+async function toggleSplit() {
+  splitOn = !splitOn; $('#splitpane').classList.toggle('on', splitOn);
+  if (splitOn && !splitPath) splitPath = T().path.startsWith('/') ? T().path : HOME;
+  if (splitOn) await loadSplit(); renderToolbar();
+}
+async function loadSplit() {
+  if (!splitOn) return;
+  $('#saddr').textContent = splitPath || HOME;
+  const r = await L.get('/api/fs/list', { path: splitPath });
+  if (r.error) { splitItems = []; $('#ct2').innerHTML = `<div class="empty">${L.esc(r.error)}</div>`; return; }
+  splitPath = r.path; splitItems = r.items; renderSplit();
+}
+function renderSplit() {
+  const ct = $('#ct2');
+  ct.innerHTML = splitItems.length ? `<div class="grid">${splitItems.map((it, i) => `<div class="it" data-i="${i}"><img src="${iconFor(it)}"><span>${L.esc(it.name)}</span></div>`).join('')}</div>` : '<div class="empty">This folder is empty.</div>';
+  ct.querySelectorAll('[data-i]').forEach(el => {
+    const it = splitItems[+el.dataset.i];
+    el.ondblclick = () => { if (it.dir) { splitPath = it.path; loadSplit(); } else L.post('/api/fs/open', { path: it.path }); };
+  });
+}
+async function extractArchive(it) {
+  const r = await L.post('/api/fs/archive/extract', { path: it.path, dest: T().path.startsWith('/') ? T().path : HOME });
+  if (!r.ok) L.dialog({ title: 'Could not extract archive', text: r.error }); else load();
+}
+async function compressSelection() {
+  const s = [...selected]; if (!s.length) return;
+  const name = await L.dialog({ title: 'Create archive', text: 'Archive file name', input: 'text', value: 'Archive.zip', buttons: ['Create', 'Cancel'] });
+  if (!name) return;
+  const r = await L.post('/api/fs/archive/create', { paths: s, dest: T().path, name });
+  if (!r.ok) L.dialog({ title: 'Could not create archive', text: r.error });
+  else { record('Create archive', () => L.post('/api/fs/delete', { paths: [r.path] }), () => L.post('/api/fs/archive/create', { paths: s, dest: T().path, name })); load(); }
+}
+async function editPermissions(it) {
+  const mode = await L.dialog({ title: 'Permissions', text: 'Unix permission mode (for example 755)', input: 'text', value: '755', buttons: ['Apply', 'Cancel'] });
+  if (!mode || !/^[0-7]{3}$/.test(mode)) return L.dialog({ title: 'Invalid mode', text: 'Use three octal digits, 000–777.' });
+  const before = (await L.post('/api/fs/permissions', { path: it.path })).info;
+  const r = await L.post('/api/fs/permissions', { path: it.path, mode });
+  if (r.ok) record('Change permissions', () => L.post('/api/fs/permissions', { path: it.path, mode: before.octal }), () => L.post('/api/fs/permissions', { path: it.path, mode }));
+}
+
+function newTab(path) { tabs.push({ path: path || 'home:', hist: [], fwd: [] }); cur = tabs.length - 1; renderTabs(); load(); }
+function closeTab(i) { if (tabs.length === 1) return LWin.close(); tabs.splice(i, 1); cur = Math.min(cur, tabs.length - 1); renderTabs(); load(); }
+function nameOf(p) {
+  if (p === 'home:') return 'Home'; if (p === 'computer:') return 'This PC'; if (p === 'recent:') return 'Recent';
+  if (p.startsWith('search:')) return 'Search: ' + p.slice(7);
+  const pl = PLACES.find(x => x.path === p); if (pl) return pl.name === 'Home' ? 'My files' : pl.name;
+  return p.split('/').filter(Boolean).pop() || 'System';
+}
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  el.innerHTML = tabs.map((t, i) => `<div class="tab ${i === cur ? 'on' : ''}" data-i="${i}">${L.icon(t.path === 'home:' ? 'home' : 'folder')}<span>${L.esc(nameOf(t.path))}</span><div class="tx" data-x="${i}">${L.icon('x')}</div></div>`).join('')
+    + `<button class="icon-btn newtab" id="nt" title="New tab (Ctrl+T)">${L.icon('plus')}</button>`;
+  el.querySelectorAll('.tab').forEach(t => t.onmousedown = e => { if (e.button === 1) return closeTab(+t.dataset.i); if (!e.target.closest('.tx')) { cur = +t.dataset.i; renderTabs(); load(); } });
+  el.querySelectorAll('.tx').forEach(x => x.onclick = e => { e.stopPropagation(); closeTab(+x.dataset.x); });
+  document.getElementById('nt').onclick = () => newTab();
+  LWin.setTitle(nameOf(T().path) + ' - File Explorer');
+}
+function go(p, noHist) {
+  const t = T(); if (p === t.path) return load();
+  if (!noHist) { t.hist.push(t.path); t.fwd = []; }
+  t.path = p; renderTabs(); load();
+}
+function back() { const t = T(); if (!t.hist.length) return; t.fwd.push(t.path); t.path = t.hist.pop(); renderTabs(); load(); }
+function fwd() { const t = T(); if (!t.fwd.length) return; t.hist.push(t.path); t.path = t.fwd.pop(); renderTabs(); load(); }
+function up() { const p = T().path; if (p.startsWith('/') && p !== '/') { if (p === HOME) return go('home:'); go(p.replace(/\/[^/]+\/?$/, '') || '/'); } }
+
+function renderSide() {
+  const p = T().path;
+  const fav = PLACES.filter(x => x.icon !== 'trash');
+  let h = `<div class="nav ${p === 'home:' ? 'on' : ''}" data-p="home:">${L.icon('home')}<span>Home</span></div>
+    <div class="h">Favourites</div>` + fav.map(f => `<div class="nav ${p === f.path ? 'on' : ''}" data-p="${L.esc(f.path)}"><img src="${folderIcon(f.icon)}"><span>${f.name === 'Home' ? 'My files' : L.esc(f.name)}</span></div>`).join('')
+    + `<div class="h">Drives</div>` + DRIVES.map(d => {
+      const pct = d.size ? Math.round((d.used / (d.used + d.free || d.size)) * 100) : 0;
+      return `<div class="nav ${p === d.mount ? 'on' : ''}" data-p="${L.esc(d.mount || '')}" data-dev="${L.esc(d.dev)}">${L.icon(d.removable ? 'usb' : 'drive')}<span>${L.esc(d.mount === '/' ? 'This computer' : d.name)}</span></div>
+        ${d.mount ? `<div class="drv"><div class="progress"><i style="display:block;height:100%;width:${pct}%;background:${pct > 90 ? '#ff453a' : 'var(--accent)'}"></i></div><small>${L.bytes(d.free)} free of ${L.bytes(d.used + d.free)}</small></div>` : ''}`;
+    }).join('') + `<div style="height:1px;background:var(--line);margin:8px 6px"></div>
+    <div class="nav ${p === TRASH ? 'on' : ''}" data-p="${L.esc(TRASH)}">${L.icon('trash')}<span>Trash</span></div>`;
+  const s = $('#side'); s.innerHTML = h;
+  s.querySelectorAll('.nav').forEach(n => n.onclick = async () => {
+    if (!n.dataset.p && n.dataset.dev) { const r = await L.post('/api/fs/mount', { dev: n.dataset.dev }); await loadPlaces(); if (r.mount) go(r.mount); return; }
+    go(n.dataset.p);
+  });
+}
+function renderAddr() {
+  const p = T().path, a = $('#addr');
+  if (!p.startsWith('/')) { a.innerHTML = `${L.icon(p === 'home:' ? 'home' : 'monitor')}<span class="crumb">${L.esc(nameOf(p))}</span>`; }
+  else {
+    const parts = p.split('/').filter(Boolean); let acc = '';
+    const cr = [`<span class="crumb" data-p="/">${L.icon('drive', 'sepc')}</span>`];
+    parts.forEach(x => { acc += '/' + x; cr.push(`${L.icon('chevr', 'sepc')}<span class="crumb" data-p="${L.esc(acc)}">${L.esc(x)}</span>`); });
+    a.innerHTML = cr.join('');
+    a.querySelectorAll('.crumb').forEach(c => c.onclick = e => { e.stopPropagation(); go(c.dataset.p); });
+  }
+  a.onclick = editAddress;
+  $('#saddr').onclick = editSplitAddress;
+  $('#bk').disabled = !T().hist.length; $('#fw').disabled = !T().fwd.length;
+  $('#bk').style.opacity = T().hist.length ? 1 : .4; $('#fw').style.opacity = T().fwd.length ? 1 : .4;
+  $('#q').placeholder = 'Search ' + nameOf(p);
+}
+function editAddress() {
+  const a = $('#addr'), p = T().path;
+  if (a.querySelector('input')) return;
+  a.innerHTML = `<input value="${L.esc(p.startsWith('/') ? p : '')}" class="selectable">`;
+  const i = a.querySelector('input'); i.focus(); i.select();
+  i.onkeydown = e => { if (e.key === 'Enter') go(i.value.replace(/^~/, HOME) || 'home:'); if (e.key === 'Escape') renderAddr(); };
+  i.onblur = () => setTimeout(renderAddr, 100);
+}
+function editSplitAddress() {
+  const a = $('#saddr'); if (a.querySelector('input')) return;
+  const old = a.textContent; a.innerHTML = `<input value="${L.esc(splitPath)}" class="selectable">`;
+  const i = a.querySelector('input'); i.focus(); i.select();
+  i.onkeydown = e => { if (e.key === 'Enter') { splitPath = i.value.replace(/^~/, HOME); loadSplit(); } if (e.key === 'Escape') a.textContent = old; };
+  i.onblur = () => setTimeout(loadSplit, 100);
+}
+function renderToolbar() {
+  const real = T().path.startsWith('/'), inTrash = T().path === TRASH, n = selected.size;
+  const b = (id, ic, label, dis, tip) => `<button class="btn ghost" id="${id}" ${dis ? 'disabled' : ''} title="${tip || label || ''}">${L.icon(ic)}${label ? `<span>${label}</span>` : ''}</button>`;
+  $('#tbar').innerHTML = b('tundo', 'undo', '', !undoStack.length, 'Undo (Ctrl+Z)') + b('tredo', 'redo', '', !redoStack.length, 'Redo (Ctrl+Shift+Z)') + '<div class="tsep"></div>'
+    + b('tnew', 'plus', 'New', !real || inTrash) + '<div class="tsep"></div>'
+    + b('tcut', 'cut', '', !n, 'Cut (Ctrl+X)') + b('tcopy', 'copy', '', !n, 'Copy (Ctrl+C)') + b('tpaste', 'paste', '', !clip || !real, 'Paste (Ctrl+V)')
+    + b('tren', 'rename', '', n !== 1, 'Rename (F2)') + b('tdel', 'trash', '', !n, inTrash ? 'Delete permanently' : 'Move to Trash (Del)') + b('tsplit', 'layout', '', !real, 'Toggle split view') + '<div class="tsep"></div>'
+    + b('tsort', 'sort', 'Sort') + b('tview', view === 'grid' ? 'grid' : 'list', 'View') + b('tmore', 'more', '')
+    + (inTrash ? b('tempty', 'trash', 'Empty Trash') : '') + '<div style="flex:1"></div>' + b('tdet', 'info', 'Details');
+  const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
+  on('tnew', e => { const r = e.currentTarget.getBoundingClientRect(); L.menu(r.left, r.bottom + 4, [
+    { label: 'Folder', icon: 'folder', action: newFolder }, { label: 'Text document', icon: 'filetext', action: () => newFile('New text document.txt') },
+    { label: 'Markdown document', icon: 'filetext', action: () => newFile('New document.md') }]); });
+  on('tundo', undo); on('tredo', redo); on('tsplit', toggleSplit);
+  on('tcut', () => setClip(true)); on('tcopy', () => setClip(false)); on('tpaste', paste); on('tren', rename); on('tdel', del);
+  on('tempty', emptyTrash); on('tdet', () => { showDet = !showDet; renderDet(); });
+  on('tsort', e => { const r = e.currentTarget.getBoundingClientRect(); L.menu(r.left, r.bottom + 4, ['name', 'mtime', 'size', 'type'].map(k => ({
+    label: { name: 'Name', mtime: 'Date modified', size: 'Size', type: 'Type' }[k] + (sortKey === k ? (sortDir > 0 ? '  ↑' : '  ↓') : ''), icon: sortKey === k ? 'check' : '',
+    action: () => { if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; } localStorage.fsort = k; renderItems(); } }))); });
+  on('tview', e => { const r = e.currentTarget.getBoundingClientRect(); L.menu(r.left, r.bottom + 4, [
+    { label: 'Large icons', icon: 'grid', action: () => { view = 'grid'; localStorage.fview = view; renderItems(); renderToolbar(); } },
+    { label: 'Details', icon: 'list', action: () => { view = 'list'; localStorage.fview = view; renderItems(); renderToolbar(); } }]); });
+  on('tmore', e => { const r = e.currentTarget.getBoundingClientRect(); L.menu(r.left, r.bottom + 4, [
+    { label: (hidden ? 'Hide' : 'Show') + ' hidden items', icon: 'eye', action: () => { hidden = !hidden; load(); } },
+    { label: 'Select all', icon: 'check', kbd: 'Ctrl+A', action: selectAll },
+    { label: 'Compress selection', icon: 'download', disabled: !n, action: compressSelection },
+    { label: 'Open in Terminal', icon: 'terminal', disabled: !real, action: () => L.post('/api/run', { cmd: `cd '${T().path.replace(/'/g, "'\\''")}' && x-terminal-emulator` }) },
+    '-', { label: 'Properties', icon: 'info', action: () => { showDet = true; renderDet(); } }]); });
+}
+function sorted(list) {
+  const k = sortKey;
+  return list.slice().sort((a, b) => (b.dir - a.dir) || sortDir * (k === 'name' ? a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    : k === 'size' ? a.size - b.size : k === 'mtime' ? a.mtime - b.mtime : (a.mime || '').localeCompare(b.mime || '')));
+}
+async function loadPlaces() {
+  const r = await L.get('/api/fs/places'); PLACES = r.places; DRIVES = r.drives; HOME = r.home;
+  TRASH = (PLACES.find(x => x.icon === 'trash') || {}).path || HOME + '/.local/share/Trash/files';
+}
+async function load() {
+  selected.clear(); lastIdx = -1;
+  const p = T().path, ct = $('#ct');
+  renderSide(); renderAddr();
+  if (p === 'home:') { await renderHome(); }
+  else if (p === 'computer:') { renderComputer(); }
+  else if (p === 'recent:') { const r = await L.get('/api/fs/recent', { limit: 60 }); items = r.map(x => ({ ...x, dir: false, size: 0, mtime: Date.parse(x.modified) / 1000 })); renderItems(); }
+  else if (p.startsWith('search:')) {
+    ct.innerHTML = '<div class="empty"><div class="spinner" style="margin:0 auto 10px"></div>Searching…</div>';
+    const r = await L.get('/api/fs/search', { q: p.slice(7) }); items = r.map(x => ({ ...x, size: 0, mtime: 0 })); renderItems();
+  } else {
+    const r = await L.get('/api/fs/list', { path: p, hidden: hidden ? 1 : 0 });
+    if (r.error) { items = []; ct.innerHTML = `<div class="empty">${L.icon('info')}<br>${L.esc(r.error)}</div>`; status(); renderToolbar(); return; }
+    T().path = r.path; items = r.items; T().usage = r.usage; renderItems();
+  }
+  renderToolbar(); renderDet(); status();
+}
+async function renderHome() {
+  const ct = $('#ct'); const h = new Date().getHours();
+  const name = (L.sys && L.sys.fullname) || (await L.get('/api/sys')).fullname;
+  const g = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const qa = PLACES.filter(x => x.icon !== 'trash');
+  ct.innerHTML = `<div class="page-in"><div class="greet">${g}, ${L.esc(name.split(' ')[0])}</div>
+    <div class="muted" style="margin-bottom:18px">${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+    <div class="h2" style="display:flex;align-items:center;gap:8px">${L.icon('star')} Quick access</div>
+    <div class="qa">${qa.map((q, i) => `<div class="tile" data-p="${L.esc(q.path)}" style="animation-delay:${i * 35}ms"><img src="${folderIcon(q.icon)}"><b>${q.name === 'Home' ? 'My files' : L.esc(q.name)}</b><small>${q.name === 'Home' ? 'Your own folder' : 'My files'}</small></div>`).join('')}
+      <div class="tile" data-p="computer:" style="animation-delay:${qa.length * 35}ms"><img src="/ui/img/apps/disks.svg"><b>This PC</b><small>Drives and devices</small></div></div>
+    <div class="h2" style="display:flex;align-items:center;gap:8px">${L.icon('clock')} Recent</div><div class="card recent" id="rec"><div class="empty">${L.icon('clock')} Files you open will show up here.</div></div></div>`;
+  ct.querySelectorAll('.tile').forEach(t => t.onclick = () => go(t.dataset.p));
+  items = [];
+  const rec = await L.get('/api/fs/recent', { limit: 8 });
+  if (rec.length) {
+    $('#rec').innerHTML = rec.map(r => `<div class="r" data-p="${L.esc(r.path)}"><img src="${fileIcon(r)}"><span>${L.esc(r.name)}</span><span class="muted">${L.esc(r.path.replace(HOME, '~').replace(/\/[^/]+$/, ''))}</span><span class="muted" style="width:110px;text-align:right">${new Date(r.modified).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></div>`).join('');
+    $('#rec').querySelectorAll('.r').forEach(r => r.ondblclick = () => L.post('/api/fs/open', { path: r.dataset.p }));
+  }
+  $('#sb').textContent = (qa.length + 1) + ' items in Quick access';
+}
+function renderComputer() {
+  const ct = $('#ct');
+  ct.innerHTML = `<div class="page-in"><div class="h2">Devices and drives</div><div class="qa" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${DRIVES.map((d, i) => {
+    const tot = d.used + d.free || d.size, pct = tot ? Math.round(d.used / tot * 100) : 0;
+    return `<div class="tile" data-i="${i}" style="display:flex;gap:12px;align-items:center;animation-delay:${i * 40}ms"><img src="/ui/img/apps/disks.svg" style="margin:0"><div style="flex:1"><b>${L.esc(d.mount === '/' ? 'This computer' : d.name)}</b>
+      ${d.mount ? `<div class="progress" style="margin:6px 0"><i style="display:block;height:100%;width:${pct}%;background:var(--accent)"></i></div><small>${L.bytes(d.free)} free of ${L.bytes(tot)} · ${d.fs}</small>` : `<small>${L.bytes(d.size)} · ${d.fs} · Click to mount</small>`}</div></div>`;
+  }).join('') || '<div class="empty">No drives found</div>'}</div></div>`;
+  ct.querySelectorAll('.tile').forEach(t => t.onclick = async () => {
+    const d = DRIVES[+t.dataset.i];
+    if (d.mount) go(d.mount); else { const r = await L.post('/api/fs/mount', { dev: d.dev }); await loadPlaces(); if (r.mount) go(r.mount); else L.dialog({ title: "Couldn't open drive", text: r.error || '' }); }
+  });
+  items = []; $('#sb').textContent = DRIVES.length + ' drives';
+}
+function renderItems() {
+  const ct = $('#ct'), q = $('#q').value.trim().toLowerCase();
+  const list = sorted(items).filter(i => !q || T().path.startsWith('search:') || i.name.toLowerCase().includes(q));
+  ct._list = list;
+  if (!list.length) { ct.innerHTML = `<div class="empty" style="padding-top:80px">${T().path === TRASH ? 'Trash is empty' : q ? 'No items match your search.' : 'This folder is empty.'}</div>`; status(); return; }
+  if (view === 'grid') {
+    ct.innerHTML = `<div class="grid">${list.map((it, i) => `<div class="it" data-i="${i}" style="animation-delay:${Math.min(i, 30) * 12}ms" draggable="true">
+      <img src="${isImg(it) ? '/api/fs/thumb?path=' + encodeURIComponent(it.path) : iconFor(it)}" class="${isImg(it) ? 'th' : ''}" loading="lazy"><span>${L.esc(it.name)}</span></div>`).join('')}</div>`;
+  } else {
+    ct.innerHTML = `<table class="list"><thead><tr><th style="width:45%">Name</th><th>Date modified</th><th>Type</th><th style="text-align:right">Size</th></tr></thead><tbody>${list.map((it, i) =>
+      `<tr class="it-row" data-i="${i}" draggable="true"><td><img src="${iconFor(it)}">${L.esc(it.name)}</td><td class="muted">${it.mtime ? new Date(it.mtime * 1000).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : ''}</td>
+      <td class="muted">${it.dir ? 'File folder' : L.esc((it.mime || '').split('/').pop())}</td><td class="muted" style="text-align:right">${it.dir ? '' : L.bytes(it.size)}</td></tr>`).join('')}</tbody></table>`;
+  }
+  ct.querySelectorAll('[data-i]').forEach(el => {
+    const i = +el.dataset.i;
+    el.onmousedown = e => { if (e.button === 2 && selected.has(list[i].path)) return; pick(i, e); };
+    el.ondblclick = () => openItem(list[i]);
+    el.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); itemMenu(e, list[i]); };
+    el.ondragstart = e => { if (!selected.has(list[i].path)) pick(i, {}); e.dataTransfer.setData('text/x-lumina', JSON.stringify([...selected])); };
+    if (list[i].dir) {
+      el.ondragover = e => { e.preventDefault(); el.classList.add('drop-hint'); };
+      el.ondragleave = () => el.classList.remove('drop-hint');
+      el.ondrop = async e => { e.preventDefault(); el.classList.remove('drop-hint'); const ps = JSON.parse(e.dataTransfer.getData('text/x-lumina') || '[]').filter(p => p !== list[i].path);
+        if (ps.length) { await L.post('/api/fs/copy', { paths: ps, dest: list[i].path, move: !e.ctrlKey }); load(); } };
+    }
+  });
+  paintSel(); status();
+}
+function pick(i, e) {
+  const list = $('#ct')._list || [], p = list[i].path;
+  if (e.shiftKey && lastIdx >= 0) { const [a, b] = [Math.min(lastIdx, i), Math.max(lastIdx, i)]; if (!e.ctrlKey) selected.clear(); for (let k = a; k <= b; k++) selected.add(list[k].path); }
+  else if (e.ctrlKey) { selected.has(p) ? selected.delete(p) : selected.add(p); lastIdx = i; }
+  else { selected.clear(); selected.add(p); lastIdx = i; }
+  paintSel(); renderToolbar(); renderDet(); status();
+}
+function paintSel() { const list = $('#ct')._list || []; document.querySelectorAll('#ct [data-i]').forEach(el => el.classList.toggle('sel', selected.has((list[+el.dataset.i] || {}).path))); }
+function selectAll() { ($('#ct')._list || []).forEach(i => selected.add(i.path)); paintSel(); renderToolbar(); status(); }
+function selItems() { return ($('#ct')._list || []).filter(i => selected.has(i.path)); }
+function status() {
+  const list = $('#ct')._list || [];
+  if (T().path === 'home:' || T().path === 'computer:') return;
+  const s = selItems(); let t = list.length + ' item' + (list.length === 1 ? '' : 's');
+  if (s.length) t += `   ${s.length} selected` + (s.some(x => !x.dir) ? ` · ${L.bytes(s.reduce((a, b) => a + (b.dir ? 0 : b.size), 0))}` : '');
+  const u = T().usage; $('#sb').innerHTML = `<span>${t}</span>` + (u && T().path.startsWith('/') ? `<span style="margin-left:auto">${L.bytes(u.free)} free</span>` : '');
+}
+function renderDet() {
+  const d = $('#det'); d.style.display = showDet ? '' : 'none'; if (!showDet) return;
+  const s = selItems();
+  if (s.length !== 1) { d.innerHTML = `<div class="empty">${s.length ? s.length + ' items selected' : 'Select a file to see its details.'}</div>`; return; }
+  const it = s[0];
+  d.innerHTML = `<img src="${isImg(it) ? '/api/fs/thumb?path=' + encodeURIComponent(it.path) : iconFor(it)}"><div style="font-weight:600;margin-bottom:12px;word-break:break-all">${L.esc(it.name)}</div>
+    <dl><dt>Type</dt><dd>${it.dir ? 'File folder' : L.esc(it.mime)}</dd>${it.dir ? '' : `<dt>Size</dt><dd>${L.bytes(it.size)}</dd>`}
+    <dt>Modified</dt><dd>${it.mtime ? new Date(it.mtime * 1000).toLocaleString('en-GB') : '-'}</dd><dt>Location</dt><dd>${L.esc(it.path.replace(/\/[^/]+$/, '').replace(HOME, '~'))}</dd></dl>`;
+}
+function openItem(it) {
+  if (it.dir) return go(it.path);
+  L.post('/api/fs/open', { path: it.path });
+}
+function setClip(move) { const s = [...selected]; if (!s.length) return; clip = { paths: s, move }; renderToolbar();
+  document.querySelectorAll('#ct .sel').forEach(e => e.style.opacity = move ? .5 : 1); }
+async function paste() {
+  if (!clip || !T().path.startsWith('/')) return;
+  const body = { paths: clip.paths, dest: T().path, move: clip.move };
+  const existing = new Set(items.map(i => i.name));
+  const conflicts = clip.paths.filter(p => existing.has(p.split('/').pop()));
+  if (conflicts.length) {
+    const choice = await L.dialog({ title: 'Files already exist', text: `${conflicts.length} item(s) with the same name already exist. Keep both, replace them, or skip?`, buttons: ['Keep both', 'Replace', 'Skip', 'Cancel'] });
+    if (choice === null || choice === 3) return;
+    body.conflict = ['rename', 'replace', 'skip'][choice];
+    if (body.conflict === 'skip') return;
+  }
+  const sources = [...clip.paths], moving = !!clip.move, dest = T().path;
+  const r = await L.post('/api/fs/copy', body);
+  if (!r.ok) L.dialog({ title: "Couldn't paste", text: r.error });
+  else record(moving ? 'Move items' : 'Copy items',
+    async () => { if (moving) {
+        for (let i = 0; i < r.paths.length && i < sources.length; i++) {
+          await L.post('/api/fs/copy', { paths: [r.paths[i]], dest: sources[i].replace(/\/[^/]+$/, ''), move: true, conflict: 'replace' });
+        }
+      } else await L.post('/api/fs/delete', { paths: r.paths }); },
+    async () => L.post('/api/fs/copy', { paths: sources, dest, move: moving }));
+  if (moving) clip = null; load();
+}
+async function newFolder() { const r = await L.post('/api/fs/mkdir', { path: T().path }); await load(); if (r.path) { record('Create folder', () => L.post('/api/fs/delete', { paths: [r.path] }), () => L.post('/api/fs/mkdir', { path: T().path })); selectPath(r.path); rename(); } }
+async function newFile(n) { const r = await L.post('/api/fs/newfile', { path: T().path, name: n }); await load(); if (r.path) { record('Create file', () => L.post('/api/fs/delete', { paths: [r.path] }), () => L.post('/api/fs/newfile', { path: T().path, name: n })); selectPath(r.path); rename(); } }
+function selectPath(p) { selected.clear(); selected.add(p); paintSel(); renderToolbar(); }
+function rename() {
+  const s = selItems(); if (s.length !== 1) return; const it = s[0];
+  const list = $('#ct')._list, idx = list.indexOf(it), el = document.querySelector(`#ct [data-i="${idx}"]`); if (!el) return;
+  const span = el.querySelector('span') || el.querySelector('td');
+  const old = span.innerHTML; span.innerHTML = `<input class="input selectable" style="height:24px" value="${L.esc(it.name)}">`;
+  const i = span.querySelector('input'); i.focus(); const dot = it.dir ? -1 : it.name.lastIndexOf('.'); i.setSelectionRange(0, dot > 0 ? dot : it.name.length);
+  i.onmousedown = e => e.stopPropagation(); i.ondblclick = e => e.stopPropagation();
+  let done = false;
+  const fin = async ok => { if (done) return; done = true; if (ok && i.value && i.value !== it.name) {
+    const r = await L.post('/api/fs/rename', { path: it.path, name: i.value });
+    if (!r.ok) L.dialog({ title: "Couldn't rename", text: r.error });
+    else { const from = it.path, to = r.path || (it.path.replace(/\/[^/]+$/, '') + '/' + i.value);
+      record('Rename', () => L.post('/api/fs/rename', { path: to, name: it.name }), () => L.post('/api/fs/rename', { path: from, name: i.value })); }
+    load(); } else span.innerHTML = old; };
+  i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); };
+  i.onblur = () => fin(true);
+}
+async function del(perm) {
+  const s = [...selected]; if (!s.length) return;
+  if (T().path === TRASH || perm === true) {
+    const ok = await L.dialog({ title: 'Delete permanently?', text: `${s.length} item(s) will be deleted. This can't be undone.`, buttons: ['Delete', 'Cancel'] });
+    if (!ok) return; await L.post('/api/fs/delete', { paths: s });
+  } else {
+    await L.post('/api/fs/trash', { paths: s });
+    record('Move to Trash', async () => { for (const p of s) await L.post('/api/fs/restore', { path: p }); },
+      () => L.post('/api/fs/trash', { paths: s }));
+  }
+  load();
+}
+async function emptyTrash() { const ok = await L.dialog({ title: 'Empty Trash?', text: 'All items in the Trash will be permanently deleted.', buttons: ['Empty Trash', 'Cancel'] }); if (ok) { await L.post('/api/fs/emptytrash'); load(); } }
+function itemMenu(e, it) {
+  if (!selected.has(it.path)) { selected.clear(); selected.add(it.path); paintSel(); renderToolbar(); }
+  const multi = selected.size > 1, low = it.name.toLowerCase();
+  const m = [{ label: 'Open', icon: it.dir ? 'folder' : 'file', action: () => openItem(it) }];
+  if (it.dir) m.push({ label: 'Open in new tab', icon: 'plus', action: () => newTab(it.path) });
+  if (/\.(txt|md|json|log|conf|sh|py|js|css|html|ini|cfg|csv)$/.test(low) || (it.mime || '').startsWith('text/')) m.push({ label: 'Edit in Notepad', icon: 'edit', action: () => L.app('notepad', [it.path]) });
+  if (isImg(it)) { m.push({ label: 'View in Photos', icon: 'image', action: () => L.app('photos', [it.path]) }, { label: 'Set as wallpaper', icon: 'desktop', action: () => L.post('/api/wallpaper/upload', { path: it.path }) }); }
+  if (/\.(exe|msi)$/.test(low)) m.push({ label: 'Run Windows program', icon: 'windows', action: () => openItem(it) });
+  if (low.endsWith('.deb')) m.push({ label: 'Install with Lumina Store', icon: 'download', action: () => L.app('store', ['--install-file', it.path]) });
+  if (low.endsWith('.apk')) m.push({ label: 'Install Android app', icon: 'android', action: () => openItem(it) });
+  if (isArchive(it)) m.push({ label: 'Extract here', icon: 'file', action: () => extractArchive(it) });
+  if (n === 1) m.push({ label: 'Permissions', icon: 'shield', action: () => editPermissions(it) });
+  m.push('-', { label: 'Cut', icon: 'cut', kbd: 'Ctrl+X', action: () => setClip(true) }, { label: 'Copy', icon: 'copy', kbd: 'Ctrl+C', action: () => setClip(false) },
+    { label: 'Rename', icon: 'rename', kbd: 'F2', disabled: multi, action: rename },
+    { label: 'Copy path', icon: 'copy', action: () => navigator.clipboard.writeText([...selected].join('\n')) }, '-',
+    { label: T().path === TRASH ? 'Delete permanently' : 'Move to Trash', icon: 'trash', danger: true, kbd: 'Del', action: del },
+    { label: 'Properties', icon: 'info', action: () => { showDet = true; renderDet(); } });
+  L.menu(e.clientX, e.clientY, m);
+}
+function bgMenu(e) {
+  const real = T().path.startsWith('/'); if (!real) return;
+  selected.clear(); paintSel(); renderToolbar();
+  L.menu(e.clientX, e.clientY, [
+    { label: 'View', icon: view === 'grid' ? 'grid' : 'list', action: () => { view = view === 'grid' ? 'list' : 'grid'; localStorage.fview = view; renderItems(); } },
+    { label: 'Refresh', icon: 'refresh', kbd: 'F5', action: load }, '-',
+    { label: 'Paste', icon: 'paste', kbd: 'Ctrl+V', disabled: !clip, action: paste },
+    { label: 'New folder', icon: 'folder', kbd: 'Ctrl+Shift+N', action: newFolder }, { label: 'New text document', icon: 'filetext', action: () => newFile('New text document.txt') }, '-',
+    { label: 'Open in Terminal', icon: 'terminal', action: () => L.post('/api/run', { cmd: `cd '${T().path.replace(/'/g, "'\\''")}' && x-terminal-emulator` }) },
+    { label: (hidden ? 'Hide' : 'Show') + ' hidden items', icon: 'eye', action: () => { hidden = !hidden; load(); } }]);
+}
+function rubber(e) {
+  if (e.button !== 0 || e.target.closest('[data-i],input,th')) return;
+  const ct = $('#ct'); if (!e.ctrlKey) { selected.clear(); paintSel(); renderToolbar(); status(); }
+  const r0 = ct.getBoundingClientRect(), sx = e.clientX - r0.left + ct.scrollTop * 0, sy = e.clientY - r0.top + ct.scrollTop;
+  const box = document.createElement('div'); box.className = 'sel-box'; ct.appendChild(box);
+  const list = ct._list || [];
+  const mv = ev => {
+    const x = ev.clientX - r0.left, y = ev.clientY - r0.top + ct.scrollTop;
+    const l = Math.min(sx, x), t = Math.min(sy, y), w = Math.abs(x - sx), h = Math.abs(y - sy);
+    Object.assign(box.style, { left: l + 'px', top: t + 'px', width: w + 'px', height: h + 'px' });
+    ct.querySelectorAll('[data-i]').forEach(el => {
+      const b = el.getBoundingClientRect(), bl = b.left - r0.left, bt = b.top - r0.top + ct.scrollTop;
+      const hit = bl < l + w && bl + b.width > l && bt < t + h && bt + b.height > t;
+      const p = list[+el.dataset.i].path; hit ? selected.add(p) : (!ev.ctrlKey && selected.delete(p));
+    });
+    paintSel();
+  };
+  const upf = () => { box.remove(); removeEventListener('mousemove', mv); removeEventListener('mouseup', upf); renderToolbar(); renderDet(); status(); };
+  addEventListener('mousemove', mv); addEventListener('mouseup', upf);
+}
+
+LWin.init({
+  titlebar: '<div class="tabs" id="tabs"></div>', icon: '/ui/img/apps/files.svg',
+  onArgs: a => { newTab(argPath(a)); },
+}).then(async () => {
+  $('#bk').innerHTML = L.icon('left'); $('#fw').innerHTML = L.icon('right'); $('#upb').innerHTML = L.icon('up'); $('#rf').innerHTML = L.icon('refresh'); $('#sic').innerHTML = L.icon('search');
+  $('#bk').onclick = back; $('#fw').onclick = fwd; $('#upb').onclick = up; $('#rf').onclick = load;
+  await loadPlaces();
+  tabs = [{ path: argPath(LWin.args), hist: [], fwd: [] }]; renderTabs(); load();
+  const ct = $('#ct');
+  ct.addEventListener('mousedown', rubber);
+  ct.addEventListener('contextmenu', e => { if (!e.target.closest('[data-i]')) { e.preventDefault(); bgMenu(e); } });
+  ct.addEventListener('dragover', e => { if (T().path.startsWith('/')) e.preventDefault(); });
+  ct.addEventListener('drop', async e => { if (e.target.closest('[data-i]')) return; e.preventDefault(); const ps = JSON.parse(e.dataTransfer.getData('text/x-lumina') || '[]');
+    if (ps.length && T().path.startsWith('/')) { await L.post('/api/fs/copy', { paths: ps, dest: T().path, move: false }); load(); } });
+  $('#ct2').addEventListener('dragover', e => { if (splitOn) e.preventDefault(); });
+  $('#ct2').addEventListener('drop', async e => { if (!splitOn) return; e.preventDefault(); const ps = JSON.parse(e.dataTransfer.getData('text/x-lumina') || '[]');
+    if (ps.length && splitPath) { await L.post('/api/fs/copy', { paths: ps, dest: splitPath, move: e.ctrlKey }); loadSplit(); load(); } });
+  const q = $('#q');
+  q.oninput = L.debounce(() => { if (T().path.startsWith('/') || T().path === 'recent:') renderItems(); }, 120);
+  q.onkeydown = e => { if (e.key === 'Enter' && q.value.trim()) { go('search:' + q.value.trim()); } if (e.key === 'Escape') { q.value = ''; renderItems(); } };
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    const k = e.key.toLowerCase(), list = $('#ct')._list || [];
+    if (e.altKey && e.key === 'ArrowLeft') back(); else if (e.altKey && e.key === 'ArrowRight') fwd(); else if (e.altKey && e.key === 'ArrowUp' || e.key === 'Backspace') up();
+    else if (e.key === 'F5') load(); else if (e.key === 'F2') rename(); else if (e.key === 'Delete') del(e.shiftKey);
+    else if (e.ctrlKey && k === 'c') setClip(false); else if (e.ctrlKey && k === 'x') setClip(true); else if (e.ctrlKey && k === 'v') paste();
+    else if (e.ctrlKey && k === 'a') { e.preventDefault(); selectAll(); }     else if (e.ctrlKey && k === 't') { e.preventDefault(); newTab(); }
+    else if (e.ctrlKey && k === 'l') { e.preventDefault(); editAddress(); }
+    else if (e.ctrlKey && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if (e.ctrlKey && k === 'y') { e.preventDefault(); redo(); }
+    else if (e.ctrlKey && e.shiftKey && k === 'n') newFolder(); else if (e.ctrlKey && k === 'f') { e.preventDefault(); q.focus(); }
+    else if (e.key === 'Enter') { const s = selItems(); if (s.length === 1) openItem(s[0]); }
+    else if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key) && list.length) {
+      e.preventDefault(); const per = view === 'grid' ? Math.max(1, Math.floor(($('#ct .grid') || ct).clientWidth / 106)) : 1;
+      const d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: per, ArrowUp: -per }[e.key]; if (view === 'list' && Math.abs(d) === 1 && e.key.length > 8) return;
+      pick(Math.max(0, Math.min(list.length - 1, (lastIdx < 0 ? -d : lastIdx) + d)), e);
+      const el = document.querySelector(`#ct [data-i="${lastIdx}"]`); el && el.scrollIntoView({ block: 'nearest' });
+    }
+  });
+});
+function argPath(a) {
+  const x = (a || [])[0];
+  if (!x) return 'home:';
+  if (x === 'trash:') return TRASH || HOME + '/.local/share/Trash/files';
+  if (x === 'computer:' || x === 'recent:' || x === 'home:') return x;
+  if (x.startsWith('file://')) return decodeURIComponent(x.slice(7));
+  return x;
+}
+</script></body></html>

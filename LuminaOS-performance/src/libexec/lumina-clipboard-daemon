@@ -1,0 +1,98 @@
+#!/bin/bash
+# LuminaOS clipboard history daemon.
+# Wraps xclip in a loop, saving every new selection to a persistent history
+# file.  Provides 'clipboard-history' command to manipulate it.
+set -euo pipefail
+
+HIST_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/lumina/clipboard"
+HIST_FILE="$HIST_DIR/history"
+MAX_HISTORY=100
+mkdir -p "$HIST_DIR"
+touch "$HIST_FILE"
+chmod 600 "$HIST_FILE"
+
+# Kill any existing instance
+pkill -f "clipboard-daemon" 2>/dev/null || true
+
+# Watch for new selections
+xclip -selection clipboard -o > /tmp/lumina-clipboard-watch 2>/dev/null &
+WATCH_PID=$!
+
+# Initial load
+echo -n "" > "$HIST_FILE"
+while true; do
+    # Wait for a clipboard change using xclip with timeout-ish approach:
+    # xclip blocks until clipboard content changes
+    if out=$(xclip -selection clipboard -o 2>/dev/null); then
+        # Trim whitespace
+        trimmed=$(echo "$out" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -n "$trimmed" ] || trimmed=" "
+
+        # Read current history
+        current=$(cat "$HIST_FILE" 2>/dev/null || echo "")
+
+        # Only add if different from last entry
+        last=$(echo "$current" | tail -n 1)
+        if [ "$trimmed" != "$last" ]; then
+            # Prepend new entry
+            new_content=$(echo -e "$trimmed\n${current}" | head -n "$MAX_HISTORY")
+            echo -n "$new_content" > "$HIST_FILE"
+        fi
+    else
+        # Clipboard empty or error - save empty state
+        current=$(cat "$HIST_FILE" 2>/dev/null || echo "")
+        if [ -n "$current" ]; then
+            echo -n "" > "$HIST_FILE"
+        fi
+    fi
+    sleep 0.5
+done &
+
+CLIPBOARD_DAEMON_PID=$!
+
+# CLI commands
+cmd="${1:-}"
+
+case "$cmd" in
+    history)
+        if [ -f "$HIST_FILE" ]; then
+            cat "$HIST_FILE" | nl -w2 -s". " -w1
+        else
+            echo "No clipboard history yet."
+        fi
+        ;;
+    clear)
+        echo -n "" > "$HIST_FILE"
+        echo "Clipboard history cleared."
+        ;;
+    paste)
+        # Get the selected item (1-based index)
+        local idx=1
+        if [ -n "${2:-}" ]; then
+            idx="$2"
+        fi
+        if [ -f "$HIST_FILE" ]; then
+            item=$(head -n "$idx" "$HIST_FILE" 2>/dev/null | tail -n 1)
+            if [ -n "$item" ]; then
+                # Copy to clipboard
+                echo -n "$item" | xclip -selection clipboard
+                echo "Copied item $idx to clipboard:"
+                echo "$item" | head -c 80
+                echo "..."
+            else
+                echo "Item $idx not found. Use 'lumina-clipboard history' to list."
+            fi
+        fi
+        ;;
+    *)
+        echo "Usage: lumina-clipboard-daemon [history|clear|paste [idx]]"
+        echo "  history   - Show clipboard history"
+        echo "  clear     - Clear clipboard history"
+        echo "  paste     - Paste most recent item"
+        echo "  paste N   - Paste item N"
+        exit 1
+        ;;
+esac
+
+# Keep daemon alive
+wait "$CLIPBOARD_DAEMON_PID"

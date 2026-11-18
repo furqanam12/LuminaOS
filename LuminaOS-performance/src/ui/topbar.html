@@ -1,0 +1,160 @@
+<!doctype html>
+<html class="dark"><head><meta charset="utf-8"><title>Top bar</title>
+<link rel="stylesheet" href="css/lumina.css">
+<style>
+  #bar { position: fixed; inset: 0; height: 30px; display: flex; align-items: center; padding: 0 6px 0 4px; gap: 2px;
+    color: #fff; font-size: 12.5px; --gx: 0px; --gy: 0px; border: 0; box-shadow: none;
+    border-bottom: 1px solid rgba(255,255,255,.07); animation: barIn 600ms var(--spring-soft) both; }
+  .light #bar { color: #1c1c22; border-bottom-color: rgba(0,0,0,.06); }
+  #bar.glass::after { background: rgba(14,14,20,.55); }
+  .light #bar.glass::after { background: rgba(250,250,252,.6); }
+  @keyframes barIn { from { transform: translateY(-100%); } to { transform: none; } }
+  .tb { height: 24px; display: flex; align-items: center; gap: 7px; padding: 0 9px; border-radius: 7px;
+    transition: background var(--t-fast), transform var(--t-fast) var(--spring); white-space: nowrap; }
+  .tb:hover, .tb.open { background: rgba(255,255,255,.14); }
+  .light .tb:hover, .light .tb.open { background: rgba(0,0,0,.07); }
+  .tb:active { transform: scale(.95); }
+  .tb svg { width: 15px; height: 15px; }
+  #logo img { width: 17px; height: 17px; transition: transform var(--t-slow) var(--spring); }
+  #logo:hover img { transform: rotate(45deg) scale(1.08); }
+  #app { font-weight: 600; padding: 0 8px; }
+  #app span { display: inline-block; animation: nameIn 300ms var(--spring-soft); }
+  @keyframes nameIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .m { color: rgba(255,255,255,.82); font-weight: 450; }
+  .light .m { color: rgba(0,0,0,.7); }
+  .sp { flex: 1; }
+  #clock { font-variant-numeric: tabular-nums; gap: 10px; font-weight: 500; }
+  #focusdot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: none; }
+  .focus #focusdot { display: block; }
+</style></head>
+<body>
+<div id="bar" class="glass">
+  <div class="tb" id="logo" title="Start"><img src="img/apps/logo.svg"></div>
+  <div class="tb" id="app"><span>Desktop</span></div>
+  <div class="tb m" id="m-file">File</div>
+  <div class="tb m" id="m-window">Window</div>
+  <div class="tb m" id="m-help">Help</div>
+  <div class="sp"></div>
+  <div class="tb" id="tray" title="Quick settings"><span id="focusdot"></span><span id="net"></span><span id="vol"></span><span id="disp"></span></div>
+  <div class="tb" id="clock"><span id="date"></span><span id="time"></span></div>
+  <div class="tb qbtn" id="qs-btn" title="Quick settings"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 0 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 1.2 14H1a2 2 0 0 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 5 2.3l.1.1a1.6 1.6 0 0 0 1.8.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 0 1 4 0v.1A1.7 1.7 0 0 0 16.9 2.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7a1.7 1.7 0 0 0 1.5 1H23a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></div>
+  <div class="qs-panel" id="qs-panel">
+    <div class="qs-row"><span>Wi-Fi</span><span class="qs-val" id="qs-wifi">—</span></div>
+    <div class="qs-row"><span>Volume</span><input type="range" class="qs-slider" id="qs-vol" min="0" max="100"></div>
+    <div class="qs-row"><span>Night Light</span><label class="switch"><input type="checkbox" id="qs-night"><span></span></label></div>
+    <div class="qs-row"><span>Settings</span><button class="btn small" id="qs-open">Open Settings</button></div>
+  </div>
+</div>
+<script src="js/lumina.js"></script>
+<script>
+const L = Lumina, $ = (s) => document.getElementById(s);
+let windows = [], active = null;
+let timersReady = false, clockTimer = null, statusTimer = null, statusGeneration = 0;
+let statusLoading = false, statusRefreshPending = false, audioRevision = 0, netRevision = 0;
+function tick() {
+  clearTimeout(clockTimer); clockTimer = null;
+  if (!timersReady || document.hidden) return;
+  const d = new Date();
+  const date = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), time = L.time(d);
+  if ($('date').textContent !== date) $('date').textContent = date;
+  if ($('time').textContent !== time) $('time').textContent = time;
+  const nextMinute = d.getTime() - d.getTime() % 60000 + 60000;
+  clockTimer = setTimeout(tick, Math.max(1, nextMinute - Date.now()));
+}
+function setApp(name) {
+  const el = $('app'); if (el.dataset.n === name) return;
+  el.dataset.n = name; el.innerHTML = `<span>${L.esc(name)}</span>`;
+}
+function onWindows(ws) {
+  windows = ws || []; active = windows.find(w => w.active && !w.minimized);
+  setApp(active ? active.app : 'Desktop');
+}
+function netIcon(n) {
+  if (!n || !n.primary) return L.icon('globe');
+  return L.icon(n.primary.type === 'wifi' ? 'wifi' : 'ethernet');
+}
+function volIcon(a) { return L.icon(!a || !a.available || a.muted || a.volume === 0 ? 'volumex' : a.volume < 40 ? 'volumelow' : 'volume'); }
+const trayIcons = {};
+function setIcon(id, icon) {
+  if (trayIcons[id] === icon) return;
+  $(id).innerHTML = icon; trayIcons[id] = icon;
+}
+async function refresh() {
+  if (!timersReady || document.hidden) return;
+  clearTimeout(statusTimer); statusTimer = null;
+  if (statusLoading) { statusRefreshPending = true; return; }
+  statusLoading = true;
+  const generation = statusGeneration, aRevision = audioRevision, nRevision = netRevision;
+  try {
+    const [a, n] = await Promise.allSettled([L.get('/api/audio'), L.get('/api/net')]);
+    if (generation !== statusGeneration || document.hidden) return;
+    if (a.status === 'fulfilled' && aRevision === audioRevision) setIcon('vol', volIcon(a.value));
+    if (n.status === 'fulfilled' && nRevision === netRevision) setIcon('net', netIcon(n.value));
+  } catch (e) { /* Retry on the next visible polling cycle. */ }
+  finally {
+    statusLoading = false;
+    if (timersReady && !document.hidden) {
+      if (statusRefreshPending) { statusRefreshPending = false; refresh(); }
+      else if (generation === statusGeneration) statusTimer = setTimeout(refresh, L.settings.performancePreset === 'low-power' ? 60000 : 20000);
+    }
+  }
+}
+function refreshTimers() {
+  clearTimeout(statusTimer); statusTimer = null;
+  statusGeneration++; statusRefreshPending = false;
+  tick();
+  if (timersReady && !document.hidden) refresh();
+}
+$('disp').innerHTML = L.icon('monitor');
+$('logo').onclick = () => L.ui('start');
+$('tray').onclick = () => L.ui('cc');
+$('clock').onclick = () => L.ui('notifications');
+$('app').onclick = (e) => appMenu(e, 'app');
+$('m-file').onclick = (e) => appMenu(e, 'file');
+$('m-window').onclick = (e) => appMenu(e, 'window');
+$('m-help').onclick = (e) => appMenu(e, 'help');
+function appMenu(e, which) {
+  const r = e.currentTarget.getBoundingClientRect();
+  const w = active;
+  const items = {
+    app: w ? [{ label: 'About ' + w.app, icon: 'info', action: () => L.app('about') },
+              { label: 'Settings', icon: 'gear', action: () => L.app('settings') }, '-',
+              { label: 'Hide', icon: 'minus', action: () => L.post('/api/window', { xid: w.xid, action: 'minimize' }) },
+              { label: 'Quit ' + w.app, icon: 'x', danger: true, action: () => L.post('/api/window', { xid: w.xid, action: 'close' }) }]
+           : [{ label: 'About LuminaOS', icon: 'info', action: () => L.app('about') }, { label: 'Personalise', icon: 'palette', action: () => L.app('settings', ['personalisation']) },
+              { label: 'Change wallpaper', icon: 'image', action: () => L.app('settings', ['personalisation']) }],
+    file: [{ label: 'New window', icon: 'plus', action: () => w && w.appId ? L.launch(w.appId) : L.app('files') },
+           { label: 'Open File Explorer', icon: 'folder', kbd: 'Super+E', action: () => L.app('files') },
+           { label: 'Open Terminal', icon: 'terminal', kbd: 'Ctrl+Alt+T', action: () => L.post('/api/run', { cmd: 'x-terminal-emulator' }) }],
+    window: [{ label: 'Minimise', icon: 'minus', disabled: !w, action: () => L.post('/api/window', { xid: w.xid, action: 'minimize' }) },
+             { label: 'Zoom', icon: 'max', disabled: !w, action: () => L.post('/api/window', { xid: w.xid, action: 'maximize' }) },
+             { label: 'Task view', icon: 'taskview', kbd: 'Super+Tab', action: () => L.ui('taskview') },
+             { label: 'Close window', icon: 'x', disabled: !w, action: () => L.post('/api/window', { xid: w.xid, action: 'close' }) }, '-',
+             ...windows.map(x => ({ label: x.title.slice(0, 48), icon: 'window', action: () => L.post('/api/window', { xid: x.xid, action: 'activate' }) }))],
+    help: [{ label: 'Welcome tour', icon: 'sparkle', action: () => L.app('welcome') },
+           { label: 'First-run setup', icon: 'user', action: () => L.app('setup') },
+           { label: 'Compatibility wizard', icon: 'windows', action: () => L.app('compat') },
+           { label: 'Keyboard shortcuts', icon: 'keyboard', action: () => L.app('welcome', ['shortcuts']) },
+           { label: 'About LuminaOS', icon: 'info', action: () => L.app('about') }],
+  }[which];
+  // menus need room: render them in the overlay window
+  L.ui('menu', { x: Math.round(r.left), y: 32, items: items.map((it, i) => it === '-' ? '-' : { label: it.label, icon: it.icon, kbd: it.kbd, disabled: it.disabled, danger: it.danger, i }) , src: 'topbar' });
+  pending = items;
+}
+let pending = null;
+L.on('ui', m => {
+  if (m.cmd === 'menu-pick' && m.src === 'topbar' && pending) { const it = pending[m.i]; it && it.action && it.action(); pending = null; }
+  if (m.cmd === 'overlay-state') { $('tray').classList.toggle('open', m.mode === 'cc'); $('clock').classList.toggle('open', m.mode === 'notifications'); $('logo').classList.toggle('open', m.mode === 'start'); }
+});
+L.on('windows', onWindows);
+L.on('audio', a => { audioRevision++; setIcon('vol', volIcon(a)); });
+L.on('net', n => { netRevision++; setIcon('net', netIcon(n)); });
+L.on('settings', s => { document.body.classList.toggle('focus', !!s.focus); refreshTimers(); });
+document.addEventListener('visibilitychange', refreshTimers);
+L.init().then(s => {
+  document.body.classList.toggle('focus', !!s.focus);
+  timersReady = true; refreshTimers();
+  L.get('/api/windows').then(onWindows);
+  L.quickSettings();
+});
+</script></body></html>

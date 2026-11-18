@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Performance</title>
+<link rel="stylesheet" href="css/lumina.css"><style>
+body { margin: 0; padding: 12px; background: var(--bg-win); color: var(--fg); font-family: var(--font); font-size: 12px; }
+.stats { display: grid; gap: 8px; }
+.stat { display: grid; grid-template-columns: 64px 1fr 60px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); }
+.stat-label { font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .05em; }
+.stat-value { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.progress { height: 4px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+.bar { height: 100%; border-radius: 2px; transition: width .4s; }
+.stat .bar { background: var(--accent); }
+.stat.disk .bar { background: #3b82f6; }
+.stat.net .bar { background: #10b981; }
+</style></head><body>
+<div class="stats">
+  <div class="stat"><span class="stat-label">CPU</span><span class="stat-value" id="cpu">0%</span><div class="progress"><i class="bar" id="cpu-bar"></i></div></div>
+  <div class="stat"><span class="stat-label">Memory</span><span class="stat-value" id="mem">0%</span><div class="progress"><i class="bar" id="mem-bar"></i></div></div>
+  <div class="stat"><span class="stat-label">Disk</span><span class="stat-value" id="disk">0%</span><div class="progress"><i class="bar" id="disk-bar"></i></div></div>
+  <div class="stat net"><span class="stat-label">Net I/O</span><span class="stat-value" id="netio">0 B/s</span><div class="progress"><i class="bar" id="netio-bar"></i></div></div>
+  <div class="stat"><span class="stat-label">Uptime</span><span class="stat-value" id="uptime">--</span></div>
+</div>
+<script>
+(function() {
+  const L = window.Lumina = {};
+  L.on('perf-tick', function(d) {
+    const pct = v => v.toFixed(1) + '%';
+    document.getElementById('cpu').textContent = pct(d.cpu);
+    document.getElementById('cpu-bar').style.width = d.cpu + '%';
+    document.getElementById('mem').textContent = pct(d.mem);
+    document.getElementById('mem-bar').style.width = d.mem + '%';
+    document.getElementById('disk').textContent = pct(d.disk);
+    document.getElementById('disk-bar').style.width = d.disk + '%';
+    const rx = d.rx / 1024, tx = d.tx / 1024;
+    document.getElementById('netio').textContent = rx.toFixed(0) + ' KiB/s';
+  });
+  L.init().then(function() {
+    const s = L.get('/api/sys').then(sys => { document.getElementById('uptime').textContent = sys.uptime ? (sys.uptime / 3600).toFixed(1) + 'h' : '--'; });
+  });
+})();
+</script></body></html>

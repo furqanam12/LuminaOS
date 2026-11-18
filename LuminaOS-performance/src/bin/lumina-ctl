@@ -1,0 +1,11 @@
+#!/bin/sh
+# lumina-ctl <command> [arg]  -  send a UI command to the running Lumina shell
+# commands: start cc launchpad search command taskview lock power notifications snip files settings taskmgr setup compat terminal
+cmd="${1:-start}"; arg="${2:-}"
+case "$cmd" in
+  files|settings|taskmgr|store|notepad|calculator|about|welcome|setup|compat) exec lumina-app "$cmd" ;;
+  terminal) exec x-terminal-emulator ;;
+  snip) exec curl -s -m 3 -X POST -H 'Content-Type: application/json' -d "{\"mode\":\"${arg:-region}\"}" http://127.0.0.1:7700/api/snip >/dev/null ;;
+esac
+curl -s -m 3 -X POST -H 'Content-Type: application/json' \
+  -d "{\"cmd\":\"$cmd\",\"arg\":\"$arg\"}" http://127.0.0.1:7700/api/ui >/dev/null

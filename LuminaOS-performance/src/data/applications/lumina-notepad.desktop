@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Notepad
+GenericName=Text Editor
+Comment=Write and edit plain text
+Exec=lumina-app notepad %F
+Icon=lumina-notepad
+Categories=Utility;TextEditor;
+Keywords=text;editor;notes;
+StartupWMClass=lumina-notepad
+StartupNotify=false
+Terminal=false
+MimeType=text/plain;text/markdown;text/x-log;application/x-shellscript;text/x-python;application/json;application/xml;text/csv;

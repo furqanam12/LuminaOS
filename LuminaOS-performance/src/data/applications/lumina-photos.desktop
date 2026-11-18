@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Photos
+GenericName=Image Viewer
+Comment=View your pictures
+Exec=lumina-app photos %F
+Icon=lumina-photos
+Categories=Graphics;Viewer;
+Keywords=images;pictures;gallery;
+StartupWMClass=lumina-photos
+StartupNotify=false
+Terminal=false
+MimeType=image/png;image/jpeg;image/gif;image/webp;image/bmp;image/svg+xml;

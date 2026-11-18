@@ -1,0 +1,245 @@
+#!/usr/bin/python3
+"""Host window for LuminaOS built-in web apps.
+
+Usage: lumina-app <app-id> [args...]
+Frameless, translucent window with a client-side title bar drawn in HTML
+(Windows 11 style caption buttons + snap layouts, macOS-like shadows,
+HarmonyOS-like rounded corners and spring animations).
+"""
+import os, sys, json, urllib.parse, urllib.request, signal
+
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("WebKit2", "4.1")
+from gi.repository import Gtk, Gdk, GLib, Gio, WebKit2
+import cairo
+
+PORT = int(os.environ.get("LUMINA_PORT", "7700"))
+BASE = "http://127.0.0.1:%d/ui/apps/" % PORT
+M = 16  # shadow margin (px) drawn by the page around the window
+
+SIZES = {
+    "files": (1000, 640), "settings": (1080, 700), "taskmgr": (980, 660), "notepad": (820, 580),
+    "calculator": (340, 520), "snip": (580, 200), "store": (1120, 720), "welcome": (860, 580),
+    "about": (520, 620), "photos": (980, 680), "setup": (860, 640), "compat": (780, 620),
+}
+SINGLE = {"settings", "taskmgr", "store", "welcome", "about", "calculator", "snip", "setup", "compat"}
+TITLES = {
+    "files": "File Explorer", "settings": "Settings", "taskmgr": "Task Manager", "notepad": "Notepad",
+    "calculator": "Calculator", "snip": "Snipping Tool", "store": "Lumina Store", "welcome": "Welcome to LuminaOS",
+    "about": "About LuminaOS", "photos": "Photos", "setup": "LuminaOS Setup", "compat": "Compatibility Wizard",
+}
+
+EDGES = {
+    "n": Gdk.WindowEdge.NORTH, "s": Gdk.WindowEdge.SOUTH, "e": Gdk.WindowEdge.EAST, "w": Gdk.WindowEdge.WEST,
+    "ne": Gdk.WindowEdge.NORTH_EAST, "nw": Gdk.WindowEdge.NORTH_WEST,
+    "se": Gdk.WindowEdge.SOUTH_EAST, "sw": Gdk.WindowEdge.SOUTH_WEST,
+}
+
+
+def pointer():
+    seat = Gdk.Display.get_default().get_default_seat()
+    _screen, x, y = seat.get_pointer().get_position()
+    return x, y
+
+
+class AppWindow(Gtk.ApplicationWindow):
+    def __init__(self, app, aid, args):
+        super().__init__(application=app)
+        self.aid = aid
+        self.set_title(TITLES.get(aid, aid.title()))
+        self.set_wmclass("lumina-" + aid, "lumina-" + aid)
+        self.set_icon_name("lumina-" + aid)
+        self.set_decorated(False)
+        self.set_app_paintable(True)
+        vis = self.get_screen().get_rgba_visual()
+        if vis:
+            self.set_visual(vis)
+        w, h = SIZES.get(aid, (900, 600))
+        mon = Gdk.Display.get_default().get_primary_monitor() or Gdk.Display.get_default().get_monitor(0)
+        wa = mon.get_workarea()
+        w, h = min(w + 2 * M, wa.width), min(h + 2 * M, wa.height)
+        self.set_default_size(w, h)
+        self.set_size_request(260, 180)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.maximized = False
+        self.restore_geom = None
+
+        ucm = WebKit2.UserContentManager()
+        ucm.register_script_message_handler("lumina")
+        ucm.connect("script-message-received::lumina", self.on_msg)
+        self.view = WebKit2.WebView.new_with_user_content_manager(ucm)
+        st = WebKit2.Settings()
+        st.set_enable_developer_extras(bool(os.environ.get("LUMINA_DEVTOOLS")))
+        st.set_enable_write_console_messages_to_stdout(bool(os.environ.get("LUMINA_DEBUG")))
+        st.set_javascript_can_access_clipboard(True)
+        st.set_enable_smooth_scrolling(True)
+        st.set_hardware_acceleration_policy(
+            WebKit2.HardwareAccelerationPolicy.NEVER if os.environ.get("LUMINA_GPU") == "never"
+            else WebKit2.HardwareAccelerationPolicy.ALWAYS)
+        self.view.set_settings(st)
+        self.view.set_background_color(Gdk.RGBA(0, 0, 0, 0))
+        self.view.connect("decide-policy", self.on_policy)
+        self.view.connect("context-menu", lambda v, menu, ev, hit: not os.environ.get("LUMINA_DEVTOOLS"))
+        self.add(self.view)
+        self.connect("draw", self.on_draw)
+        self.connect("window-state-event", self.on_state)
+        self.connect("delete-event", self.on_delete)
+        self.connect("size-allocate", lambda *a: self.update_shape())
+        self.closing = False
+        q = urllib.parse.urlencode({"args": json.dumps(args), "m": M})
+        self.view.load_uri(BASE + aid + ".html?" + q)
+        self.show_all()
+
+    def on_draw(self, w, cr):
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.paint()
+        return False
+
+    def on_policy(self, view, decision, kind):
+        if kind == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            uri = decision.get_navigation_action().get_request().get_uri()
+            Gio.AppInfo.launch_default_for_uri(uri, None)
+            decision.ignore()
+            return True
+        return False
+
+    def send(self, event, data=None):
+        self.view.evaluate_javascript("window.Lumina && Lumina._native(%s)" %
+                                      json.dumps({"event": event, "data": data}), -1, None, None, None, None, None)
+
+    def update_shape(self):
+        gw = self.get_window()
+        if not gw:
+            return
+        a = self.get_allocation()
+        m = 0 if self.maximized else M - 6
+        reg = cairo.Region(cairo.RectangleInt(m, m, max(1, a.width - 2 * m), max(1, a.height - 2 * m)))
+        gw.input_shape_combine_region(reg, 0, 0)
+
+    def on_state(self, w, ev):
+        st = ev.new_window_state
+        self.maximized = bool(st & Gdk.WindowState.MAXIMIZED) or bool(st & Gdk.WindowState.TILED)
+        focused = bool(st & Gdk.WindowState.FOCUSED)
+        if ev.changed_mask & Gdk.WindowState.ICONIFIED and not st & Gdk.WindowState.ICONIFIED:
+            self.send("restored")
+        self.send("state", {"maximized": self.maximized, "focused": focused,
+                            "minimized": bool(st & Gdk.WindowState.ICONIFIED),
+                            "fullscreen": bool(st & Gdk.WindowState.FULLSCREEN)})
+        self.update_shape()
+        return False
+
+    def on_delete(self, *a):
+        if self.closing:
+            return False
+        self.closing = True
+        self.send("closing")
+        self.close_timer = GLib.timeout_add(1500, self.destroy)  # page calls "close-now" after its animation
+        return True
+
+    def workarea(self):
+        gw = self.get_window()
+        disp = Gdk.Display.get_default()
+        mon = disp.get_monitor_at_window(gw) if gw else disp.get_monitor(0)
+        return mon.get_workarea()
+
+    def snap(self, zone):
+        wa = self.workarea()
+        x, y, W, H = wa.x, wa.y, wa.width, wa.height
+        zones = {
+            "left": (0, 0, .5, 1), "right": (.5, 0, .5, 1), "left3": (0, 0, 1 / 3, 1), "center3": (1 / 3, 0, 1 / 3, 1),
+            "right3": (2 / 3, 0, 1 / 3, 1), "left23": (0, 0, 2 / 3, 1), "right13": (2 / 3, 0, 1 / 3, 1),
+            "tl": (0, 0, .5, .5), "tr": (.5, 0, .5, .5), "bl": (0, .5, .5, .5), "br": (.5, .5, .5, .5),
+        }
+        if zone == "max":
+            self.maximize(); return
+        z = zones.get(zone)
+        if not z:
+            return
+        if self.maximized:
+            self.unmaximize()
+        gx, gy = int(x + z[0] * W) - M, int(y + z[1] * H) - M
+        gw_, gh = int(z[2] * W) + 2 * M, int(z[3] * H) + 2 * M
+        self.move(gx, gy)
+        self.resize(gw_, gh)
+
+    def on_msg(self, ucm, res):
+        try:
+            m = json.loads(res.get_js_value().to_string())
+        except Exception:
+            return
+        c = m.get("cmd")
+        t = Gtk.get_current_event_time()
+        if c == "move":
+            if self.maximized and m.get("x") is not None:
+                pass  # xfwm4 restores when dragged
+            x, y = pointer()
+            self.begin_move_drag(1, x, y, t)
+        elif c == "resize":
+            if self.maximized:
+                return
+            x, y = pointer()
+            self.begin_resize_drag(EDGES.get(m.get("edge"), Gdk.WindowEdge.SOUTH_EAST), 1, x, y, t)
+        elif c == "minimize":
+            self.iconify()
+        elif c == "maximize":
+            self.unmaximize() if self.maximized else self.maximize()
+        elif c == "snap":
+            self.snap(m.get("zone"))
+        elif c == "close":
+            self.close()
+        elif c == "present":
+            self.deiconify()
+            self.present_with_time(int(GLib.get_monotonic_time() / 1000) & 0xffffffff)
+        elif c == "hold":  # page asks the user something before closing
+            if getattr(self, "close_timer", None):
+                GLib.source_remove(self.close_timer)
+                self.close_timer = None
+            self.closing = False
+        elif c == "close-now":
+            self.destroy()
+        elif c == "title":
+            self.set_title(m.get("title") or TITLES.get(self.aid, ""))
+        elif c == "size":
+            self.resize(int(m["w"]) + 2 * M, int(m["h"]) + 2 * M)
+        elif c == "fullscreen":
+            self.fullscreen() if m.get("on") else self.unfullscreen()
+        elif c == "ready":
+            self.send("state", {"maximized": self.maximized, "focused": self.is_active()})
+        elif c == "log":
+            print("[%s] %s" % (self.aid, m.get("msg")), flush=True)
+
+
+class App(Gtk.Application):
+    def __init__(self, aid):
+        flags = Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+        if aid not in SINGLE:
+            flags |= Gio.ApplicationFlags.NON_UNIQUE
+        super().__init__(application_id="org.lumina.app." + aid.replace("-", "_"), flags=flags)
+        self.aid = aid
+        self.win = None
+
+    def do_command_line(self, cl):
+        args = cl.get_arguments()[2:]
+        if self.win:
+            self.win.present_with_time(Gtk.get_current_event_time() or int(GLib.get_monotonic_time() / 1000) & 0xffffffff)
+            self.win.send("args", args)
+        else:
+            self.win = AppWindow(self, self.aid, args)
+        return 0
+
+
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+    aid = sys.argv[1]
+    app = App(aid)
+    sys.exit(app.run(sys.argv))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,7 @@
+# Store large binary images with Git LFS
+*.iso filter=lfs diff=lfs merge=lfs -text
+
+# Preserve line endings in platform scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf

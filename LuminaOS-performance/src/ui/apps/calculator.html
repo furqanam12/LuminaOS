@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Calculator</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.col { flex: 1; display: flex; flex-direction: column; padding: 0 6px 6px; min-width: 0; }
+.top { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.top b { font-size: 18px; font-weight: 600; flex: 1; }
+.disp { padding: 6px 12px 10px; text-align: right; }
+.expr { color: var(--fg-3); font-size: 13px; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: right; }
+.val { font-size: 46px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; line-height: 1.15; transition: font-size 120ms; user-select: text; -webkit-user-select: text; }
+.val.pop { animation: valPop 220ms var(--spring); }
+@keyframes valPop { from { transform: scale(.96); opacity: .6; } to { transform: none; opacity: 1; } }
+.mem { display: flex; gap: 2px; padding: 0 4px 4px; }
+.mem button { flex: 1; height: 28px; border: 0; background: transparent; border-radius: 5px; font-size: 12px; color: var(--fg-2); }
+.mem button:hover { background: var(--hover); }
+.keys { flex: 1; display: grid; gap: 3px; grid-template-columns: repeat(4, 1fr); }
+.sci .keys { grid-template-columns: repeat(5, 1fr); }
+.k { border: 0; border-radius: 6px; background: var(--card); color: var(--fg); font-size: 15px; transition: background var(--t-fast), transform 120ms var(--spring); min-height: 38px;
+  box-shadow: inset 0 0 0 1px var(--line); }
+.k:hover { background: var(--card-h); }
+.k:active, .k.press { transform: scale(.94); background: var(--card-a); }
+.k.n { background: var(--card-a); font-weight: 600; font-size: 17px; }
+.light .k.n { background: #fff; }
+.k.eq { background: var(--accent); color: #fff; box-shadow: none; font-size: 20px; }
+.k.eq:hover { background: var(--accent-2); }
+.k.f { color: var(--fg-2); font-size: 14px; }
+.sciOnly { display: none; } .sci .sciOnly { display: block; }
+.hist { width: 0; overflow: hidden; transition: width var(--t) var(--spring-soft); border-left: 1px solid transparent; display: flex; flex-direction: column; }
+.hist.on { width: 240px; border-left-color: var(--line); }
+.hist .h { padding: 8px 14px; font-weight: 600; }
+.hist .items { flex: 1; overflow-y: auto; padding: 0 6px; }
+.hist .hi { text-align: right; padding: 8px; border-radius: 6px; animation: slideUp 260ms var(--spring-soft); }
+.hist .hi:hover { background: var(--hover); }
+.hist .hi small { color: var(--fg-3); display: block; font-size: 12px; } .hist .hi b { font-size: 18px; font-weight: 600; }
+</style></head>
+<body>
+<div class="col">
+  <div class="top"><button class="icon-btn" id="mode" title="Switch mode"></button><b id="mt">Standard</b><button class="icon-btn" id="hb" title="History (Ctrl+H)"></button></div>
+  <div class="disp"><div class="expr" id="ex"></div><div class="val" id="v">0</div></div>
+  <div class="mem"><button data-mem="mc">MC</button><button data-mem="mr">MR</button><button data-mem="m+">M+</button><button data-mem="m-">M−</button><button data-mem="ms">MS</button></div>
+  <div class="keys" id="keys"></div>
+</div>
+<div class="hist" id="hist"><div class="h">History</div><div class="items" id="hl"></div><div style="padding:8px;text-align:right"><button class="icon-btn" id="hc" title="Clear history"></button></div></div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+const STD = [['%', 'f', 'pct'], ['CE', 'f', 'ce'], ['C', 'f', 'c'], ['⌫', 'f', 'bs'], ['¹/ₓ', 'f', 'inv'], ['x²', 'f', 'sq'], ['²√x', 'f', 'sqrt'], ['÷', 'f', '/'],
+  ['7', 'n'], ['8', 'n'], ['9', 'n'], ['×', 'f', '*'], ['4', 'n'], ['5', 'n'], ['6', 'n'], ['−', 'f', '-'], ['1', 'n'], ['2', 'n'], ['3', 'n'], ['+', 'f', '+'], ['+/−', 'n', 'neg'], ['0', 'n'], ['.', 'n', '.'], ['=', 'eq', '=']];
+const SCI = [['2ⁿᵈ', 'f', 'second'], ['π', 'f', 'pi'], ['e', 'f', 'e'], ['C', 'f', 'c'], ['⌫', 'f', 'bs'], ['x²', 'f', 'sq'], ['¹/ₓ', 'f', 'inv'], ['|x|', 'f', 'abs'], ['sin', 'f', 'sin'], ['cos', 'f', 'cos'],
+  ['²√x', 'f', 'sqrt'], ['(', 'f', '('], [')', 'f', ')'], ['n!', 'f', 'fact'], ['÷', 'f', '/'], ['xʸ', 'f', '^'], ['7', 'n'], ['8', 'n'], ['9', 'n'], ['×', 'f', '*'],
+  ['10ˣ', 'f', 'p10'], ['4', 'n'], ['5', 'n'], ['6', 'n'], ['−', 'f', '-'], ['log', 'f', 'log'], ['1', 'n'], ['2', 'n'], ['3', 'n'], ['+', 'f', '+'], ['ln', 'f', 'ln'], ['+/−', 'n', 'neg'], ['0', 'n'], ['.', 'n', '.'], ['=', 'eq', '=']];
+let sci = localStorage.calcSci === '1', expr = [], entry = '0', fresh = true, memory = 0, history = JSON.parse(localStorage.calcHist || '[]'), justEval = false;
+const fmt = n => { if (!isFinite(n)) return 'Cannot divide by zero'; const a = Math.abs(n); if (a !== 0 && (a >= 1e16 || a < 1e-12)) return n.toExponential(10).replace(/\.?0+e/, 'e');
+  const s = String(+n.toPrecision(15)); const [i, d] = s.split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (d ? '.' + d : ''); };
+const num = () => parseFloat(entry.replace(/,/g, ''));
+const OPS = { '+': [1, (a, b) => a + b], '-': [1, (a, b) => a - b], '*': [2, (a, b) => a * b], '/': [2, (a, b) => a / b], '^': [3, (a, b) => Math.pow(a, b)] };
+const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷', '^': '^' };
+function evaluate(tokens) { // shunting-yard
+  const out = [], st = [];
+  for (const t of tokens) {
+    if (typeof t === 'number') out.push(t);
+    else if (t === '(') st.push(t);
+    else if (t === ')') { while (st.length && st[st.length - 1] !== '(') out.push(st.pop()); st.pop(); }
+    else { while (st.length && st[st.length - 1] !== '(' && (OPS[st[st.length - 1]][0] > OPS[t][0] || (OPS[st[st.length - 1]][0] === OPS[t][0] && t !== '^'))) out.push(st.pop()); st.push(t); }
+  }
+  while (st.length) { const o = st.pop(); if (o !== '(') out.push(o); }
+  const s = [];
+  for (const t of out) { if (typeof t === 'number') s.push(t); else { const b = s.pop(), a = s.pop(); s.push(OPS[t][1](a ?? 0, b ?? 0)); } }
+  return s.pop() ?? 0;
+}
+const exprText = () => expr.map(t => typeof t === 'number' ? fmt(t) : SYM[t] || t).join(' ');
+function draw(pop) {
+  const v = $('#v'); v.textContent = entry; v.style.fontSize = entry.length > 16 ? '26px' : entry.length > 11 ? '34px' : '46px';
+  if (pop) { v.classList.remove('pop'); void v.offsetWidth; v.classList.add('pop'); }
+  $('#ex').innerHTML = '<bdi dir="ltr">' + L.esc(exprText()) + '</bdi>';
+}
+function press(k) {
+  const isDigit = /^[0-9]$/.test(k);
+  if (entry.startsWith('Cannot') && k !== 'c') { entry = '0'; expr = []; fresh = true; }
+  if (isDigit || k === '.') {
+    if (justEval) { expr = []; justEval = false; }
+    if (fresh) { entry = k === '.' ? '0.' : k; fresh = false; }
+    else if (k === '.' && entry.includes('.')) return;
+    else if (entry.replace(/[,.-]/g, '').length < 16) entry = entry === '0' && k !== '.' ? k : entry + k;
+    const [i, d] = entry.replace(/,/g, '').split('.'); entry = (i === '-' ? '-' : fmt(+i || 0).replace(/^0$/, i.startsWith('-') ? '-0' : '0')) + (d !== undefined ? '.' + d : '');
+    return draw();
+  }
+  if (OPS[k]) {
+    if (justEval) { expr = []; justEval = false; }
+    const last = expr[expr.length - 1];
+    if (fresh && OPS[last]) expr[expr.length - 1] = k; else { if (last !== ')' ) expr.push(num()); expr.push(k); }
+    entry = fmt(evalPartial()); fresh = true; return draw(true);
+  }
+  const unary = { sq: x => x * x, sqrt: x => Math.sqrt(x), inv: x => 1 / x, neg: x => -x, abs: x => Math.abs(x), sin: x => Math.sin(x * Math.PI / 180), cos: x => Math.cos(x * Math.PI / 180),
+    tan: x => Math.tan(x * Math.PI / 180), log: x => Math.log10(x), ln: x => Math.log(x), p10: x => Math.pow(10, x), fact: x => { if (x < 0 || x > 170 || x % 1) return NaN; let r = 1; for (let i = 2; i <= x; i++) r *= i; return r; },
+    pct: x => { const base = expr.length >= 2 ? evaluate(expr.slice(0, -1)) : 0; const op = expr[expr.length - 1]; return op === '+' || op === '-' ? base * x / 100 : x / 100; } };
+  if (unary[k]) { if (k === 'neg' && !fresh) { entry = entry.startsWith('-') ? entry.slice(1) : (entry === '0' ? '0' : '-' + entry); return draw(); }
+    const r = unary[k](num()); entry = isNaN(r) ? 'Invalid input' : fmt(r); fresh = true; if (justEval) { expr = []; justEval = false; } return draw(true); }
+  switch (k) {
+    case 'pi': entry = fmt(Math.PI); fresh = true; break;
+    case 'e': entry = fmt(Math.E); fresh = true; break;
+    case '(': if (justEval) { expr = []; justEval = false; } expr.push('('); fresh = true; break;
+    case ')': if (expr.filter(t => t === '(').length > expr.filter(t => t === ')').length) { if (expr[expr.length - 1] !== ')') expr.push(num()); expr.push(')'); entry = fmt(evalPartial()); fresh = true; } break;
+    case 'ce': entry = '0'; fresh = true; break;
+    case 'c': entry = '0'; expr = []; fresh = true; justEval = false; break;
+    case 'bs': if (!fresh) { entry = entry.replace(/,/g, '').slice(0, -1) || '0'; if (entry === '-') entry = '0'; const [i, d] = entry.split('.'); entry = fmt(+i) + (d !== undefined ? '.' + d : ''); } break;
+    case '=': {
+      if (justEval) return; if (expr[expr.length - 1] !== ')') expr.push(num());
+      const toks = closeParens(expr), r = evaluate(toks), line = exprText() + ' =';
+      entry = fmt(r); $('#ex').innerHTML = '<bdi dir="ltr">' + L.esc(line) + '</bdi>'; history.unshift({ e: line, r: entry }); history = history.slice(0, 50); localStorage.calcHist = JSON.stringify(history); drawHist();
+      justEval = true; fresh = true; expr = toks; const v = $('#v'); v.textContent = entry; v.classList.remove('pop'); void v.offsetWidth; v.classList.add('pop'); $('#ex').innerHTML = '<bdi dir="ltr">' + L.esc(line) + '</bdi>'; return;
+    }
+  }
+  draw(true);
+}
+function closeParens(t) { t = t.slice(); let open = t.filter(x => x === '(').length - t.filter(x => x === ')').length; while (OPS[t[t.length - 1]] || t[t.length - 1] === '(') t.pop(); while (open-- > 0) t.push(')'); return t; }
+function evalPartial() { const t = closeParens(expr); try { return t.length ? evaluate(t) : num(); } catch (e) { return num(); } }
+function drawKeys() {
+  document.body.classList.toggle('sci', sci); $('#mt').textContent = sci ? 'Scientific' : 'Standard';
+  $('#keys').innerHTML = (sci ? SCI : STD).map(([t, c, k]) => `<button class="k ${c}" data-k="${k || t}">${t}</button>`).join('');
+  $('#keys').querySelectorAll('.k').forEach(b => b.onclick = e => { L.ripple(b, e); press(b.dataset.k); });
+  $('#keys').style.gridTemplateColumns = `repeat(${sci ? 5 : 4}, 1fr)`;
+}
+function drawHist() {
+  $('#hl').innerHTML = history.length ? history.map((h, i) => `<div class="hi" data-i="${i}"><small>${L.esc(h.e)}</small><b>${L.esc(h.r)}</b></div>`).join('') : '<div class="empty">There\'s no history yet</div>';
+  $('#hl').querySelectorAll('.hi').forEach(h => h.onclick = () => { entry = history[+h.dataset.i].r; fresh = true; expr = []; justEval = false; draw(true); });
+}
+LWin.init({ icon: '/ui/img/apps/calculator.svg' }).then(() => {
+  $('#mode').innerHTML = L.icon('menu'); $('#hb').innerHTML = L.icon('clock'); $('#hc').innerHTML = L.icon('trash');
+  $('#mode').onclick = e => L.menu(e.clientX, e.clientY, [{ label: 'Standard', icon: 'calc', action: () => { sci = false; localStorage.calcSci = 0; drawKeys(); L.native('size', { w: 340, h: 520 }); } },
+    { label: 'Scientific', icon: 'activity', action: () => { sci = true; localStorage.calcSci = 1; drawKeys(); L.native('size', { w: 460, h: 580 }); } }]);
+  $('#hb').onclick = () => $('#hist').classList.toggle('on');
+  $('#hc').onclick = () => { history = []; localStorage.calcHist = '[]'; drawHist(); };
+  document.querySelectorAll('[data-mem]').forEach(b => b.onclick = () => { const m = b.dataset.mem;
+    if (m === 'mc') memory = 0; if (m === 'mr') { entry = fmt(memory); fresh = true; draw(true); } if (m === 'm+') memory += num(); if (m === 'm-') memory -= num(); if (m === 'ms') memory = num(); });
+  drawKeys(); drawHist(); draw();
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'h') { $('#hist').classList.toggle('on'); return; }
+    if (e.ctrlKey && e.key === 'c') { navigator.clipboard.writeText(entry.replace(/,/g, '')); return; }
+    if (e.ctrlKey && e.key === 'v') { navigator.clipboard.readText().then(t => { const n = parseFloat(t.replace(/,/g, '')); if (!isNaN(n)) { entry = fmt(n); fresh = true; draw(true); } }); return; }
+    const map = { Enter: '=', '=': '=', Escape: 'c', Delete: 'ce', Backspace: 'bs', '%': 'pct', '^': '^', '(': '(', ')': ')', r: 'inv', '@': 'sqrt', ',': '.' };
+    let k = map[e.key] || e.key; if (/^[0-9.+\-*/]$/.test(e.key)) k = e.key;
+    if (/^[0-9.+\-*/^()=]$|^(c|ce|bs|pct|inv|sqrt)$/.test(k)) { e.preventDefault(); press(k); const b = document.querySelector(`.k[data-k="${CSS.escape(k)}"]`); if (b) { b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 120); } }
+  });
+});
+</script></body></html>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Welcome
+GenericName=Getting Started
+Comment=Get to know LuminaOS
+Exec=lumina-app welcome
+Icon=lumina-welcome
+Categories=System;
+Keywords=tour;help;start;
+StartupWMClass=lumina-welcome
+StartupNotify=false
+Terminal=false

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Task Manager
+GenericName=System Monitor
+Comment=See processes, performance and startup apps
+Exec=lumina-app taskmgr
+Icon=lumina-taskmgr
+Categories=System;Monitor;
+Keywords=processes;cpu;memory;kill;performance;
+StartupWMClass=lumina-taskmgr
+StartupNotify=false
+Terminal=false

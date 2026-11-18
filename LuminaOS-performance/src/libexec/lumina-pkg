@@ -1,0 +1,50 @@
+#!/bin/sh
+# Privileged package helper for Lumina Store / Updates. Runs as root via sudo or pkexec.
+set -e
+export DEBIAN_FRONTEND=noninteractive
+APT="apt-get -y -o Dpkg::Progress-Fancy=0 -o APT::Status-Fd=1 -o Dpkg::Use-Pty=0"
+valid() { for p in "$@"; do case "$p" in *[!a-zA-Z0-9.+_-]*) echo "invalid package: $p"; exit 2;; esac; done; }
+online() { getent hosts deb.debian.org >/dev/null 2>&1 || getent hosts flathub.org >/dev/null 2>&1; }
+cmd="$1"; shift || true
+case "$cmd" in
+  install)
+    valid "$@"
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install --no-install-recommends "$@" ;;
+  remove)
+    valid "$@"; $APT remove "$@" ;;
+  install-file)
+    f="$1"; [ -f "$f" ] || { echo "file not found"; exit 2; }
+    case "$f" in
+      *.deb) $APT install "$f" ;;
+      *.flatpakref) flatpak install -y --noninteractive --from "$f" ;;
+      *) echo "unsupported file"; exit 2 ;;
+    esac ;;
+  flatpak-install)
+    valid "$@"
+    online || { echo "No internet connection"; exit 3; }
+    command -v flatpak >/dev/null || { apt-get update; $APT install flatpak; }
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    flatpak install -y --noninteractive flathub "$@" ;;
+  flatpak-remove)
+    valid "$@"; flatpak uninstall -y --noninteractive "$@" ;;
+  check)
+    apt-get update -o APT::Status-Fd=1 >/dev/null 2>&1 || true
+    apt-get -s upgrade ;;
+  upgrade)
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1
+    $APT upgrade ;;
+  android-setup)
+    online || { echo "No internet connection"; exit 3; }
+    $APT install curl ca-certificates
+    # Download the installer, verify it exists, then run it (no curl | bash).
+    tmp=$(mktemp)
+    curl -fsSL -o "$tmp" https://repo.waydro.id || { rm -f "$tmp"; echo "Failed to download Waydroid installer"; exit 3; }
+    if [ ! -s "$tmp" ]; then rm -f "$tmp"; echo "Empty installer download"; exit 3; fi
+    sh "$tmp"
+    rm -f "$tmp"
+    $APT install waydroid ;;
+  *) echo "usage: lumina-pkg install|remove|install-file|flatpak-install|flatpak-remove|check|upgrade"; exit 1 ;;
+esac

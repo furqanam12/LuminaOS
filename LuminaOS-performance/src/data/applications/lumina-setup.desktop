@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=First-run setup
+GenericName=LuminaOS Setup
+Comment=Review security, device, region and appearance settings
+Exec=lumina-app setup
+Icon=lumina-welcome
+Categories=System;Settings;
+Keywords=setup;first run;account;timezone;
+StartupWMClass=lumina-setup
+StartupNotify=true
+Terminal=false

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>About LuminaOS</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.titlebar .tt { display: none; }
+.c { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 30px 24px; text-align: center; overflow-y: auto; }
+.logo { width: 108px; height: 108px; animation: spinIn 900ms var(--spring) both; filter: drop-shadow(0 10px 30px rgba(var(--accent-rgb), .45)); }
+@keyframes spinIn { from { opacity: 0; transform: rotate(-120deg) scale(.4); } to { opacity: 1; transform: none; } }
+h1 { font-size: 30px; font-weight: 700; margin: 14px 0 0; letter-spacing: -.02em; animation: slideUp 500ms 150ms var(--spring-soft) both; }
+h1 span { background: linear-gradient(90deg, var(--accent-2), var(--accent)); -webkit-background-clip: text; color: transparent; }
+.ver { color: var(--fg-3); margin: 4px 0 18px; animation: slideUp 500ms 220ms var(--spring-soft) both; }
+dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 14px; text-align: left; font-size: 12.5px; width: 100%; max-width: 400px; padding: 14px 18px; animation: slideUp 500ms 300ms var(--spring-soft) both; }
+dt { color: var(--fg-3); } dd { margin: 0; user-select: text; -webkit-user-select: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btns { display: flex; gap: 8px; margin-top: 16px; animation: slideUp 500ms 380ms var(--spring-soft) both; }
+.legal { font-size: 11px; color: var(--fg-3); margin-top: 16px; line-height: 1.6; }
+</style></head>
+<body><div class="c">
+  <img class="logo" src="/ui/img/apps/logo.svg">
+  <h1>Lumina<span>OS</span></h1><div class="ver" id="ver">Version 1.0</div>
+  <dl class="card" id="dl"></dl>
+  <div class="btns"><button class="btn" id="more">More info</button><button class="btn" id="upd">Check for updates</button></div>
+  <div class="legal">A free desktop that blends the Windows 11 layout, macOS motion and HarmonyOS softness.<br>Built on Debian GNU/Linux. Free software under the GPL and other open-source licences.</div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s);
+LWin.init({ icon: false }).then(async () => {
+  const s = await L.get('/api/sys');
+  $('#ver').textContent = `Version ${s.version}${s.codename ? ' "' + s.codename + '"' : ''}${s.live ? ' · Live session' : ''}`;
+  const rows = [['Device', s.hostname], ['Processor', s.cpu], ['Memory', L.bytes(s.mem)], ['Graphics', s.gpu || 'Unknown'], ['Storage', L.bytes(s.disk)], ['Kernel', 'Linux ' + s.kernel], ['Base', s.os]];
+  $('#dl').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd title="${L.esc(v)}">${L.esc(v)}</dd>`).join('');
+  $('#more').onclick = () => L.app('settings', ['about']); $('#upd').onclick = () => L.app('settings', ['update']);
+});
+</script></body></html>

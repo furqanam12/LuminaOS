@@ -1,0 +1,11 @@
+[Unit]
+Description=LuminaOS Automatic Security Updates
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/apt-get update -qq && /usr/bin/apt-get -y -qq upgrade --dry-run 2>&1 | tail -n 1
+User=root
+
+[Install]
+WantedBy=multi-user.target

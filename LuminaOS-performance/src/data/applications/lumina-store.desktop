@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Lumina Store
+GenericName=Software Store
+Comment=Install apps and updates
+Exec=lumina-app store %U
+Icon=lumina-store
+Categories=System;PackageManager;
+Keywords=apps;install;software;store;flatpak;
+StartupWMClass=lumina-store
+StartupNotify=false
+Terminal=false
+MimeType=application/vnd.debian.binary-package;application/vnd.flatpak.ref;

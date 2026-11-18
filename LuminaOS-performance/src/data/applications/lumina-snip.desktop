@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Snip
+GenericName=Screenshot Tool
+Comment=Capture your screen
+Exec=lumina-app snip
+Icon=lumina-snip
+Categories=Utility;Graphics;
+Keywords=screenshot;capture;snipping;
+StartupWMClass=lumina-snip
+StartupNotify=false
+Terminal=false

@@ -1,0 +1,46 @@
+#!/bin/sh
+# LuminaOS X session
+export XDG_CURRENT_DESKTOP=Lumina:XFCE
+export XDG_SESSION_DESKTOP=lumina
+export DESKTOP_SESSION=lumina
+export GTK_OVERLAY_SCROLLING=1
+export QT_QPA_PLATFORMTHEME=gtk3
+export NO_AT_BRIDGE=1
+[ -f "$HOME/.config/lumina/env" ] && . "$HOME/.config/lumina/env"
+
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+  exec dbus-run-session -- "$0" "$@"
+fi
+dbus-update-activation-environment --systemd --all 2>/dev/null
+
+xsetroot -solid '#101018' -cursor_name left_ptr 2>/dev/null
+xfsettingsd --replace --daemon 2>/dev/null &
+xfwm4 --compositor=on --replace &
+sleep 0.6
+/usr/libexec/polkit-mate-authentication-agent-1 >/dev/null 2>&1 &
+command -v xfce4-power-manager >/dev/null && xfce4-power-manager >/dev/null 2>&1 &
+command -v pipewire >/dev/null && ! pgrep -u "$(id -u)" -x pipewire >/dev/null && (pipewire & sleep 0.3; wireplumber & pipewire-pulse &) >/dev/null 2>&1
+command -v VBoxClient-all >/dev/null && VBoxClient-all >/dev/null 2>&1 &
+command -v spice-vdagent >/dev/null && spice-vdagent >/dev/null 2>&1 &
+# xdg autostart (respect Lumina's startup-app toggles)
+command -v dex >/dev/null && dex -a -e Lumina -e XFCE >/dev/null 2>&1 &
+
+CONF="$HOME/.config/lumina"; mkdir -p "$CONF"
+if [ -e /run/live/medium ]; then
+  # Live ISO: show the short tour once, and offer installation at the end.
+  if [ ! -f "$CONF/welcomed" ]; then
+    touch "$CONF/welcomed"; (sleep 6; lumina-app welcome) &
+  fi
+elif [ ! -f "$CONF/setup-complete" ]; then
+  # Installed system: guide the new user through security and basic setup.
+  (sleep 6; lumina-app setup) &
+fi
+
+# shell supervisor: restart the shell if it ever crashes
+while true; do
+  start=$(date +%s)
+  lumina-shell >"$HOME/.cache/lumina-shell.log" 2>&1
+  rc=$?
+  [ "$rc" = 0 ] && break
+  [ $(( $(date +%s) - start )) -lt 5 ] && sleep 3
+done

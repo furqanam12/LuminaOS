@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Task Manager</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.tsearch { position: absolute; left: 50%; transform: translateX(-50%); width: min(420px, 40%); height: 26px; border-radius: 6px; }
+.side { width: 210px; transition: width var(--t) var(--spring-soft); overflow: hidden; }
+.side.mini { width: 54px; }
+.side.mini .nav span { opacity: 0; }
+.side .nav span { white-space: nowrap; transition: opacity var(--t-fast); }
+.side .nav > svg { color: var(--fg); }
+.main { padding: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-side); border-left: 1px solid var(--line); }
+.phead { display: flex; align-items: center; gap: 4px; padding: 10px 14px 10px 20px; flex: none; }
+.phead h1 { font-size: 15px; font-weight: 600; margin: 0; flex: 1; }
+.phead .btn.ghost { height: 30px; padding: 0 10px; font-size: 12.5px; }
+.scroll { flex: 1; overflow: auto; }
+table.list th.num, table.list td.num { text-align: right; width: 80px; }
+table.list th.num b { display: block; font-size: 14px; color: var(--fg); font-weight: 500; }
+table.list th { cursor: pointer; vertical-align: bottom; }
+table.list th.sorted { color: var(--fg); }
+table.list td.grp { font-weight: 600; font-size: 12.5px; padding-top: 10px; color: var(--fg); background: transparent !important; }
+table.list td img { width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; }
+td.heat { transition: background .6s; }
+.perf { display: flex; flex: 1; min-height: 0; }
+.plist { width: 230px; border-right: 1px solid var(--line); overflow-y: auto; padding: 6px; flex: none; }
+.pitem { display: flex; gap: 10px; padding: 8px; border-radius: 6px; align-items: center; margin-bottom: 2px; transition: background var(--t-fast); }
+.pitem:hover { background: var(--hover); } .pitem.on { background: var(--sel); }
+.pitem canvas { width: 70px; height: 44px; border: 1px solid var(--c); border-radius: 3px; flex: none; }
+.pitem b { display: block; font-weight: 500; } .pitem small { color: var(--fg-3); font-size: 11.5px; }
+.pview { flex: 1; padding: 16px 22px; overflow-y: auto; }
+.pview h2 { font-size: 24px; margin: 0; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; }
+.pview h2 small { font-size: 13px; color: var(--fg-2); font-weight: 400; }
+.pview .cap { display: flex; justify-content: space-between; font-size: 11px; color: var(--fg-3); margin: 14px 0 4px; }
+.big { width: 100%; height: 260px; border: 1px solid var(--c); border-radius: 4px; display: block; }
+.meta { display: grid; grid-template-columns: repeat(3, auto); gap: 14px 30px; margin-top: 18px; justify-content: start; }
+.meta div small { display: block; color: var(--fg-3); font-size: 11.5px; } .meta div b { font-size: 18px; font-weight: 500; }
+.cores { display: grid; gap: 4px; margin-top: 8px; }
+.cores canvas { width: 100%; height: 60px; border: 1px solid var(--c); border-radius: 3px; }
+</style></head>
+<body>
+<div class="side" id="side"></div>
+<div class="main" id="main"></div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s), I = n => L.icon(n);
+const PAGES = [['proc', 'Processes', 'grid'], ['perf', 'Performance', 'activity'], ['hist', 'App history', 'clock'], ['start', 'Startup apps', 'rocket'],
+  ['users', 'Users', 'users'], ['det', 'Details', 'list'], ['svc', 'Services', 'puzzle']];
+const FRIENDLY = { 'lumina-shell': 'Lumina desktop', 'lumina-app': 'Lumina app', Xorg: 'Display server', xfwm4: 'Window manager', 'dbus-daemon': 'D-Bus message bus',
+  pipewire: 'Audio service (PipeWire)', wireplumber: 'Audio session manager', NetworkManager: 'Network service', systemd: 'System and service manager', 'firefox-esr': 'Firefox',
+  WebKitWebProcess: 'Web content', WebKitNetworkProcess: 'Web networking', xfsettingsd: 'Settings daemon', lightdm: 'Login manager', 'polkit-mate-authentication-agent-1': 'Authentication agent' };
+let page = 'proc', procs = [], sortK = 'cpu', sortD = -1, sel = null, q = '', hist = { cpu: [], mem: [], disk: [], net: [] }, coreHist = [], last = null, perfSel = 'cpu', tick = 0, appsByPid = {};
+const N = 60;
+function heat(v, max) { const a = Math.min(1, v / max); return a < .02 ? '' : `background:rgba(var(--accent-rgb),${(a * .45 + .06).toFixed(2)})`; }
+function renderSide() {
+  const s = $('#side');
+  s.innerHTML = `<div class="nav" id="ham" style="margin-bottom:6px">${I('menu')}</div>` + PAGES.map(([id, t, ic]) => `<div class="nav ${id === page ? 'on' : ''}" data-p="${id}" title="${t}">${I(ic)}<span>${t}</span></div>`).join('')
+    + `<div style="flex:1"></div><div class="nav" id="tset">${I('gear')}<span>Settings</span></div>`;
+  s.querySelectorAll('[data-p]').forEach(n => n.onclick = () => { page = n.dataset.p; sel = null; renderSide(); render(true); });
+  $('#ham').onclick = () => s.classList.toggle('mini');
+  $('#tset').onclick = () => L.app('settings', ['apps']);
+}
+function header(title, extra) { return `<div class="phead"><h1>${title}</h1>${extra || ''}</div>`; }
+async function refreshProcs() { procs = await L.get('/api/procs'); }
+const TITLES = { files: 'File Explorer', settings: 'Settings', taskmgr: 'Task Manager', notepad: 'Notepad', calculator: 'Calculator', snip: 'Snipping Tool', store: 'Lumina Store', welcome: 'Welcome', about: 'About LuminaOS', photos: 'Photos' };
+const appId = p => { const m = /lumina-app (\w+)/.exec(p.cmd || ''); return m ? m[1] : null; };
+function nameOf(p) { const a = appId(p); if (a) return TITLES[a] || a; return FRIENDLY[p.name] || p.name; }
+function iconOf(p) { const a = appId(p); if (a) return '/ui/img/apps/' + a + '.svg'; return p.app ? '/api/icon?name=' + encodeURIComponent(p.name) : '/ui/img/app-generic.svg'; }
+function render(fresh) { (R[page] || R.proc)(fresh); }
+const R = {
+  async proc(fresh) {
+    if (fresh || !procs.length) await refreshProcs();
+    const tot = { cpu: last ? last.cpu : procs.reduce((a, b) => a + b.cpu, 0), mem: last ? last.mem.percent : 0 };
+    const list = procs.filter(p => !q || nameOf(p).toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || String(p.pid).includes(q) || (p.user || '').includes(q));
+    const cmp = (a, b) => sortD * (sortK === 'name' ? nameOf(a).localeCompare(nameOf(b)) : (a[sortK] - b[sortK]));
+    const apps = list.filter(p => p.app).sort(cmp), bg = list.filter(p => !p.app).sort(cmp);
+    const maxMem = Math.max(...procs.map(p => p.mem), 1);
+    const tr = p => `<tr data-pid="${p.pid}" class="${sel === p.pid ? 'sel' : ''}"><td><img src="${iconOf(p)}" onerror="this.src='/ui/img/app-generic.svg'">${L.esc(nameOf(p))}</td>
+      <td class="muted">${p.nice >= 19 ? 'Efficiency mode' : p.status === 'stopped' ? 'Suspended' : ''}</td><td class="num heat" style="${heat(p.cpu, 25)}">${p.cpu.toFixed(1)}%</td>
+      <td class="num heat" style="${heat(p.mem, maxMem)}">${L.bytes(p.mem)}</td><td class="num">${L.bytes(p.io).replace(/ B$/, ' B')}</td></tr>`;
+    const th = (k, t, sub) => `<th class="${['cpu', 'mem', 'io'].includes(k) ? 'num' : ''} ${sortK === k ? 'sorted' : ''}" data-k="${k}">${sub != null ? `<b>${sub}</b>` : ''}${t}${sortK === k ? (sortD > 0 ? ' ↑' : ' ↓') : ''}</th>`;
+    const body = `<table class="list"><thead><tr>${th('name', 'Name')}<th style="width:130px">Status</th>${th('cpu', 'CPU', tot.cpu.toFixed(1) + '%')}${th('mem', 'Memory', Math.round(tot.mem) + '%')}${th('io', 'Disk', '')}</tr></thead><tbody>
+      <tr><td class="grp" colspan="5">Apps (${apps.length})</td></tr>${apps.map(tr).join('')}<tr><td class="grp" colspan="5">Background processes (${bg.length})</td></tr>${bg.map(tr).join('')}</tbody></table>`;
+    let sc = $('.scroll'), st = sc ? sc.scrollTop : 0;
+    if (fresh || !$('#ptab')) {
+      $('#main').innerHTML = header('Processes', `<button class="btn ghost" id="run">${I('plus')}Run new task</button><button class="btn ghost" id="end" ${sel ? '' : 'disabled'}>${I('x')}End task</button>
+        <button class="btn ghost" id="eff" ${sel ? '' : 'disabled'}>${I('leaf')}Efficiency mode</button>`) + `<div class="scroll page-in" id="ptab"></div>`;
+      $('#run').onclick = runTask; $('#end').onclick = () => endTask(sel); $('#eff').onclick = () => effMode(sel);
+    }
+    $('#ptab').innerHTML = body; $('#ptab').scrollTop = st;
+    $('#ptab').querySelectorAll('th[data-k]').forEach(h => h.onclick = () => { if (sortK === h.dataset.k) sortD = -sortD; else { sortK = h.dataset.k; sortD = h.dataset.k === 'name' ? 1 : -1; } R.proc(); });
+    $('#ptab').querySelectorAll('tr[data-pid]').forEach(r => {
+      r.onclick = () => { sel = +r.dataset.pid; $('#ptab').querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); $('#end').disabled = $('#eff').disabled = false; };
+      r.oncontextmenu = e => { e.preventDefault(); r.onclick(); const p = procs.find(x => x.pid === sel);
+        L.menu(e.clientX, e.clientY, [{ label: 'End task', icon: 'x', action: () => endTask(sel) }, { label: 'End task now (force)', icon: 'x', danger: true, action: () => endTask(sel, true) },
+          { label: (p && p.nice >= 19 ? 'Turn off ' : '') + 'Efficiency mode', icon: 'leaf', action: () => effMode(sel) }, '-',
+          { label: 'Copy command line', icon: 'copy', action: () => navigator.clipboard.writeText(p ? p.cmd : '') }, { label: 'Go to details', icon: 'list', action: () => { page = 'det'; renderSide(); render(true); } }]); };
+    });
+  },
+  perf(fresh) {
+    if (!last) { $('#main').innerHTML = header('Performance') + '<div class="empty">Waiting for a performance sample...</div>'; return; }
+    const items = [['cpu', 'CPU', `${last.cpu.toFixed(0)}%  ${(last.freq / 1000).toFixed(2)} GHz`, '#ff375f'], ['mem', 'Memory', `${L.bytes(last.mem.used)}/${L.bytes(last.mem.total)} (${Math.round(last.mem.percent)}%)`, '#bf5af2'],
+      ['disk', 'Disk 0', `${L.bytes(last.diskRead + last.diskWrite)}/s`, '#30d158'], ['net', 'Ethernet', `S: ${L.bytes(last.netSent * 8).replace('B', 'b')}ps R: ${L.bytes(last.netRecv * 8).replace('B', 'b')}ps`, '#ff9f0a']];
+    if (fresh || !$('.perf')) {
+      $('#main').innerHTML = header('Performance', `<button class="btn ghost" id="run">${I('plus')}Run new task</button>`) + `<div class="perf page-in"><div class="plist">${items.map(([k, t, s, c]) => `<div class="pitem ${k === perfSel ? 'on' : ''}" data-k="${k}" style="--c:${c}"><canvas width="140" height="88"></canvas><div><b>${t}</b><small>${s}</small></div></div>`).join('')}</div><div class="pview" id="pv"></div></div>`;
+      $('#run').onclick = runTask;
+      document.querySelectorAll('.pitem').forEach(p => p.onclick = () => { perfSel = p.dataset.k; document.querySelectorAll('.pitem').forEach(x => x.classList.toggle('on', x === p)); drawView(true); });
+      drawView(true);
+    }
+    items.forEach(([k, t, s, c]) => { const el = document.querySelector(`.pitem[data-k="${k}"]`); el.querySelector('small').textContent = s; spark(el.querySelector('canvas'), hist[k], c, k === 'disk' || k === 'net' ? null : 100); });
+    drawView();
+    function drawView(full) {
+      const c = items.find(x => x[0] === perfSel)[3], pv = $('#pv'), S = SYS || {};
+      const titles = { cpu: ['CPU', S.cpu || ''], mem: ['Memory', L.bytes(last.mem.total)], disk: ['Disk 0 (/)', L.bytes(last.disk.total)], net: ['Ethernet', 'Network adapter'] };
+      if (full) {
+        pv.style.setProperty('--c', c);
+        pv.innerHTML = `<h2>${titles[perfSel][0]}<small>${L.esc(titles[perfSel][1])}</small></h2><div class="cap"><span>${perfSel === 'cpu' ? '% Utilisation' : perfSel === 'mem' ? 'Memory usage' : perfSel === 'disk' ? 'Read/write speed' : 'Throughput'} over 60 seconds</span><span id="pmax">100%</span></div>
+          <canvas class="big" id="bigc" width="1400" height="520"></canvas>${perfSel === 'cpu' ? `<div class="cores" id="cores" style="grid-template-columns:repeat(${Math.min(4, last.percpu.length)},1fr)">${last.percpu.map(() => '<canvas width="300" height="120"></canvas>').join('')}</div>` : ''}<div class="meta" id="meta"></div>`;
+      }
+      const max = perfSel === 'disk' || perfSel === 'net' ? Math.max(1024, ...hist[perfSel]) : 100;
+      $('#pmax').textContent = max === 100 ? '100%' : L.bytes(max) + '/s';
+      spark($('#bigc'), hist[perfSel], c, max === 100 ? 100 : null, true);
+      if (perfSel === 'cpu') document.querySelectorAll('#cores canvas').forEach((cv, i) => spark(cv, coreHist.map(x => x[i] || 0), c, 100));
+      const up = last.uptime, d = Math.floor(up / 86400), h = Math.floor(up % 86400 / 3600), m = Math.floor(up % 3600 / 60), s = Math.floor(up % 60);
+      const meta = { cpu: [['Utilisation', last.cpu.toFixed(0) + '%'], ['Speed', (last.freq / 1000).toFixed(2) + ' GHz'], ['Processes', last.procs], ['Cores', last.percpu.length], ['Up time', `${d}:${String(h).padStart(2, 0)}:${String(m).padStart(2, 0)}:${String(s).padStart(2, 0)}`]],
+        mem: [['In use', L.bytes(last.mem.used)], ['Available', L.bytes(last.mem.total - last.mem.used)], ['Total', L.bytes(last.mem.total)], ['Swap', `${L.bytes(last.swap.used)} / ${L.bytes(last.swap.total)}`]],
+        disk: [['Read speed', L.bytes(last.diskRead) + '/s'], ['Write speed', L.bytes(last.diskWrite) + '/s'], ['Capacity', L.bytes(last.disk.total)], ['Used', L.bytes(last.disk.used)]],
+        net: [['Send', L.bytes(last.netSent) + '/s'], ['Receive', L.bytes(last.netRecv) + '/s']] }[perfSel];
+      $('#meta').innerHTML = meta.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+    }
+  },
+  async hist() {
+    await refreshProcs();
+    const apps = {}; procs.forEach(p => { const n = nameOf(p); if (!p.app && !/^Lumina|firefox|Web content/i.test(n)) return; (apps[n] = apps[n] || { n, cpu: 0, mem: 0, io: 0, c: 0 }); apps[n].cpu += p.cpu; apps[n].mem += p.mem; apps[n].io += p.io; apps[n].c++; });
+    const l = Object.values(apps).sort((a, b) => b.mem - a.mem);
+    $('#main').innerHTML = header('App history') + `<div class="scroll page-in"><div class="muted" style="padding:0 20px 10px">Resource usage of apps in this session.</div><table class="list"><thead><tr><th>Name</th><th class="num">Processes</th><th class="num">CPU now</th><th class="num">Memory</th><th class="num">Disk I/O</th></tr></thead>
+      <tbody>${l.map(a => `<tr><td>${L.esc(a.n)}</td><td class="num">${a.c}</td><td class="num">${a.cpu.toFixed(1)}%</td><td class="num">${L.bytes(a.mem)}</td><td class="num">${L.bytes(a.io)}</td></tr>`).join('')}</tbody></table></div>`;
+  },
+  async start() {
+    const l = await L.get('/api/startup');
+    $('#main').innerHTML = header('Startup apps') + `<div class="scroll page-in"><table class="list"><thead><tr><th>Name</th><th>Description</th><th>Status</th><th style="width:110px"></th></tr></thead><tbody>${l.map((x, i) =>
+      `<tr><td><img src="/api/icon?name=${encodeURIComponent(x.icon || 'application-x-executable')}">${L.esc(x.name)}</td><td class="muted">${L.esc(x.comment || '')}</td><td>${x.enabled ? 'Enabled' : 'Disabled'}</td><td><button class="btn small" data-i="${i}">${x.enabled ? 'Disable' : 'Enable'}</button></td></tr>`).join('')}</tbody></table></div>`;
+    document.querySelectorAll('[data-i]').forEach(b => b.onclick = async () => { const x = l[+b.dataset.i]; await L.post('/api/startup', { id: x.id, enabled: !x.enabled }); R.start(); });
+  },
+  async users() {
+    const u = await L.get('/api/users');
+    $('#main').innerHTML = header('Users') + `<div class="scroll page-in"><table class="list"><thead><tr><th>User</th><th>Session</th><th class="num">Processes</th><th class="num">Memory</th></tr></thead><tbody>${u.map(x =>
+      `<tr><td>${I('user')} ${L.esc(x.name)}</td><td class="muted">${L.esc(x.terminal || '')}</td><td class="num">${x.procs}</td><td class="num">${L.bytes(x.mem)}</td></tr>`).join('')}</tbody></table></div>`;
+  },
+  async det(fresh) {
+    if (fresh || !procs.length) await refreshProcs();
+    const list = procs.filter(p => !q || p.name.toLowerCase().includes(q) || String(p.pid).includes(q)).sort((a, b) => sortD * (sortK === 'name' ? a.name.localeCompare(b.name) : (a[sortK] || 0) - (b[sortK] || 0)));
+    const st = $('.scroll') ? $('.scroll').scrollTop : 0;
+    $('#main').innerHTML = header('Details', `<button class="btn ghost" id="end" ${sel ? '' : 'disabled'}>${I('x')}End task</button>`) + `<div class="scroll"><table class="list"><thead><tr><th data-k="name">Name</th><th data-k="pid" class="num">PID</th><th>Status</th><th>User name</th><th data-k="cpu" class="num">CPU</th><th data-k="mem" class="num">Memory</th><th>Command line</th></tr></thead><tbody>${list.map(p =>
+      `<tr data-pid="${p.pid}" class="${sel === p.pid ? 'sel' : ''}"><td>${L.esc(p.name)}</td><td class="num">${p.pid}</td><td>${p.status}</td><td>${L.esc(p.user || '')}</td><td class="num">${p.cpu.toFixed(1)}</td><td class="num">${L.bytes(p.mem)}</td><td class="muted" style="max-width:300px">${L.esc(p.cmd)}</td></tr>`).join('')}</tbody></table></div>`;
+    $('.scroll').scrollTop = st; $('#end').onclick = () => endTask(sel);
+    document.querySelectorAll('th[data-k]').forEach(h => h.onclick = () => { if (sortK === h.dataset.k) sortD = -sortD; else { sortK = h.dataset.k; sortD = 1; } R.det(); });
+    document.querySelectorAll('tr[data-pid]').forEach(r => r.onclick = () => { sel = +r.dataset.pid; document.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); $('#end').disabled = false; });
+  },
+  async svc() {
+    $('#main').innerHTML = header('Services') + '<div class="empty"><div class="spinner" style="margin:auto"></div></div>';
+    const l = (await L.get('/api/services')).filter(s => !q || (s.name + s.desc).toLowerCase().includes(q));
+    $('#main').innerHTML = header('Services', `<button class="btn ghost" id="sstart" disabled>${I('play')}Start</button><button class="btn ghost" id="sstop" disabled>${I('pause')}Stop</button><button class="btn ghost" id="sre" disabled>${I('restart')}Restart</button>`)
+      + `<div class="scroll page-in"><table class="list"><thead><tr><th>Name</th><th>Description</th><th>Status</th></tr></thead><tbody>${l.map(s =>
+      `<tr data-n="${L.esc(s.name)}"><td>${L.esc(s.name.replace(/\.service$/, ''))}</td><td class="muted">${L.esc(s.desc)}</td><td><span class="stat" style="--c:${s.sub === 'running' ? '#30d158' : s.active === 'failed' ? '#ff453a' : 'var(--fg-4)'}">${s.sub}</span></td></tr>`).join('') || '<tr><td colspan="3" class="empty">Services are not available</td></tr>'}</tbody></table></div>`;
+    let ss = null;
+    document.querySelectorAll('tr[data-n]').forEach(r => r.onclick = () => { ss = r.dataset.n; document.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); ['sstart', 'sstop', 'sre'].forEach(i => $('#' + i).disabled = false); });
+    const act = async a => { const r = await L.post('/api/service', { name: ss, action: a }); if (!r.ok) L.dialog({ title: "Couldn't " + a + ' ' + ss, text: r.msg || 'Permission denied' }); R.svc(); };
+    $('#sstart').onclick = () => act('start'); $('#sstop').onclick = () => act('stop'); $('#sre').onclick = () => act('restart');
+  },
+};
+function spark(cv, data, color, max, grid) {
+  if (!cv) return; const x = cv.getContext('2d'), w = cv.width, h = cv.height;
+  x.clearRect(0, 0, w, h);
+  if (grid) { x.strokeStyle = 'rgba(128,128,128,.14)'; x.lineWidth = 1; for (let i = 1; i < 10; i++) { x.beginPath(); x.moveTo(i * w / 10, 0); x.lineTo(i * w / 10, h); x.stroke(); } for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo(0, i * h / 6); x.lineTo(w, i * h / 6); x.stroke(); } }
+  const m = max || Math.max(1, ...data), pts = data.slice(-N);
+  if (pts.length < 2) return;
+  const step = w / (N - 1), off = (N - pts.length) * step;
+  x.beginPath(); pts.forEach((v, i) => { const px = off + i * step, py = h - (v / m) * (h - 2) - 1; i ? x.lineTo(px, py) : x.moveTo(px, py); });
+  x.strokeStyle = color; x.lineWidth = grid ? 2.5 : 1.5; x.stroke();
+  x.lineTo(w, h); x.lineTo(off, h); x.closePath();
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, color + '55'); g.addColorStop(1, color + '08'); x.fillStyle = g; x.fill();
+}
+let pollBusy = false;
+async function poll() {
+  if (pollBusy || document.hidden || LWin.minimized || !['proc', 'perf', 'det'].includes(page)) return;
+  pollBusy = true;
+  try {
+    last = await L.get('/api/stats');
+    const push = (k, v) => { hist[k].push(v); if (hist[k].length > N) hist[k].shift(); };
+    push('cpu', last.cpu); push('mem', last.mem.percent); push('disk', last.diskRead + last.diskWrite); push('net', last.netRecv + last.netSent);
+    coreHist.push(last.percpu); if (coreHist.length > N) coreHist.shift();
+    tick++;
+    if (page === 'perf') R.perf();
+    else if ((page === 'proc' || page === 'det') && tick % 2 === 0 && !L._menu) { await refreshProcs(); R[page](); }
+  } catch (e) { }
+  finally { pollBusy = false; }
+}
+L.on('state', s => { if (!s.minimized) poll(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+async function endTask(pid, force) {
+  if (!pid) return; const p = procs.find(x => x.pid === pid);
+  if (p && /lumina-shell|Xorg|systemd|lightdm/.test(p.name + p.cmd) && !(await L.dialog({ title: `End ${nameOf(p)}?`, text: 'This is a system process. Ending it may make LuminaOS unstable or restart the desktop.', buttons: ['End process', 'Cancel'] }))) return;
+  const r = await L.post('/api/proc/kill', { pid, force }); if (!r.ok) L.dialog({ title: "Couldn't end task", text: r.error });
+  sel = null; setTimeout(() => render(true), 400);
+}
+async function effMode(pid) { const p = procs.find(x => x.pid === pid); if (!p) return; await L.post('/api/proc/efficiency', { pid, on: p.nice < 19 }); render(true); }
+async function runTask() {
+  const c = await L.dialog({ title: 'Create new task', text: 'Type the name of a program, folder or document and LuminaOS will open it.', input: 'text', buttons: ['OK', 'Cancel'] });
+  if (c) { if (c.startsWith('/') || c.startsWith('~')) L.post('/api/fs/open', { path: c }); else L.post('/api/run', { cmd: c }); }
+}
+let SYS = null;
+LWin.init({ icon: '/ui/img/apps/taskmgr.svg', titlebar: `<div class="search tsearch nodrag"><span>${'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'}</span><input id="tq" placeholder="Type a name, publisher, or PID to search"></div>`,
+  onArgs: a => { if (a[0]) { page = a[0]; renderSide(); render(true); } } }).then(async () => {
+  SYS = await L.get('/api/sys');
+  if (['proc', 'perf', 'hist', 'start', 'users', 'det', 'svc'].includes(LWin.args[0])) page = LWin.args[0];
+  renderSide(); render(true); poll(); setInterval(poll, 1000);
+  $('#tq').oninput = L.debounce(e => { q = e.target.value.toLowerCase(); if (page === 'perf') { page = 'proc'; renderSide(); } render(); }, 150);
+  document.addEventListener('keydown', e => { if (e.key === 'Delete' && sel) endTask(sel); if (e.ctrlKey && e.key === 'f') { e.preventDefault(); $('#tq').focus(); } });
+});
+</script></body></html>

@@ -1,0 +1,21 @@
+[Default Applications]
+inode/directory=lumina-files.desktop
+text/plain=lumina-notepad.desktop
+text/markdown=lumina-notepad.desktop
+text/x-log=lumina-notepad.desktop
+text/csv=lumina-notepad.desktop
+application/json=lumina-notepad.desktop
+application/xml=lumina-notepad.desktop
+application/x-shellscript=lumina-notepad.desktop
+text/x-python=lumina-notepad.desktop
+image/png=lumina-photos.desktop
+image/jpeg=lumina-photos.desktop
+image/gif=lumina-photos.desktop
+image/webp=lumina-photos.desktop
+image/bmp=lumina-photos.desktop
+image/svg+xml=lumina-photos.desktop
+application/vnd.debian.binary-package=lumina-store.desktop
+application/vnd.flatpak.ref=lumina-store.desktop
+x-scheme-handler/http=firefox-esr.desktop
+x-scheme-handler/https=firefox-esr.desktop
+text/html=firefox-esr.desktop

@@ -1,0 +1,391 @@
+{
+ "apps": [
+  {
+   "id": "firefox-esr",
+   "name": "Firefox",
+   "pkg": "firefox-esr",
+   "kind": "apt",
+   "category": "internet",
+   "icon": "firefox",
+   "desc": "Fast, private web browser from Mozilla.",
+   "essential": true
+  },
+  {
+   "id": "chromium",
+   "name": "Chromium",
+   "pkg": "chromium",
+   "kind": "apt",
+   "category": "internet",
+   "icon": "chromium",
+   "desc": "Open-source browser that Google Chrome is built on.",
+   "essential": false
+  },
+  {
+   "id": "thunderbird",
+   "name": "Thunderbird",
+   "pkg": "thunderbird",
+   "kind": "apt",
+   "category": "internet",
+   "icon": "thunderbird",
+   "desc": "Email, calendar and contacts in one app.",
+   "essential": false
+  },
+  {
+   "id": "telegram",
+   "name": "Telegram",
+   "pkg": "org.telegram.desktop",
+   "kind": "flatpak",
+   "category": "internet",
+   "icon": "telegram",
+   "desc": "Fast and secure messaging.",
+   "essential": false
+  },
+  {
+   "id": "discord",
+   "name": "Discord",
+   "pkg": "com.discordapp.Discord",
+   "kind": "flatpak",
+   "category": "internet",
+   "icon": "discord",
+   "desc": "Voice, video and text chat for communities.",
+   "essential": false
+  },
+  {
+   "id": "transmission",
+   "name": "Transmission",
+   "pkg": "transmission-gtk",
+   "kind": "apt",
+   "category": "internet",
+   "icon": "transmission",
+   "desc": "Simple, lightweight BitTorrent client.",
+   "essential": false
+  },
+  {
+   "id": "filezilla",
+   "name": "FileZilla",
+   "pkg": "filezilla",
+   "kind": "apt",
+   "category": "internet",
+   "icon": "filezilla",
+   "desc": "FTP, FTPS and SFTP file transfers.",
+   "essential": false
+  },
+  {
+   "id": "libreoffice",
+   "name": "LibreOffice",
+   "pkg": "libreoffice",
+   "kind": "apt",
+   "category": "office",
+   "icon": "libreoffice-writer",
+   "desc": "Full office suite: Writer, Calc, Impress and more. Opens Word, Excel and PowerPoint files.",
+   "essential": true
+  },
+  {
+   "id": "evince",
+   "name": "Document Viewer",
+   "pkg": "evince",
+   "kind": "apt",
+   "category": "office",
+   "icon": "evince",
+   "desc": "Read PDF and other documents.",
+   "essential": true
+  },
+  {
+   "id": "simple-scan",
+   "name": "Document Scanner",
+   "pkg": "simple-scan",
+   "kind": "apt",
+   "category": "office",
+   "icon": "scanner",
+   "desc": "Scan documents and photos.",
+   "essential": false
+  },
+  {
+   "id": "vlc",
+   "name": "VLC",
+   "pkg": "vlc",
+   "kind": "apt",
+   "category": "media",
+   "icon": "vlc",
+   "desc": "Plays almost any video or audio file.",
+   "essential": true
+  },
+  {
+   "id": "audacity",
+   "name": "Audacity",
+   "pkg": "audacity",
+   "kind": "apt",
+   "category": "media",
+   "icon": "audacity",
+   "desc": "Record and edit audio.",
+   "essential": false
+  },
+  {
+   "id": "obs",
+   "name": "OBS Studio",
+   "pkg": "obs-studio",
+   "kind": "apt",
+   "category": "media",
+   "icon": "com.obsproject.Studio",
+   "desc": "Screen recording and live streaming.",
+   "essential": false
+  },
+  {
+   "id": "kdenlive",
+   "name": "Kdenlive",
+   "pkg": "kdenlive",
+   "kind": "apt",
+   "category": "media",
+   "icon": "kdenlive",
+   "desc": "Powerful video editor.",
+   "essential": false
+  },
+  {
+   "id": "shotcut",
+   "name": "Shotcut",
+   "pkg": "shotcut",
+   "kind": "apt",
+   "category": "media",
+   "icon": "shotcut",
+   "desc": "Easy cross-platform video editor.",
+   "essential": false
+  },
+  {
+   "id": "rhythmbox",
+   "name": "Rhythmbox",
+   "pkg": "rhythmbox",
+   "kind": "apt",
+   "category": "media",
+   "icon": "rhythmbox",
+   "desc": "Music player and library.",
+   "essential": false
+  },
+  {
+   "id": "spotify",
+   "name": "Spotify",
+   "pkg": "com.spotify.Client",
+   "kind": "flatpak",
+   "category": "media",
+   "icon": "spotify",
+   "desc": "Music and podcast streaming.",
+   "essential": false
+  },
+  {
+   "id": "gimp",
+   "name": "GIMP",
+   "pkg": "gimp",
+   "kind": "apt",
+   "category": "graphics",
+   "icon": "gimp",
+   "desc": "Advanced image editor.",
+   "essential": false
+  },
+  {
+   "id": "inkscape",
+   "name": "Inkscape",
+   "pkg": "inkscape",
+   "kind": "apt",
+   "category": "graphics",
+   "icon": "inkscape",
+   "desc": "Vector graphics and illustration.",
+   "essential": false
+  },
+  {
+   "id": "krita",
+   "name": "Krita",
+   "pkg": "krita",
+   "kind": "apt",
+   "category": "graphics",
+   "icon": "krita",
+   "desc": "Digital painting for artists.",
+   "essential": false
+  },
+  {
+   "id": "blender",
+   "name": "Blender",
+   "pkg": "blender",
+   "kind": "apt",
+   "category": "graphics",
+   "icon": "blender",
+   "desc": "3D modelling, animation and rendering.",
+   "essential": false
+  },
+  {
+   "id": "darktable",
+   "name": "darktable",
+   "pkg": "darktable",
+   "kind": "apt",
+   "category": "graphics",
+   "icon": "darktable",
+   "desc": "RAW photo workflow and editing.",
+   "essential": false
+  },
+  {
+   "id": "code",
+   "name": "VS Code (OSS)",
+   "pkg": "com.visualstudio.code",
+   "kind": "flatpak",
+   "category": "dev",
+   "icon": "code",
+   "desc": "Code editor with extensions and Git.",
+   "essential": false
+  },
+  {
+   "id": "git",
+   "name": "Git",
+   "pkg": "git",
+   "kind": "apt",
+   "category": "dev",
+   "icon": "git",
+   "desc": "Distributed version control.",
+   "essential": false
+  },
+  {
+   "id": "htop",
+   "name": "htop",
+   "pkg": "htop",
+   "kind": "apt",
+   "category": "dev",
+   "icon": "htop",
+   "desc": "Interactive process viewer for the terminal.",
+   "essential": false
+  },
+  {
+   "id": "steam",
+   "name": "Steam",
+   "pkg": "com.valvesoftware.Steam",
+   "kind": "flatpak",
+   "category": "games",
+   "icon": "steam",
+   "desc": "Thousands of games, including many Windows games via Proton.",
+   "essential": false
+  },
+  {
+   "id": "mines",
+   "name": "Mines",
+   "pkg": "gnome-mines",
+   "kind": "apt",
+   "category": "games",
+   "icon": "gnome-mines",
+   "desc": "Classic minesweeper puzzle.",
+   "essential": false
+  },
+  {
+   "id": "aisleriot",
+   "name": "Solitaire",
+   "pkg": "aisleriot",
+   "kind": "apt",
+   "category": "games",
+   "icon": "gnome-aisleriot",
+   "desc": "Over 80 card games.",
+   "essential": false
+  },
+  {
+   "id": "supertux",
+   "name": "SuperTux",
+   "pkg": "supertux",
+   "kind": "apt",
+   "category": "games",
+   "icon": "supertux",
+   "desc": "Classic 2D jump'n'run platformer.",
+   "essential": false
+  },
+  {
+   "id": "wine",
+   "name": "Wine (Windows apps)",
+   "pkg": "wine",
+   "kind": "apt",
+   "category": "system",
+   "icon": "wine",
+   "desc": "Run many Windows .exe and .msi programs.",
+   "essential": true
+  },
+  {
+   "id": "disks",
+   "name": "Disks",
+   "pkg": "gnome-disk-utility",
+   "kind": "apt",
+   "category": "system",
+   "icon": "gnome-disks",
+   "desc": "Manage drives, partitions and disk images.",
+   "essential": true
+  },
+  {
+   "id": "gparted",
+   "name": "GParted",
+   "pkg": "gparted",
+   "kind": "apt",
+   "category": "system",
+   "icon": "gparted",
+   "desc": "Partition editor.",
+   "essential": false
+  },
+  {
+   "id": "flatpak",
+   "name": "Flatpak",
+   "pkg": "flatpak",
+   "kind": "apt",
+   "category": "system",
+   "icon": "flatpak",
+   "desc": "Universal app packages from Flathub.",
+   "essential": false
+  },
+  {
+   "id": "virtualbox-guest",
+   "name": "VM Guest Tools",
+   "pkg": "virtualbox-guest-x11",
+   "kind": "apt",
+   "category": "system",
+   "icon": "virtualbox",
+   "desc": "Better resolution and clipboard inside VirtualBox. (contrib repo)",
+   "essential": false
+  },
+  {
+   "id": "waydroid",
+   "name": "Android apps (Waydroid)",
+   "pkg": "waydroid",
+   "kind": "android",
+   "category": "system",
+   "icon": "waydroid",
+   "desc": "Experimental: run Android apps in a container. Needs an installed system with binder support.",
+   "essential": false
+  }
+ ],
+ "categories": [
+  {
+   "id": "internet",
+   "name": "Internet",
+   "icon": "globe"
+  },
+  {
+   "id": "office",
+   "name": "Productivity",
+   "icon": "filetext"
+  },
+  {
+   "id": "media",
+   "name": "Music & Video",
+   "icon": "play"
+  },
+  {
+   "id": "graphics",
+   "name": "Graphics",
+   "icon": "palette"
+  },
+  {
+   "id": "dev",
+   "name": "Developer",
+   "icon": "terminal"
+  },
+  {
+   "id": "games",
+   "name": "Games",
+   "icon": "rocket"
+  },
+  {
+   "id": "system",
+   "name": "System",
+   "icon": "cpu"
+  }
+ ]
+}

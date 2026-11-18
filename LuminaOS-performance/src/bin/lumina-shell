@@ -1,0 +1,676 @@
+#!/usr/bin/python3
+"""LuminaOS desktop shell.
+
+Creates the desktop, top bar, dock, overlay (Start / Control Center / Launchpad /
+Search / Task view / Lock screen / Notification center) and toast windows.  Each
+window is a transparent WebKit view; the UI lives in /usr/share/lumina/ui.
+"""
+import os, sys, json, time, threading, subprocess, shutil, signal
+
+ROOT = os.environ.get("LUMINA_ROOT", "/usr/share/lumina")
+sys.path.insert(0, os.path.join(ROOT, "lib"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("WebKit2", "4.1")
+gi.require_version("Wnck", "3.0")
+from gi.repository import Gtk, Gdk, GLib, Gio, WebKit2, Wnck, GdkPixbuf
+import cairo
+
+from lumina import api
+
+PORT = int(os.environ.get("LUMINA_PORT", "7700"))
+BASE = "http://127.0.0.1:%d/ui/" % PORT
+
+
+def run_main(fn, *a, timeout=5):
+    """Run fn on the GTK main thread and return its result."""
+    if threading.current_thread() is threading.main_thread():
+        return fn(*a)
+    ev = threading.Event()
+    box = {}
+
+    def _w():
+        try:
+            box["r"] = fn(*a)
+        except Exception as e:  # noqa
+            import traceback; traceback.print_exc()
+            box["r"] = None
+        ev.set()
+        return False
+    GLib.idle_add(_w)
+    ev.wait(timeout)
+    return box.get("r")
+
+
+def _gpu_policy():
+    """Auto-detect virtualized / software-rendered hosts and prefer NEVER there."""
+    env = os.environ.get("LUMINA_GPU", "").lower()
+    if env in ("always", "never", "auto"):
+        pol = env
+    else:
+        pol = "auto"
+    if pol == "auto":
+        # VirtualBox / VMware / QEMU guests usually have no real 3D; forcing
+        # hardware acceleration there makes translucent/glass UI crawl on CPU.
+        try:
+            with open("/proc/1/cgroup", "r") as f:
+                cg = f.read()
+        except Exception:
+            cg = ""
+        is_vm = ("virtualbox" in cg or "vmware" in cg or "qemu" in cg or
+                 os.path.exists("/sys/class/dmi/id/product_name") and
+                 any(k in open("/sys/class/dmi/id/product_name", errors="ignore").read().lower()
+                     for k in ("virtualbox", "vmware", "qemu")))
+        # Also check for VBoxSVGA / vmwgfx / virtio GPU drivers
+        try:
+            gpus = os.listdir("/sys/class/drm")
+        except Exception:
+            gpus = []
+        if any(g.startswith("card") for g in gpus):
+            for g in gpus:
+                try:
+                    driver = open("/sys/class/drm/%s/device/driver/module" % g,
+                                   errors="ignore").read().lower()
+                except Exception:
+                    driver = ""
+                if any(k in driver for k in ("vboxvideo", "vmwgfx", "virtio_gpu", "bochs", "cirrus")):
+                    is_vm = True
+                    break
+        pol = "never" if is_vm else "always"
+    return WebKit2.HardwareAccelerationPolicy.NEVER if pol == "never" else WebKit2.HardwareAccelerationPolicy.ALWAYS
+
+
+def make_settings():
+    s = WebKit2.Settings()
+    s.set_enable_developer_extras(bool(os.environ.get("LUMINA_DEVTOOLS")))
+    s.set_enable_write_console_messages_to_stdout(bool(os.environ.get("LUMINA_DEBUG")))
+    s.set_allow_file_access_from_file_urls(True)
+    s.set_enable_smooth_scrolling(True)
+    s.set_javascript_can_access_clipboard(True)
+    s.set_enable_back_forward_navigation_gestures(False)
+    s.set_hardware_acceleration_policy(_gpu_policy())
+    return s
+
+
+class ShellWindow(Gtk.Window):
+    def __init__(self, shell, name, page, hint, focusable=True):
+        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        self.shell = shell
+        self.name = name
+        self.set_title("Lumina " + name)
+        self.set_wmclass("lumina-shell", "lumina-shell")
+        self.set_decorated(False)
+        self.set_app_paintable(True)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_type_hint(hint)
+        self.set_accept_focus(focusable)
+        self.set_focus_on_map(focusable)
+        self.stick()
+        vis = self.get_screen().get_rgba_visual()
+        if vis:
+            self.set_visual(vis)
+        ucm = WebKit2.UserContentManager()
+        ucm.register_script_message_handler("lumina")
+        ucm.connect("script-message-received::lumina", self.on_msg)
+        self.view = WebKit2.WebView.new_with_user_content_manager(ucm)
+        self.view.set_settings(make_settings())
+        self.view.set_background_color(Gdk.RGBA(0, 0, 0, 0))
+        self.view.connect("context-menu", lambda *a: True)
+        self.view.connect("decide-policy", self.on_policy)
+        self.add(self.view)
+        self.connect("draw", self.on_draw)
+        self.connect("delete-event", lambda *a: True)
+        self.page = page
+        self.view.load_uri(BASE + page + "?win=" + name)
+
+    def on_policy(self, view, decision, kind):
+        if kind == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            uri = decision.get_navigation_action().get_request().get_uri()
+            api.spawn(["xdg-open", uri])
+            decision.ignore()
+            return True
+        return False
+
+    def on_draw(self, w, cr):
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.paint()
+        return False
+
+    def js(self, code):
+        self.view.evaluate_javascript(code, -1, None, None, None, None, None)
+
+    def send(self, event, data):
+        self.js("window.Lumina && Lumina._native(%s)" % json.dumps({"event": event, "data": data}))
+
+    def set_input_rects(self, rects):
+        gdkw = self.get_window()
+        if not gdkw:
+            return
+        if rects is None:
+            # full-window input (PyGObject >= 3.50 rejects None here)
+            rects = [(0, 0, max(1, gdkw.get_width()), max(1, gdkw.get_height()))]
+        reg = cairo.Region()
+        for r in rects:
+            reg.union(cairo.RectangleInt(int(r[0]), int(r[1]), max(1, int(r[2])), max(1, int(r[3]))))
+        gdkw.input_shape_combine_region(reg, 0, 0)
+
+    def on_msg(self, ucm, res):
+        try:
+            m = json.loads(res.get_js_value().to_string())
+        except Exception:
+            return
+        self.shell.handle(self, m)
+
+
+class Shell:
+    def __init__(self):
+        self.apps_cache = None
+        self.apps_time = 0
+        self.icon_cache = {}
+        self.overlay_visible = False
+        api.serve(self, PORT)
+        self.wnck = Wnck.Screen.get_default()
+        self.wnck.force_update()
+        for sig in ("window-opened", "window-closed", "active-window-changed",
+                    "active-workspace-changed", "workspace-created", "workspace-destroyed"):
+            self.wnck.connect(sig, self.on_wnck)
+        self._wtimer = None
+        for w in self.wnck.get_windows():
+            self.watch(w)
+
+        disp = Gdk.Display.get_default()
+        self.screen = Gdk.Screen.get_default()
+        self.screen.connect("size-changed", lambda *a: GLib.timeout_add(300, self.layout))
+        self.screen.connect("monitors-changed", lambda *a: GLib.timeout_add(300, self.layout))
+
+        api.ensure_token()
+        H = Gdk.WindowTypeHint
+        self.desktop = ShellWindow(self, "desktop", "desktop.html", H.DESKTOP, focusable=True)
+        self.topbar = ShellWindow(self, "topbar", "topbar.html", H.DOCK, focusable=False)
+        self.dock = ShellWindow(self, "dock", "dock.html", H.DOCK, focusable=False)
+        self.toasts = ShellWindow(self, "toasts", "toasts.html", H.NOTIFICATION, focusable=False)
+        self.overlay = ShellWindow(self, "overlay", "overlay.html", H.NORMAL, focusable=True)
+        self.overlay.set_keep_above(True)
+        self.perf = ShellWindow(self, "perf", "perf.html", H.NORMAL, focusable=False)
+        self.perf.set_keep_above(True)
+        self.perf.hide()
+        self.topbar.set_keep_above(True)
+        self.dock.set_keep_above(True)
+        self.toasts.set_keep_above(True)
+        self.desktop.set_keep_below(True)
+        self.overlay.connect("focus-out-event", self.on_overlay_blur)
+        # performance overlay toggle: Super + P
+        self._perf_visible = False
+        self.layout()
+        for w in (self.desktop, self.topbar, self.dock):
+            w.show_all()
+        self.toasts.show_all()
+        self.toasts.set_input_rects([])
+        self.dock.set_input_rects([])
+        self.start_notification_daemon()
+        self.apply_initial()
+
+    def apply_initial(self):
+        s = api.get_settings()
+        api.apply_native_theme(s, {"theme": s["theme"], "perfShadows": s.get("perfShadows", True)})
+        if s.get("brightness", 100) != 100 or s.get("nightLight"):
+            threading.Thread(target=api.apply_brightness, args=(s,), daemon=True).start()
+
+    # ------------------------------------------------------------ geometry
+    def geom(self):
+        mon = Gdk.Display.get_default().get_primary_monitor() or Gdk.Display.get_default().get_monitor(0)
+        g = mon.get_geometry()
+        return g.x, g.y, g.width, g.height
+
+    def layout(self):
+        x, y, W, H = self.geom()
+        self.W, self.H = W, H
+        TB = 30
+        DH = 400  # dock window height (room for magnification, labels and menus; input-shaped)
+        DOCK_STRUT = 76
+        self.desktop.move(x, y); self.desktop.resize(W, H); self.desktop.set_size_request(W, H)
+        self.topbar.move(x, y); self.topbar.set_size_request(W, TB); self.topbar.resize(W, TB)
+        self.dock.move(x, y + H - DH); self.dock.set_size_request(W, DH); self.dock.resize(W, DH)
+        self.toasts.move(x + W - 400, y + TB); self.toasts.set_size_request(400, H - TB - DOCK_STRUT); self.toasts.resize(400, H - TB - DOCK_STRUT)
+        self.overlay.move(x, y); self.overlay.set_size_request(W, H); self.overlay.resize(W, H)
+        self.geo = {"x": x, "y": y, "w": W, "h": H, "topbar": TB, "dockH": DH, "dockStrut": DOCK_STRUT}
+
+        def struts():
+            for win, top, bottom in ((self.topbar, TB, 0), (self.dock, 0, DOCK_STRUT)):
+                gw = win.get_window()
+                if not gw:
+                    continue
+                if top:
+                    vals = [0, 0, y + top, 0, 0, 0, 0, 0, x, x + W - 1, 0, 0]
+                else:
+                    vals = [0, 0, 0, bottom, 0, 0, 0, 0, 0, 0, x, x + W - 1]
+                self._set_strut(gw, vals)
+            return False
+        GLib.timeout_add(500, struts)
+        for w in (self.desktop, self.topbar, self.dock, self.overlay, self.toasts):
+            w.send("geom", self.geo)
+        return False
+
+    def _set_strut(self, gw, vals):
+        try:
+            from Xlib import display as xd, Xatom
+        except Exception:
+            xd = None
+        xid = gw.get_xid()
+        v = ",".join(str(i) for i in vals)
+        subprocess.Popen(["xprop", "-id", str(xid), "-f", "_NET_WM_STRUT_PARTIAL", "32cccccccccccc",
+                          "-set", "_NET_WM_STRUT_PARTIAL", v], stderr=subprocess.DEVNULL)
+        subprocess.Popen(["xprop", "-id", str(xid), "-f", "_NET_WM_STRUT", "32cccc",
+                          "-set", "_NET_WM_STRUT", ",".join(str(i) for i in vals[:4])], stderr=subprocess.DEVNULL)
+
+    # ------------------------------------------------------------ messages from JS
+    def handle(self, win, m):
+        cmd = m.get("cmd")
+        if cmd == "input":
+            win.set_input_rects(m.get("rects"))
+        elif cmd == "ready":
+            win.send("geom", self.geo)
+        elif cmd == "overlay":
+            self.show_overlay(m.get("show", True))
+            self.set_chrome(not (m.get("show", True) and m.get("full")))
+        elif cmd == "focus":
+            win.present()
+        elif cmd == "taskview":
+            self.show_taskview(m.get("show", True))
+        elif cmd == "perf":
+            self._perf_visible = not self._perf_visible
+            if self._perf_visible:
+                x, y, W, H = self.geom()
+                self.perf.move(x + W - 320, y + 40)
+                self.perf.resize(300, 200)
+                self.perf.show_all()
+                self.perf.present_with_time(Gdk.CURRENT_TIME)
+                # start stats updates
+                self._perf_timer = GLib.timeout_add(1000, self._perf_tick)
+            else:
+                self.perf.hide()
+                if hasattr(self, "_perf_timer"):
+                    GLib.source_remove(self._perf_timer)
+        elif cmd == "log":
+            print("[%s] %s" % (win.name, m.get("msg")), flush=True)
+
+    def _perf_tick(self):
+        try:
+            import psutil
+            cpu = psutil.cpu_percent(interval=0)
+            mem = psutil.virtual_memory().percent
+            disk = psutil.disk_usage("/").percent
+            net = psutil.net_io_counters()
+            self.perf.js(json.dumps({
+                "cmd": "perf-tick",
+                "cpu": cpu, "mem": mem, "disk": disk,
+                "rx": net.bytes_recv, "tx": net.bytes_sent
+            }))
+        except Exception:
+            pass
+        return True
+
+    def show_overlay(self, show):
+        if show and not self.overlay_visible:
+            self.overlay_visible = True
+            self.overlay.show_all()
+            self.overlay.fullscreen()
+            self.overlay.present_with_time(Gdk.CURRENT_TIME)
+            GLib.timeout_add(80, lambda: (self.overlay.get_window() and self.overlay.get_window().focus(Gdk.CURRENT_TIME), False)[1])
+        elif not show and self.overlay_visible:
+            self.overlay_visible = False
+            self.overlay.hide()
+
+    def set_chrome(self, visible):
+        for w in (self.topbar, self.dock, self.toasts):
+            if visible and not w.get_visible():
+                w.show()
+                if w is self.dock or w is self.toasts:
+                    GLib.timeout_add(60, lambda w=w: (w.send("reshape", None), False)[1])
+            elif not visible and w.get_visible():
+                w.hide()
+        if visible:
+            GLib.timeout_add(400, lambda: (self.layout(), False)[1])
+
+    def on_overlay_blur(self, *a):
+        self.overlay.send("blur", None)
+        return False
+
+    def show_taskview(self, show):
+        if show:
+            x, y, W, H = self.geom()
+            self.taskview = ShellWindow(self, "taskview", "taskview.html", H.NORMAL, focusable=True)
+            self.taskview.set_keep_above(True)
+            self.taskview.move(x, y)
+            self.taskview.resize(W, H)
+            self.taskview.show_all()
+            self.taskview.fullscreen()
+            self.taskview.present_with_time(Gdk.CURRENT_TIME)
+            self.taskview.js(json.dumps({"cmd": "ready"}))
+            self._taskview_timer = GLib.timeout_add(150, self._taskview_update)
+        else:
+            if hasattr(self, "taskview"):
+                self.taskview.hide()
+            if hasattr(self, "_taskview_timer"):
+                GLib.source_remove(self._taskview_timer)
+
+    def _taskview_update(self):
+        windows = self._windows()
+        self.taskview.js(json.dumps({"cmd": "windows", "windows": windows}))
+        return True
+
+    # ------------------------------------------------------------ apps
+    def apps(self):
+        return run_main(self._apps)
+
+    def _apps(self):
+        if self.apps_cache and time.time() - self.apps_time < 20:
+            return self.apps_cache
+        res = []
+        for a in Gio.AppInfo.get_all():
+            try:
+                if not a.should_show():
+                    continue
+                aid = a.get_id()
+                icon = a.get_icon()
+                iname = ""
+                if icon:
+                    iname = icon.to_string() or ""
+                cats = a.get_categories() or "" if hasattr(a, "get_categories") else ""
+                kw = a.get_keywords() if hasattr(a, "get_keywords") else []
+                wm = a.get_startup_wm_class() if hasattr(a, "get_startup_wm_class") else None
+                exe = (a.get_executable() or "").split("/")[-1]
+                res.append({
+                    "id": aid, "name": a.get_name(), "generic": a.get_generic_name() or "" if hasattr(a, "get_generic_name") else "",
+                    "comment": a.get_description() or "", "icon": iname, "categories": cats,
+                    "keywords": list(kw or []), "wmclass": (wm or "").lower(), "exec": exe,
+                    "lumina": aid.startswith("lumina-"),
+                    "world": self.world_of(a, aid),
+                })
+            except Exception:
+                continue
+        res.sort(key=lambda x: x["name"].lower())
+        self.apps_cache, self.apps_time = res, time.time()
+        self.build_match()
+        return res
+
+    def world_of(self, a, aid):
+        fn = a.get_filename() or ""
+        cl = (a.get_commandline() or "").lower()
+        if "wine" in cl or "/wine/" in fn or "wine-" in aid:
+            return "windows"
+        if "waydroid" in cl or aid.startswith("waydroid."):
+            return "android"
+        if "flatpak" in cl:
+            return "flatpak"
+        return "linux"
+
+    def build_match(self):
+        self.match = {}
+        for a in self.apps_cache or []:
+            keys = {a["wmclass"], a["id"][:-8].lower() if a["id"].endswith(".desktop") else a["id"].lower(),
+                    a["exec"].lower(), a["id"].split(".")[-2].lower() if a["id"].count(".") >= 2 else ""}
+            for k in keys:
+                if k and k not in self.match:
+                    self.match[k] = a
+        aliases = {"firefox-esr": "firefox-esr.desktop", "navigator": "firefox-esr.desktop",
+                   "xfce4-terminal": "lumina-terminal.desktop", "lumina-terminal": "lumina-terminal.desktop"}
+        byid = {a["id"]: a for a in self.apps_cache or []}
+        for k, v in aliases.items():
+            if v in byid:
+                self.match.setdefault(k, byid[v])
+
+    def invalidate_apps(self):
+        self.apps_time = 0
+
+    def icon_file(self, name, size=64):
+        return run_main(self._icon_file, name, size)
+
+    def _icon_file(self, name, size):
+        key = (name, size)
+        if key in self.icon_cache:
+            return self.icon_cache[key]
+        f = None
+        if name.startswith("/") and os.path.exists(name):
+            f = name
+        else:
+            theme = Gtk.IconTheme.get_default()
+            for n in (name, name.lower(), name.replace(".desktop", ""), "application-x-executable"):
+                info = theme.lookup_icon(n, size, Gtk.IconLookupFlags.FORCE_SIZE)
+                if info:
+                    f = info.get_filename()
+                    break
+        self.icon_cache[key] = f
+        return f
+
+    def launch(self, aid, args):
+        def _l():
+            try:
+                app = Gio.DesktopAppInfo.new(aid)
+                if not app:
+                    return False
+                ctx = Gdk.Display.get_default().get_app_launch_context()
+                if args:
+                    app.launch_uris(args, ctx)
+                else:
+                    app.launch([], ctx)
+                api.HUB.emit("launching", {"id": aid})
+                return True
+            except Exception as e:
+                print("launch failed", aid, e, flush=True)
+                return False
+        return run_main(_l)
+
+    # ------------------------------------------------------------ windows (wnck)
+    def watch(self, w):
+        w.connect("state-changed", lambda *a: self.windows_changed())
+        w.connect("name-changed", lambda *a: self.windows_changed())
+        w.connect("workspace-changed", lambda *a: self.windows_changed())
+
+    def on_wnck(self, scr, *a):
+        if a and isinstance(a[0], Wnck.Window) and scr.get_windows().count(a[0]):
+            self.watch(a[0])
+        self.windows_changed()
+
+    def windows_changed(self):
+        if self._wtimer:
+            return
+        def fire():
+            self._wtimer = None
+            api.HUB.emit("windows", self._windows())
+            return False
+        self._wtimer = GLib.timeout_add(120, fire)
+
+    def _app_for(self, w):
+        if not self.apps_cache:
+            self._apps()
+        cg = w.get_class_group_name() or ""
+        ci = w.get_class_instance_name() or ""
+        for k in (cg.lower(), ci.lower()):
+            if k in self.match:
+                return self.match[k]
+        return None
+
+    def _windows(self):
+        res = []
+        active = self.wnck.get_active_window()
+        for w in self.wnck.get_windows_stacked():
+            if w.is_skip_tasklist():
+                continue
+            if w.get_window_type() not in (Wnck.WindowType.NORMAL, Wnck.WindowType.DIALOG):
+                continue
+            a = self._app_for(w)
+            ws = w.get_workspace()
+            res.append({
+                "xid": w.get_xid(), "title": w.get_name(), "appId": a["id"] if a else None,
+                "app": a["name"] if a else (w.get_class_group_name() or w.get_name()),
+                "icon": ("/api/icon?name=" + a["icon"]) if a and a["icon"] else "/api/winicon?xid=%d" % w.get_xid(),
+                "active": active is not None and active.get_xid() == w.get_xid(),
+                "minimized": w.is_minimized(), "maximized": w.is_maximized(),
+                "workspace": ws.get_number() if ws else -1, "pid": w.get_pid(),
+                "class": w.get_class_group_name(),
+            })
+        return res
+
+    def windows(self):
+        return run_main(self._windows)
+
+    def window_pids(self):
+        return run_main(lambda: {w.get_pid() for w in self.wnck.get_windows() if not w.is_skip_tasklist()}) or set()
+
+    def _find(self, xid):
+        for w in self.wnck.get_windows():
+            if w.get_xid() == xid:
+                return w
+        return None
+
+    def window_action(self, xid, action):
+        def _a():
+            w = self._find(xid)
+            if not w:
+                return False
+            t = Gtk.get_current_event_time() or int(time.time())
+            t = GLib.get_monotonic_time() // 1000 & 0xFFFFFFFF
+            if action == "activate":
+                ws = w.get_workspace()
+                if ws and ws != self.wnck.get_active_workspace():
+                    ws.activate(t)
+                w.activate(t)
+            elif action == "minimize":
+                w.minimize()
+            elif action == "close":
+                w.close(t)
+            elif action == "toggle":
+                if w.is_active() and not w.is_minimized():
+                    w.minimize()
+                else:
+                    if w.is_minimized():
+                        w.unminimize(t)
+                    w.activate(t)
+            elif action == "maximize":
+                w.unmaximize() if w.is_maximized() else w.maximize()
+            elif action.startswith("ws:"):
+                n = int(action[3:])
+                ws = self.wnck.get_workspace(n)
+                if ws:
+                    w.move_to_workspace(ws)
+            return True
+        return run_main(_a)
+
+    def workspaces(self):
+        def _w():
+            act = self.wnck.get_active_workspace()
+            return {"count": self.wnck.get_workspace_count(), "active": act.get_number() if act else 0}
+        return run_main(_w)
+
+    def set_workspace(self, n):
+        def _s():
+            ws = self.wnck.get_workspace(n)
+            if ws:
+                ws.activate(GLib.get_monotonic_time() // 1000 & 0xFFFFFFFF)
+        run_main(_s)
+
+    def window_icon_png(self, xid):
+        def _i():
+            w = self._find(xid)
+            if not w:
+                return None
+            pb = w.get_icon()
+            ok, buf = pb.save_to_bufferv("png", [], [])
+            return bytes(buf) if ok else None
+        return run_main(_i)
+
+    # ------------------------------------------------------------ screenshots
+    def snip(self, mode, delay):
+        d = api.sh(["xdg-user-dir", "PICTURES"]) or os.path.expanduser("~/Pictures")
+        d = os.path.join(d, "Screenshots")
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, time.strftime("Screenshot %Y-%m-%d %H.%M.%S.png"))
+
+        def run():
+            time.sleep(max(0.45, delay))
+            if mode == "region":
+                argv = ["maim", "-s", "-u", "-b", "2", "-c", "1,0.22,0.37,0.9", path]
+            elif mode == "window":
+                xid = api.sh(["xdotool", "getactivewindow"])
+                argv = ["maim", "-u", "-i", xid, path] if xid else ["maim", "-u", path]
+            else:
+                argv = ["maim", "-u", path]
+            if not shutil.which("maim"):
+                argv = ["import", "-window", "root", path]
+            rc = subprocess.run(argv).returncode
+            if rc == 0 and os.path.exists(path):
+                subprocess.run(["sh", "-c", "xclip -selection clipboard -t image/png -i \"$0\"", path])
+                api.HUB.emit("snip", {"path": path})
+                api.notify("Screenshot saved", "Copied to clipboard and saved to Pictures/Screenshots",
+                           path, "Snip")
+        threading.Thread(target=run, daemon=True).start()
+        return {"ok": True, "path": path}
+
+    # ------------------------------------------------------------ notifications (D-Bus)
+    def start_notification_daemon(self):
+        try:
+            import dbus, dbus.service
+            from dbus.mainloop.glib import DBusGMainLoop
+        except Exception as e:
+            print("dbus unavailable", e)
+            return
+        DBusGMainLoop(set_as_default=True)
+        bus = dbus.SessionBus()
+        try:
+            name = dbus.service.BusName("org.freedesktop.Notifications", bus, replace_existing=True,
+                                        allow_replacement=True, do_not_queue=True)
+        except Exception as e:
+            print("notification name busy", e)
+            return
+        shell = self
+
+        class Notif(dbus.service.Object):
+            counter = 0
+
+            @dbus.service.method("org.freedesktop.Notifications", in_signature="", out_signature="as")
+            def GetCapabilities(self):
+                return ["body", "body-markup", "icon-static", "persistence"]
+
+            @dbus.service.method("org.freedesktop.Notifications", in_signature="susssasa{sv}i", out_signature="u")
+            def Notify(self, app, replaces, icon, summary, body, actions, hints, timeout):
+                Notif.counter += 1
+                ic = str(icon)
+                if not ic and "image-path" in hints:
+                    ic = str(hints["image-path"])
+                api.notify(str(summary), str(body), ic, str(app) or "App")
+                return replaces or Notif.counter
+
+            @dbus.service.method("org.freedesktop.Notifications", in_signature="u", out_signature="")
+            def CloseNotification(self, nid):
+                self.NotificationClosed(nid, 3)
+
+            @dbus.service.method("org.freedesktop.Notifications", in_signature="", out_signature="ssss")
+            def GetServerInformation(self):
+                return ("Lumina Shell", "LuminaOS", "1.0", "1.2")
+
+            @dbus.service.signal("org.freedesktop.Notifications", signature="uu")
+            def NotificationClosed(self, nid, reason):
+                pass
+
+        self._notif_name = name
+        self._notif_obj = Notif(bus, "/org/freedesktop/Notifications")
+
+
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    Gtk.init(sys.argv)
+    gs = Gtk.Settings.get_default()
+    if gs and os.path.isdir("/usr/share/icons/Papirus-Dark"):
+        gs.props.gtk_icon_theme_name = "Papirus-Dark"  # app icons for Store, Start and dock
+    Shell()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,2 @@
+# Lumina Store / Updates privileged helper (validates its own arguments)
+%sudo ALL=(root) NOPASSWD: /usr/libexec/lumina/lumina-pkg

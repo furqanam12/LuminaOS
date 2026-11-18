@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="dark"><head><meta charset="utf-8"><title>Notepad</title>
+<link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
+<style>
+.titlebar .tt { display: none; }
+.tabs { display: flex; align-items: flex-end; gap: 2px; align-self: stretch; padding-top: 6px; min-width: 0; }
+.tab { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 12px; border-radius: 8px 8px 0 0; font-size: 12px; width: 180px; min-width: 80px;
+  color: var(--fg-2); animation: tabIn 260ms var(--spring) both; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(6px) scaleX(.8); } to { opacity: 1; transform: none; } }
+.tab:hover { background: var(--hover); } .tab.on { background: var(--card-a); color: var(--fg); }
+.tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab .tx { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; opacity: .6; position: relative; }
+.tab .tx:hover { background: var(--hover); opacity: 1; } .tab .tx svg { width: 10px; height: 10px; }
+.tab.dirty .tx svg { display: none; } .tab.dirty .tx::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-2); }
+.tab.dirty .tx:hover svg { display: block; } .tab.dirty .tx:hover::after { display: none; }
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.menubar { display: flex; align-items: center; gap: 2px; padding: 4px 8px; background: var(--card-a); border-top: 1px solid var(--line); }
+.menubar .btn.ghost { height: 28px; padding: 0 10px; font-size: 12.5px; }
+textarea#ed { flex: 1; border: 0; outline: 0; resize: none; background: transparent; padding: 14px 18px; font-family: var(--mono); font-size: var(--fs, 14px); line-height: 1.55;
+  tab-size: 4; white-space: pre; overflow: auto; color: var(--fg); }
+textarea#ed.wrap { white-space: pre-wrap; }
+.findbar { display: none; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); animation: slideUp 200ms var(--spring-soft); }
+.findbar.on { display: flex; }
+.findbar .input { height: 28px; width: 220px; }
+#md { flex: 1; overflow: auto; padding: 20px 30px; display: none; line-height: 1.6; user-select: text; -webkit-user-select: text; }
+#md h1, #md h2 { font-weight: 600; } #md code { font-family: var(--mono); background: var(--card-a); padding: 1px 5px; border-radius: 4px; }
+#md pre { background: var(--card-a); padding: 12px; border-radius: 8px; overflow: auto; }
+</style></head>
+<body>
+<div class="col">
+  <div class="menubar">
+    <button class="btn ghost" data-m="file">File</button><button class="btn ghost" data-m="edit">Edit</button><button class="btn ghost" data-m="view">View</button>
+    <div style="flex:1"></div><button class="icon-btn" id="mdb" title="Markdown preview" style="display:none"></button>
+  </div>
+  <div class="findbar" id="fb"><input class="input selectable" id="fq" placeholder="Find"><input class="input selectable" id="fr" placeholder="Replace"><button class="btn small" id="fn">Next</button><button class="btn small" id="frp">Replace</button><button class="btn small" id="fra">Replace all</button><span class="muted" id="fc" style="font-size:12px"></span><div style="flex:1"></div><button class="icon-btn" id="fx"></button></div>
+  <textarea id="ed" spellcheck="false" class="selectable"></textarea><div id="md"></div>
+  <div class="statusbar"><span id="pos">Ln 1, Col 1</span><span id="cnt"></span><span style="margin-left:auto" id="zm">100%</span><span>UTF-8</span><span>Unix (LF)</span></div>
+</div>
+<script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
+<script>
+const L = Lumina, $ = s => document.querySelector(s), ed = $('#ed');
+let docs = [], cur = 0, zoom = +(localStorage.npZoom || 100), wrap = localStorage.npWrap !== '0', preview = false;
+const D = () => docs[cur];
+const base = p => p ? p.split('/').pop() : 'Untitled';
+function syncIn() { if (D()) { D().text = ed.value; D().sel = [ed.selectionStart, ed.selectionEnd]; D().scroll = ed.scrollTop; } }
+function show() {
+  const d = D(); ed.value = d.text; ed.scrollTop = d.scroll || 0; if (d.sel) ed.setSelectionRange(...d.sel);
+  renderTabs(); status(); ed.focus();
+  const md = /\.md$/i.test(d.path || ''); $('#mdb').style.display = md ? '' : 'none'; if (!md && preview) togglePreview();
+  if (preview) renderMd();
+}
+function renderTabs() {
+  $('#tabs').innerHTML = docs.map((d, i) => `<div class="tab ${i === cur ? 'on' : ''} ${d.text !== d.saved ? 'dirty' : ''}" data-i="${i}"><span>${L.esc(base(d.path))}</span><div class="tx" data-x="${i}">${L.icon('x')}</div></div>`).join('')
+    + `<button class="icon-btn" id="nt" style="width:26px;height:26px">${L.icon('plus')}</button>`;
+  document.querySelectorAll('.tab').forEach(t => t.onmousedown = e => { if (e.target.closest('.tx')) return; syncIn(); cur = +t.dataset.i; show(); });
+  document.querySelectorAll('.tx').forEach(x => x.onclick = e => { e.stopPropagation(); closeDoc(+x.dataset.x); });
+  $('#nt').onclick = () => newDoc();
+  LWin.setTitle(base(D().path) + (D().text !== D().saved ? ' •' : '') + ' - Notepad');
+}
+function newDoc(path, text) { syncIn(); docs.push({ path: path || null, text: text || '', saved: text || '' }); cur = docs.length - 1; show(); }
+async function openPath(p) {
+  const ex = docs.findIndex(d => d.path === p); if (ex >= 0) { syncIn(); cur = ex; return show(); }
+  const r = await L.get('/api/fs/read', { path: p });
+  if (r.error) return L.dialog({ title: "Couldn't open file", text: r.error });
+  if (docs.length === 1 && !D().path && !D().text) docs = [];
+  docs.push({ path: r.path, text: r.text, saved: r.text }); cur = docs.length - 1; show();
+}
+async function save(as) {
+  syncIn(); const d = D(); let p = d.path;
+  if (!p || as) { p = await L.dialog({ title: 'Save as', text: 'File path', input: 'text', value: p || (L.sys ? '' : '') + '~/Documents/' + (p ? base(p) : 'Untitled.txt'), buttons: ['Save', 'Cancel'] }); if (!p) return false; }
+  const r = await L.post('/api/fs/write', { path: p, text: d.text });
+  if (!r.ok) { L.dialog({ title: "Couldn't save", text: r.error || '' }); return false; }
+  d.path = r.path; d.saved = d.text; renderTabs(); show(); return true;
+}
+async function closeDoc(i) {
+  syncIn(); const d = docs[i];
+  if (d.text !== d.saved) { cur = i; show(); const r = await L.dialog({ title: `Do you want to save changes to ${base(d.path)}?`, buttons: ['Save', "Don't save", 'Cancel'], index: true });
+    if (r === true) { if (!(await save())) return; } else if (r === null) { const b = document.activeElement; if (!closeDoc._dont) { } } }
+  docs.splice(i, 1); if (!docs.length) return LWin.close(); cur = Math.min(cur, docs.length - 1); show();
+}
+function status() {
+  const v = ed.value, p = ed.selectionStart, before = v.slice(0, p), ln = before.split('\n').length, col = p - before.lastIndexOf('\n');
+  $('#pos').textContent = `Ln ${ln}, Col ${col}`; $('#cnt').textContent = `${v.length} characters`;
+  $('#zm').textContent = zoom + '%';
+}
+function setZoom(z) { zoom = Math.max(50, Math.min(300, z)); localStorage.npZoom = zoom; document.documentElement.style.setProperty('--fs', (14 * zoom / 100) + 'px'); status(); }
+function find(dir) {
+  const q = $('#fq').value; if (!q) return; const v = ed.value.toLowerCase(), ql = q.toLowerCase();
+  let i = dir < 0 ? v.lastIndexOf(ql, ed.selectionStart - 1) : v.indexOf(ql, ed.selectionEnd);
+  if (i < 0) i = dir < 0 ? v.lastIndexOf(ql) : v.indexOf(ql);
+  const n = v.split(ql).length - 1; $('#fc').textContent = n ? n + ' matches' : 'No matches';
+  if (i >= 0) { ed.focus(); ed.setSelectionRange(i, i + q.length); const lh = parseFloat(getComputedStyle(ed).lineHeight); ed.scrollTop = (ed.value.slice(0, i).split('\n').length - 5) * lh; }
+}
+function replace(all) {
+  const q = $('#fq').value, r = $('#fr').value; if (!q) return;
+  if (all) { ed.value = ed.value.split(q).join(r); } else if (ed.value.slice(ed.selectionStart, ed.selectionEnd).toLowerCase() === q.toLowerCase()) ed.setRangeText(r, ed.selectionStart, ed.selectionEnd, 'end');
+  syncIn(); renderTabs(); find(1);
+}
+function renderMd() {
+  const esc = L.esc; let h = esc(ed.value);
+  h = h.replace(/```([\s\S]*?)```/g, (m, c) => `<pre><code>${c}</code></pre>`).replace(/^### (.*)$/gm, '<h3>$1</h3>').replace(/^## (.*)$/gm, '<h2>$1</h2>').replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/^- (.*)$/gm, '<li>$1</li>').replace(/\n\n/g, '<br><br>');
+  $('#md').innerHTML = h;
+}
+function togglePreview() { preview = !preview; $('#md').style.display = preview ? 'block' : 'none'; ed.style.display = preview ? 'none' : ''; if (preview) renderMd(); }
+function menu(which, el) {
+  const r = el.getBoundingClientRect(), x = r.left, y = r.bottom + 4;
+  const M = {
+    file: [{ label: 'New tab', icon: 'plus', kbd: 'Ctrl+N', action: () => newDoc() }, { label: 'New window', icon: 'window', kbd: 'Ctrl+Shift+N', action: () => L.app('notepad') },
+      { label: 'Open…', icon: 'folder', kbd: 'Ctrl+O', action: openDlg }, { label: 'Save', icon: 'save', kbd: 'Ctrl+S', action: () => save() }, { label: 'Save as…', icon: 'save', kbd: 'Ctrl+Shift+S', action: () => save(true) }, '-',
+      { label: 'Close tab', icon: 'x', kbd: 'Ctrl+W', action: () => closeDoc(cur) }, { label: 'Exit', icon: 'logout', action: () => LWin.close() }],
+    edit: [{ label: 'Undo', icon: 'undo', kbd: 'Ctrl+Z', action: () => { ed.focus(); document.execCommand('undo'); } }, '-',
+      { label: 'Cut', icon: 'cut', kbd: 'Ctrl+X', action: () => { ed.focus(); document.execCommand('cut'); } }, { label: 'Copy', icon: 'copy', kbd: 'Ctrl+C', action: () => { ed.focus(); document.execCommand('copy'); } },
+      { label: 'Paste', icon: 'paste', kbd: 'Ctrl+V', action: async () => { ed.focus(); try { ed.setRangeText(await navigator.clipboard.readText(), ed.selectionStart, ed.selectionEnd, 'end'); syncIn(); renderTabs(); } catch (e) { } } }, '-',
+      { label: 'Find', icon: 'search', kbd: 'Ctrl+F', action: () => openFind() }, { label: 'Replace', icon: 'rename', kbd: 'Ctrl+H', action: () => openFind() }, '-',
+      { label: 'Select all', icon: 'check', kbd: 'Ctrl+A', action: () => { ed.focus(); ed.select(); } }, { label: 'Time/date', icon: 'clock', kbd: 'F5', action: insertDate }],
+    view: [{ label: 'Zoom in', icon: 'zoomin', kbd: 'Ctrl++', action: () => setZoom(zoom + 10) }, { label: 'Zoom out', icon: 'zoomout', kbd: 'Ctrl+-', action: () => setZoom(zoom - 10) },
+      { label: 'Restore default zoom', icon: 'refresh', kbd: 'Ctrl+0', action: () => setZoom(100) }, '-',
+      { label: (wrap ? '✓ ' : '') + 'Word wrap', icon: 'list', action: () => { wrap = !wrap; localStorage.npWrap = wrap ? 1 : 0; ed.classList.toggle('wrap', wrap); } },
+      { label: 'Markdown preview', icon: 'eye', disabled: !/\.md$/i.test(D().path || ''), action: togglePreview }],
+  };
+  L.menu(x, y, M[which]);
+}
+function insertDate() { ed.setRangeText(new Date().toLocaleString('en-GB'), ed.selectionStart, ed.selectionEnd, 'end'); syncIn(); renderTabs(); }
+function openFind() { $('#fb').classList.add('on'); const s = ed.value.slice(ed.selectionStart, ed.selectionEnd); if (s && !s.includes('\n')) $('#fq').value = s; $('#fq').focus(); $('#fq').select(); }
+async function openDlg() { const p = await L.dialog({ title: 'Open', text: 'File path', input: 'text', value: '~/Documents/', buttons: ['Open', 'Cancel'] }); if (p) openPath(p); }
+
+LWin.init({ icon: false, titlebar: '<div class="tabs" id="tabs"></div>', ctrlW: false, onArgs: a => { a.forEach(openPath); if (!a.length) newDoc(); } }).then(() => {
+  docs = [{ path: null, text: '', saved: '' }]; show();
+  $('#mdb').innerHTML = L.icon('eye'); $('#mdb').onclick = togglePreview; $('#fx').innerHTML = L.icon('x');
+  ed.classList.toggle('wrap', wrap); setZoom(zoom);
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => menu(b.dataset.m, b));
+  ed.addEventListener('input', () => { syncIn(); renderTabs(); status(); });
+  ed.addEventListener('keyup', status); ed.addEventListener('click', status);
+  ed.addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); ed.setRangeText('    ', ed.selectionStart, ed.selectionEnd, 'end'); syncIn(); } });
+  $('#fq').onkeydown = e => { if (e.key === 'Enter') find(e.shiftKey ? -1 : 1); if (e.key === 'Escape') { $('#fb').classList.remove('on'); ed.focus(); } };
+  $('#fn').onclick = () => find(1); $('#frp').onclick = () => replace(false); $('#fra').onclick = () => replace(true); $('#fx').onclick = () => { $('#fb').classList.remove('on'); ed.focus(); };
+  document.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (!e.ctrlKey) { if (e.key === 'F5') { e.preventDefault(); insertDate(); } if (e.key === 'F3') find(e.shiftKey ? -1 : 1); return; }
+    const map = { s: () => save(e.shiftKey), o: openDlg, n: () => e.shiftKey ? L.app('notepad') : newDoc(), w: () => closeDoc(cur), f: openFind, h: openFind, '=': () => setZoom(zoom + 10), '+': () => setZoom(zoom + 10), '-': () => setZoom(zoom - 10), '0': () => setZoom(100),
+      tab: () => { syncIn(); cur = (cur + (e.shiftKey ? docs.length - 1 : 1)) % docs.length; show(); } };
+    if (map[k]) { e.preventDefault(); map[k](); }
+  });
+  ed.addEventListener('wheel', e => { if (e.ctrlKey) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 10 : -10)); } }, { passive: false });
+  LWin.args.forEach(openPath);
+  // ask before closing with unsaved changes
+  const origClose = LWin.close; LWin.close = async () => {
+    syncIn(); const dirty = docs.filter(d => d.text !== d.saved);
+    if (dirty.length) { L.native('hold'); const r = await L.dialog({ title: `Save changes to ${dirty.length} file(s) before closing?`, buttons: ['Save', "Don't save", 'Cancel'], index: true });
+      if (r === true) { for (const d of dirty) { cur = docs.indexOf(d); show(); if (!(await save())) return; } }
+      else if (r !== 1) return; }
+    origClose();
+  };
+});
+</script></body></html>
