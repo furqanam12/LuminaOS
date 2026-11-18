@@ -180,6 +180,13 @@ class SourceTests(unittest.TestCase):
         self.assertIn("opt('low-power','Power Saver')", settings)
         self.assertIn("$('#prof').value", settings)
 
+    def test_store_owner_rejects_empty_desktop(self):
+        """An empty desktop name must not try to open the applications directory."""
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('d = os.path.basename(q.get("desktop", "").strip())', api)
+        self.assertIn('if not d.endswith(".desktop"):', api)
+        self.assertIn("if os.path.isfile(f):", api)
+
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "node is required for inline JavaScript validation")

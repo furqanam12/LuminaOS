@@ -1521,12 +1521,14 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/store":
             return self._send(200, store_catalog())
         if p == "/api/store/owner":
-            d = q.get("desktop", "")
+            d = os.path.basename(q.get("desktop", "").strip())
             info = {"desktop": d, "pkg": None, "kind": None, "name": d}
+            if not d.endswith(".desktop"):
+                return self._send(200, info)
             for base in ["/usr/share/applications", "/usr/local/share/applications", os.path.join(HOME, ".local/share/applications"),
                          "/var/lib/flatpak/exports/share/applications"]:
                 f = os.path.join(base, d)
-                if os.path.exists(f):
+                if os.path.isfile(f):
                     for l in open(f, errors="ignore"):
                         if l.startswith("Name="):
                             info["name"] = l[5:].strip(); break
