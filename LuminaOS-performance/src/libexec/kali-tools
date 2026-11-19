@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# LuminaOS Security Suite — tool and package manager
+# Works both interactively (menus) and via arguments (kali-tools install <name>).
+
+MENU="\033[01;34m=== LuminaOS Kali Security Tools ===\033[00m"
+PACKAGES="nmap wireshark john aircrack-ng sqlmap hydra"
+SECURITY_PACKAGES="metasploit-framework burpsuite nikto hashcat ncrack maltego"
+
+show_menu() {
+  echo -e "$MENU"
+  echo "1) Show installed tools"
+  echo "2) Install Top 10 Security Tools"
+  echo "3) Install Metasploit Framework"
+  echo "4) Install Web Security Pack (burpsuite, sqlmap, nikto)"
+  echo "5) Install Password Auditing Pack (hashcat, hydra, medusa)"
+  echo "6) Update Kali repositories"
+  echo "7) Exit"
+}
+
+show_installed() {
+  echo "Installed security tools:"
+  for t in nmap wireshark msfconsole john aircrack-ng sqlmap hydra hashcat burpsuite nikto medusa; do
+    if command -v "$t" >/dev/null 2>&1; then
+      printf "  \033[01;32m✓\033[00m %-16s %s\n" "$t" "$(command -v $t)"
+    else
+      printf "  \033[01;31m✗\033[00m %s\n" "$t"
+    fi
+  done
+}
+
+install_pkgs() {
+  sudo apt-get update -o APT::Status-Fd=1
+  sudo apt-get install -y --no-install-recommends "$@"
+}
+
+case "${1:-menu}" in
+  install)
+    shift
+    if [ $# -eq 0 ]; then
+      install_pkgs $PACKAGES
+    else
+      install_pkgs "$@"
+    fi
+    ;;
+  top10)
+    install_pkgs $PACKAGES
+    ;;
+  msf|metasploit)
+    install_pkgs metasploit-framework
+    ;;
+  web)
+    install_pkgs burpsuite sqlmap nikto
+    ;;
+  password)
+    install_pkgs hashcat hydra medusa
+    ;;
+  update)
+    install_pkgs $PACKAGES
+    ;;
+  list)
+    show_installed
+    ;;
+  -h|--help)
+    echo "kali-tools [command]"
+    echo "  list       Show installed tools"
+    echo "  install    Install packages (default: top-10)"
+    echo "  top10      Install top 10 tools"
+    echo "  msf        Install Metasploit"
+    echo "  web        Install BurpSuite + SQLMap + Nikto"
+    echo "  password   Install Hashcat + Hydra + Medusa"
+    echo "  update     Refresh packages"
+    ;;
+  menu)
+    while true; do
+      show_menu
+      read -p "Select option: " opt
+      case $opt in
+        1) show_installed ;;
+        2) install_pkgs $PACKAGES ;;
+        3) install_pkgs metasploit-framework ;;
+        4) install_pkgs burpsuite sqlmap nikto ;;
+        5) install_pkgs hashcat hydra medusa ;;
+        6) install_pkgs $PACKAGES ;;
+        7) break ;;
+        *) echo "Invalid option" ;;
+      esac
+    done
+    ;;
+  *)
+    echo "Unknown command: $1"
+    exit 1
+    ;;
+esac

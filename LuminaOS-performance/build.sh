@@ -77,6 +77,7 @@ sudo rm -rf "$L"; sudo mkdir -p "$L" "$CH/usr/libexec/lumina"
 sudo rsync -a --exclude __pycache__ "$SRC/ui" "$SRC/lib" "$SRC/data" "$L/"
 for b in lumina-shell lumina-app lumina-ctl lumina-session lumina-install lumina-terminal; do sudo install -m 755 "$SRC/bin/$b" "$CH/usr/bin/$b"; done
 sudo install -m 755 "$SRC/libexec/lumina-pkg" "$CH/usr/libexec/lumina/lumina-pkg"
+sudo install -m 755 "$SRC/libexec/kali-tools" "$CH/usr/local/bin/kali-tools"
 sudo install -Dm644 "$SRC/etc/lumina/kali-profile.sh" "$CH/etc/lumina/kali-profile.sh"
 sudo install -m 644 "$SRC"/data/applications/*.desktop "$CH/usr/share/applications/"
 sudo mkdir -p "$CH/usr/share/icons/hicolor/scalable/apps"

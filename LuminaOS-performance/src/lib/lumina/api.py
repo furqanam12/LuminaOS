@@ -2047,6 +2047,10 @@ class Handler(BaseHTTPRequestHandler):
                 spawn(sudo_cmd + ["kali-setup"])
             elif what == "kali-top10":
                 spawn(sudo_cmd + ["kali-install", "nmap", "wireshark", "john", "aircrack-ng", "sqlmap", "hydra"])
+            elif what == "kali-msf":
+                spawn(sudo_cmd + ["kali-install", "metasploit-framework"])
+            elif what == "kali-tools-install":
+                spawn(sudo_cmd + ["kali-tools-install"])
             elif what == "terminal-fix":
                 spawn(sudo_cmd + ["terminal-fix"])
             elif what == "android":

@@ -78,6 +78,8 @@
         <button class="btn primary" id="kaliterm">Open Kali Terminal</button>
         <button class="btn" id="kalisetup">Configure Kali Repositories</button>
         <button class="btn" id="kalitools">Install Top 10 Kali Tools</button>
+        <button class="btn" id="kalimsf">Install Metasploit</button>
+        <button class="btn" id="kalicli">kali-tools command</button>
         <button class="btn" id="termrepair">Repair Terminal Launchers</button>
       </div>
     </div>
@@ -207,6 +209,8 @@ $('#kaliterm').onclick = async () => {
 };
 $('#kalisetup').onclick = () => setup('kali-setup', 'Kali Linux Repositories');
 $('#kalitools').onclick = () => setup('kali-top10', 'Top 10 Kali Security Tools');
+$('#kalimsf').onclick = () => setup('kali-msf', 'Metasploit Framework');
+$('#kalicli').onclick = () => setup('kali-tools-install', 'kali-tools CLI');
 $('#termrepair').onclick = () => setup('terminal-fix', 'Terminal repair and alternatives restore');
 $('#termfix-top').onclick = () => setup('terminal-fix', 'Terminal repair and alternatives restore');
 

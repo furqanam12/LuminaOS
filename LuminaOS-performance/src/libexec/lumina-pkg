@@ -101,6 +101,7 @@ case "$cmd" in
 
   kali-setup)
     online || { echo "No internet connection"; exit 3; }
+    install -D -m 755 /usr/share/lumina/libexec/kali-tools /usr/local/bin/kali-tools
     apt-get update -o APT::Status-Fd=1 || true
     $APT install gnupg curl ca-certificates
     # Add Kali Archive Key
@@ -123,6 +124,10 @@ EOF
     online || { echo "No internet connection"; exit 3; }
     apt-get update -o APT::Status-Fd=1 || true
     $APT install -t kali-rolling "$@" 2>/dev/null || $APT install "$@" ;;
+
+  kali-tools-install)
+    install -D -m 755 /usr/share/lumina/libexec/kali-tools /usr/local/bin/kali-tools
+    echo "kali-tools installed to /usr/local/bin/kali-tools" ;;
 
   terminal-fix)
     apt-get update -o APT::Status-Fd=1 || true
