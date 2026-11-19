@@ -930,6 +930,25 @@ def launch_terminal(mode="standard", cwd=None):
     return {"ok": False, "error": "No terminal emulator found"}
 
 
+def launch_android(path=None):
+    """Launch Waydroid, using a nested Wayland window on the X11 desktop."""
+    if is_live_session():
+        notify("Android requires installation", "Install LuminaOS before setting up Android applications.",
+               "lumina-android", "Android")
+        return {"ok": False, "error": "Android is not available in the live session"}
+    if not shutil.which("waydroid") or not shutil.which("weston"):
+        spawn(["lumina-app", "compat", "--setup-android"])
+        return {"ok": False, "error": "Run Android setup to install Waydroid and the Wayland runtime"}
+    helper = "/usr/libexec/lumina/lumina-android"
+    if not os.path.isfile(helper) or not os.access(helper, os.X_OK):
+        return {"ok": False, "error": "Lumina Android launcher is missing"}
+    argv = [helper, "install", path] if path else [helper, "start"]
+    spawn(argv, cwd=os.path.dirname(path) if path else HOME)
+    notify("Starting Android", os.path.basename(path) if path else "Opening the Android app window.",
+           "lumina-android", "Android")
+    return {"ok": True, "via": "waydroid"}
+
+
 def open_path(path):
     path = safe_path(path)
     low = path.lower()
@@ -961,13 +980,7 @@ def open_path(path):
             notify("AppImage launch error", str(e), "lumina-store", "AppImage")
             return {"ok": False, "error": str(e)}
     if low.endswith(".apk"):
-        if shutil.which("waydroid"):
-            spawn(["waydroid", "app", "install", path])
-            return {"ok": True, "via": "waydroid"}
-        spawn(["lumina-app", "compat", "--setup-android"])
-        notify("Android apps aren't set up", "Open Compatibility Wizard to set up Android support.",
-               "lumina-android", "Android")
-        return {"ok": False, "error": "waydroid missing"}
+        return launch_android(path)
     if low.endswith((".deb", ".flatpakref", ".flatpak", ".snap", ".rpm")):
         spawn(["lumina-app", "store", "--install-file", path])
         return {"ok": True, "via": "store"}
@@ -1340,6 +1353,20 @@ def store_catalog():
     return cat
 
 def store_install(ids, remove=False, file=None, pkgs=None):
+    # Package helpers install system packages; they must never treat a Windows
+    # executable or Android APK as a Debian archive. Those formats have their
+    # own user-session runtimes and are dispatched directly to open_path().
+    if file and not remove and file.lower().endswith((".exe", ".msi", ".bat", ".apk")):
+        result = open_path(file)
+        jid = uuid.uuid4().hex[:8]
+        job = {"id": jid, "names": [os.path.basename(file)],
+               "state": "done" if result.get("ok") else "failed",
+               "progress": 100 if result.get("ok") else 0,
+               "remove": False, "started": time.time(),
+               "last": result.get("error") or ("Started with " + result.get("via", "runtime"))}
+        STORE_JOBS[jid] = job
+        HUB.emit("job", dict(job))
+        return job
     cat = {a["id"]: a for a in store_catalog()["apps"]}
     apt, flat, names, android = [], [], [], False
     for pk in pkgs or []:
@@ -1724,6 +1751,8 @@ class Handler(BaseHTTPRequestHandler):
                 "bottles": bool(shutil.which("bottles")) or os.path.exists("/var/lib/flatpak/app/com.usebottles.bottles"),
                 "proton": bool(shutil.which("steam")),
                 "waydroid": bool(shutil.which("waydroid")),
+                "weston": bool(shutil.which("weston")),
+                "wayland": bool(os.environ.get("WAYLAND_DISPLAY")),
                 "binder": os.path.exists("/dev/binder") or "binder" in sh("cat /proc/filesystems"),
                 "flatpak": bool(shutil.which("flatpak")),
                 "snap": bool(shutil.which("snap")),
@@ -2051,13 +2080,15 @@ class Handler(BaseHTTPRequestHandler):
             elif what == "kali-top10":
                 spawn(sudo_cmd + ["kali-install", "nmap", "wireshark", "john", "aircrack-ng", "sqlmap", "hydra"])
             elif what == "kali-msf":
-                spawn(sudo_cmd + ["kali-install", "metasploit-framework"])
+                spawn(sudo_cmd + ["kali-msf"])
             elif what == "kali-tools-install":
                 spawn(sudo_cmd + ["kali-tools-install"])
             elif what == "terminal-fix":
                 spawn(sudo_cmd + ["terminal-fix"])
             elif what == "android":
                 spawn(["lumina-app", "store", "--android"])
+            elif what == "android-open":
+                return self._send(200, launch_android())
             elif what == "darling":
                 notify("macOS Darling Layer", "Darling runs macOS command-line apps and Mach-O binaries.", "lumina-about", "macOS")
             return self._send(200, {"ok": True})

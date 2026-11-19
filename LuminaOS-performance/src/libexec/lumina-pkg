@@ -101,33 +101,61 @@ case "$cmd" in
 
   kali-setup)
     online || { echo "No internet connection"; exit 3; }
-    install -D -m 755 /usr/share/lumina/libexec/kali-tools /usr/local/bin/kali-tools
     apt-get update -o APT::Status-Fd=1 || true
     $APT install gnupg curl ca-certificates
-    # Add Kali Archive Key
-    mkdir -p /etc/apt/trusted.gpg.d /etc/apt/sources.list.d /etc/apt/preferences.d
-    curl -fsSL https://archive.kali.org/archive-key.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/kali-archive-keyring.gpg 2>/dev/null || true
-    # Configure Kali rolling repository with low pin-priority so it never conflicts with Debian base
+    # Verify the Kali archive key before enabling the optional repository.
+    mkdir -p /etc/apt/keyrings /etc/apt/sources.list.d /etc/apt/preferences.d
+    key_tmp=$(mktemp)
+    if ! curl -fsSL -o "$key_tmp" https://archive.kali.org/archive-key.asc; then
+      rm -f "$key_tmp"; echo "Could not download the Kali archive key"; exit 3
+    fi
+    [ -s "$key_tmp" ] || { rm -f "$key_tmp"; echo "Downloaded Kali key is empty"; exit 3; }
+    gpg --dearmor --yes -o /etc/apt/keyrings/kali-archive-keyring.gpg.new "$key_tmp"
+    rm -f "$key_tmp"
+    install -m 0644 /etc/apt/keyrings/kali-archive-keyring.gpg.new /etc/apt/keyrings/kali-archive-keyring.gpg
+    rm -f /etc/apt/keyrings/kali-archive-keyring.gpg.new
+    # Use HTTPS, keyring-scoped trust and low priority. Never overwrite a
+    # customized source list or silently continue on signature errors.
     cat > /etc/apt/sources.list.d/kali.list << 'EOF'
-deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+deb [signed-by=/etc/apt/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF
     cat > /etc/apt/preferences.d/kali.pref << 'EOF'
 Package: *
 Pin: release o=Kali
 Pin-Priority: 100
 EOF
-    apt-get update -o APT::Status-Fd=1 || true
-    echo "Kali Linux repositories configured with safe package pinning." ;;
+    if ! apt-get update -o APT::Status-Fd=1; then
+      rm -f /etc/apt/sources.list.d/kali.list
+      echo "Kali repository verification failed; the source was disabled again." >&2
+      exit 4
+    fi
+    echo "Kali repository enabled with signature checking and low package priority. Debian remains the default." ;;
 
   kali-install)
+    [ "$#" -gt 0 ] || { echo "no packages specified"; exit 2; }
     valid "$@"
     online || { echo "No internet connection"; exit 3; }
-    apt-get update -o APT::Status-Fd=1 || true
-    $APT install -t kali-rolling "$@" 2>/dev/null || $APT install "$@" ;;
+    apt-get update -o APT::Status-Fd=1
+    if [ -f /etc/apt/sources.list.d/kali.list ]; then
+      $APT install -t kali-rolling "$@"
+    else
+      echo "Kali repository is not configured; using Debian packages only." >&2
+      $APT install "$@"
+    fi ;;
+
+  kali-msf)
+    [ -f /etc/apt/sources.list.d/kali.list ] || { echo "Configure Kali Repositories first, then install Metasploit."; exit 2; }
+    lumina-pkg kali-install metasploit-framework ;;
 
   kali-tools-install)
-    install -D -m 755 /usr/share/lumina/libexec/kali-tools /usr/local/bin/kali-tools
-    echo "kali-tools installed to /usr/local/bin/kali-tools" ;;
+    if [ -x /usr/local/bin/kali-tools ]; then
+      echo "kali-tools is already installed at /usr/local/bin/kali-tools"
+    elif [ -x /usr/libexec/lumina/kali-tools ]; then
+      install -D -m 755 /usr/libexec/lumina/kali-tools /usr/local/bin/kali-tools
+      echo "kali-tools installed to /usr/local/bin/kali-tools"
+    else
+      echo "kali-tools was not found in this image"; exit 2
+    fi ;;
 
   terminal-fix)
     apt-get update -o APT::Status-Fd=1 || true
@@ -148,13 +176,25 @@ EOF
     
   android-setup)
     online || { echo "No internet connection"; exit 3; }
-    $APT install curl ca-certificates
-    tmp=$(mktemp)
-    curl -fsSL -o "$tmp" https://repo.waydro.id || { rm -f "$tmp"; echo "Failed to download Waydroid installer"; exit 3; }
-    if [ ! -s "$tmp" ]; then rm -f "$tmp"; echo "Empty installer download"; exit 3; fi
-    sh "$tmp"
-    rm -f "$tmp"
-    $APT install waydroid ;;
+    os_id="$(. /etc/os-release && echo "${ID:-}")"
+    os_codename="$(. /etc/os-release && echo "${VERSION_CODENAME:-}")"
+    if [ "$os_id" = "debian" ] && [ "$os_codename" = "trixie" ]; then
+      if ! grep -Rqs '^deb .*trixie-backports' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+        echo "deb http://deb.debian.org/debian trixie-backports main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/trixie-backports.list
+      fi
+      apt-get update -o APT::Status-Fd=1
+      $APT install -t trixie-backports waydroid weston
+    else
+      # Older Debian/Ubuntu: download the official script, verify it, then run it.
+      $APT install curl ca-certificates
+      tmp=$(mktemp)
+      curl -fsSL -o "$tmp" https://repo.waydro.id || { rm -f "$tmp"; echo "Failed to download Waydroid installer"; exit 3; }
+      if [ ! -s "$tmp" ]; then rm -f "$tmp"; echo "Empty installer download"; exit 3; fi
+      sh "$tmp"
+      rm -f "$tmp"
+      $APT install waydroid
+    fi
+    echo "Waydroid installed. Android needs a Wayland session; Lumina's current X11 session may not expose it." ;;
     
   *)
     echo "usage: lumina-pkg install|remove|install-file|flatpak-install|flatpak-remove|flatpak-setup|wine-setup|appimage-setup|snap-setup|kali-setup|kali-install|terminal-fix|check|upgrade|android-setup"; exit 1 ;;

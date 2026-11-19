@@ -54,6 +54,7 @@ BASE="linux-image-amd64 live-boot live-config live-config-systemd user-setup sys
  efibootmgr zenity network-manager-gnome"
 sudo chroot "$CH" bash -c "echo 'locales locales/default_environment_locale select en_US.UTF-8' | debconf-set-selections
   echo 'locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8' | debconf-set-selections"
+sudo chroot "$CH" dpkg --add-architecture i386
 sudo chroot "$CH" apt-get update -qq
 sudo chroot "$CH" env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
   $BASE $(grep -v '^#' "$HERE/packages.list" | tr '\n' ' ')
@@ -77,6 +78,7 @@ sudo rm -rf "$L"; sudo mkdir -p "$L" "$CH/usr/libexec/lumina"
 sudo rsync -a --exclude __pycache__ "$SRC/ui" "$SRC/lib" "$SRC/data" "$L/"
 for b in lumina-shell lumina-app lumina-ctl lumina-session lumina-install lumina-terminal; do sudo install -m 755 "$SRC/bin/$b" "$CH/usr/bin/$b"; done
 sudo install -m 755 "$SRC/libexec/lumina-pkg" "$CH/usr/libexec/lumina/lumina-pkg"
+sudo install -m 755 "$SRC/libexec/lumina-android" "$CH/usr/libexec/lumina/lumina-android"
 sudo install -m 755 "$SRC/libexec/kali-tools" "$CH/usr/local/bin/kali-tools"
 sudo install -Dm644 "$SRC/etc/lumina/kali-profile.sh" "$CH/etc/lumina/kali-profile.sh"
 sudo install -m 644 "$SRC"/data/applications/*.desktop "$CH/usr/share/applications/"

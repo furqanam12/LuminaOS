@@ -25,6 +25,6 @@ fi
 # Short aliases for speed
 alias nmap='nmap --privileged'
 alias msf='msfconsole'
-enum4linux='enum4linux -a'
+alias enum='enum4linux -a'
 alias listeners='netstat -tulpn | grep LISTEN'
 alias myip='curl -s ifconfig.me; echo'

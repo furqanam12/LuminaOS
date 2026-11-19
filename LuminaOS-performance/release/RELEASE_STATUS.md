@@ -12,8 +12,8 @@
 - VM creator examples updated to `LuminaOS-1.1-amd64.iso`.
 - Release notes, QA matrix, build guide, checklist and sign-off template written.
 - Automated source validation:
-  - `tools/test-features.py`: 19/19 passed.
-  - `tools/test-installer.py`: 8/8 passed.
+  - `tools/test-features.py`: 21/21 passed.
+  - `tools/test-installer.py`: 10/10 passed.
   - `tools/test-performance.py`: 51/51 passed.
   - `tools/test-performance.js`: 25/25 passed.
   - `tools/test-release.py`: 7/7 passed.

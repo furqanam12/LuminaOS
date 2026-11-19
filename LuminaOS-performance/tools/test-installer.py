@@ -119,10 +119,40 @@ class SourceTests(unittest.TestCase):
         self.assertIn("update-grub", build)
         self.assertIn("safe graphics", self.read("iso-grub.cfg"))
 
+    def test_runtime_packages_do_not_break_iso_install(self):
+        build = self.read("build.sh")
+        packages = [line.strip() for line in self.read("packages.list").splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")]
+        # wine32 is an i386 package, so the architecture must be registered
+        # before any apt operation inside the build chroot.
+        self.assertIn("dpkg --add-architecture i386", build)
+        self.assertLess(build.index("dpkg --add-architecture i386"),
+                        build.index('chroot "$CH" apt-get update'))
+        self.assertIn("wine32:i386", packages)
+        self.assertIn("wine64", packages)
+        # Waydroid is only in trixie-backports and needs Wayland; adding it to
+        # the base package list would abort an otherwise healthy ISO build.
+        self.assertNotIn("waydroid", packages)
+        self.assertNotIn("lxctl", packages)
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn("trixie-backports", helper)
+        self.assertIn("-t trixie-backports waydroid weston", helper)
+
+    def test_kali_repository_setup_is_fail_closed(self):
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn("signed-by=/etc/apt/keyrings/kali-archive-keyring.gpg", helper)
+        self.assertIn('https://http.kali.org/kali', helper)
+        self.assertIn("Kali repository verification failed", helper)
+        self.assertNotIn("archive-key.asc | gpg", helper)
+        self.assertIn("Configure Kali Repositories first", helper)
+        self.assertIn("kali-msf)", helper)
+
     def test_shell_syntax(self):
         scripts = [ROOT / "build.sh", ROOT / "src/bin/lumina-install", ROOT / "src/bin/lumina-ctl",
                    ROOT / "src/bin/lumina-session", ROOT / "system/usr/lib/live/config/2000-lumina",
-                   ROOT / "system/etc/grub.d/45_lumina_recovery"]
+                   ROOT / "system/etc/grub.d/45_lumina_recovery", ROOT / "src/libexec/lumina-pkg",
+                   ROOT / "src/libexec/kali-tools", ROOT / "src/bin/lumina-terminal",
+                   ROOT / "src/libexec/lumina-android", ROOT / "src/etc/lumina/kali-profile.sh"]
         for path in scripts:
             shell = "bash" if path.name == "build.sh" else "sh"
             result = subprocess.run([shell, "-n", str(path)], capture_output=True, text=True)

@@ -53,7 +53,7 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - Token protection extended to the new printer, Bluetooth and accessibility actions.
 
 ## Compatibility and distribution
-- Universal package installer for .exe/.msi, .deb, .AppImage, .flatpak, .snap, .rpm, and .goodmac images.
+- Package-file handling for Windows executables and installers, Linux packages, and Android APKs; each is dispatched to the correct runtime instead of a generic installer.
 - Compatibility wizard with Windows (Wine), Kali Linux, Flatpak, AppImage, macOS, and Android tabs.
 - Kali Linux Security Suite with dedicated Kali terminal, kali-tools CLI, pinned repos, and one-click tool installers.
 - lumina-terminal as default x-terminal-emulator with robust multi-terminal fallback.
@@ -63,7 +63,7 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 
 - No ISO or guest validation is included in this source-only package.
 - Performance improvements are implemented but not numerically measured in a guest.
-- Android support remains experimental and unavailable in the live session.
+- Android support is experimental: on Debian 13 the backports Waydroid package and a nested Weston Wayland window are used. It requires binder support, an initialized image and an installed system. ARM-only APKs need a separate translation layer and are not guaranteed to work.
 - Windows application compatibility remains app-dependent.
 - Bluetooth and Orca screen-reader behavior could not be validated in the installed 1.0 guest (no Bluetooth adapter; Orca not installed).
 - Compositing is intentionally kept enabled; disabling it caused black areas in VirtualBox on 1.0.

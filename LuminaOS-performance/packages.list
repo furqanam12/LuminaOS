@@ -62,9 +62,8 @@ cups-client
 # LuminaOS Universal Compatibility & Security Suite
 # Terminal/remote-support
 openssh-server
-# Flatpak / Container backends for Android (Waydroid)
-waydroid
-lxctl
+# Android/Waydroid is installed on demand from trixie-backports; it must not
+# break the base ISO build and Waydroid needs a Wayland-capable session.
 # AppImage runtime support
 fuse3
 # Kali Linux security tooling (top-10 that are free/large enough for ISO)

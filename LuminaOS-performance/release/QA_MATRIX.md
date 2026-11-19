@@ -6,8 +6,8 @@ Status legend: **Source-pass** = automated source validation passed. **Live-1.0-
 |---|---|---|---|---|
 | BUILD-01 | Build | Build source on Debian/Ubuntu x86-64 | `LuminaOS-1.1-amd64.iso` created | Guest-pending |
 | BUILD-02 | Build | Verify ISO checksum | `sha256sum -c` passes | Guest-pending |
-| TEST-01 | Automation | `tools/test-features.py` | 19/19 pass | Source-pass |
-| TEST-02 | Automation | `tools/test-installer.py` | 8/8 pass | Source-pass |
+| TEST-01 | Automation | `tools/test-features.py` | 21/21 pass | Source-pass |
+| TEST-02 | Automation | `tools/test-installer.py` | 10/10 pass | Source-pass |
 | TEST-03 | Automation | `tools/test-performance.py` | 51/51 pass | Source-pass |
 | TEST-04 | Automation | `tools/test-performance.js` | 25/25 pass | Source-pass |
 | TEST-05 | Automation | `tools/test-release.py` | 7/7 pass | Source-pass |

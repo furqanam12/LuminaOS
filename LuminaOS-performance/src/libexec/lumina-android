@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Launch Waydroid in a nested Wayland compositor for Lumina's X11 desktop.
+# Usage: lumina-android status | start | install /path/to/app.apk
+set -u
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+ACTION="${1:-status}"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lumina"
+mkdir -p "$CACHE"
+RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+SOCKET="lumina-android-$(id -u)"
+LOG="$CACHE/android-session.log"
+
+status_text() { waydroid status 2>/dev/null || true; }
+container_ready() { systemctl is-active --quiet waydroid-container.service 2>/dev/null; }
+root_exec() {
+  if sudo -n true 2>/dev/null; then
+    sudo -n "$@"
+  else
+    pkexec "$@"
+  fi
+}
+
+case "$ACTION" in
+  status)
+    printf 'waydroid=%s\n' "$(command -v waydroid >/dev/null 2>&1 && echo yes || echo no)"
+    printf 'weston=%s\n' "$(command -v weston >/dev/null 2>&1 && echo yes || echo no)"
+    printf 'container=%s\n' "$(container_ready && echo active || echo inactive)"
+    status_text
+    exit 0
+    ;;
+  start|install)
+    if [ -e /run/live/medium ]; then
+      echo "Android requires an installed system, not the live session." >&2
+      exit 2
+    fi
+    command -v waydroid >/dev/null 2>&1 || { echo "waydroid is not installed" >&2; exit 2; }
+    command -v weston >/dev/null 2>&1 || { echo "weston is not installed; run Android setup first" >&2; exit 2; }
+    ;;
+  *)
+    echo "usage: lumina-android status|start|install /path/to/app.apk" >&2
+    exit 2
+    ;;
+esac
+
+# Prefer an existing real Wayland display; otherwise start a nested compositor.
+if [ -z "${WAYLAND_DISPLAY:-}" ] || [ ! -S "$RUNTIME/${WAYLAND_DISPLAY:-}" ]; then
+  export WAYLAND_DISPLAY="$SOCKET"
+  if [ ! -S "$RUNTIME/$SOCKET" ]; then
+    weston --backend=x11-backend.so --socket="$SOCKET" --width=1280 --height=800 --idle-time=0 > "$CACHE/android-weston.log" 2>&1 &
+  fi
+  for _ in $(seq 1 40); do
+    [ -S "$RUNTIME/$SOCKET" ] && break
+    sleep 0.25
+  done
+fi
+[ -S "$RUNTIME/$WAYLAND_DISPLAY" ] || { echo "Could not create a Wayland display; see $CACHE/android-weston.log" >&2; exit 3; }
+
+# Images and container are privileged resources; initialize only when missing.
+if [ ! -d /var/lib/waydroid/images ] || [ -z "$(find /var/lib/waydroid/images -maxdepth 1 -name '*.img' -print -quit 2>/dev/null)" ]; then
+  echo "Preparing the Android system image (this can take several minutes)."
+  root_exec waydroid init -s GAPPS || exit 4
+fi
+if ! container_ready; then
+  root_exec systemctl enable --now waydroid-container.service || exit 4
+fi
+
+if ! status_text | grep -q 'Session:[[:space:]]*RUNNING'; then
+  if ! pgrep -u "$(id -u)" -f 'waydroid show-full-ui' >/dev/null 2>&1; then
+    waydroid show-full-ui > "$LOG" 2>&1 &
+  fi
+  for _ in $(seq 1 60); do
+    status_text | grep -q 'Session:[[:space:]]*RUNNING' && break
+    sleep 1
+  done
+fi
+status_text | grep -q 'Session:[[:space:]]*RUNNING' || { echo "Android session did not start; see $LOG" >&2; exit 5; }
+
+case "$ACTION" in
+  start)
+    echo "Android is running in a nested Wayland window."
+    ;;
+  install)
+    APK="${2:-}"
+    case "$APK" in *.apk|*.APK) ;; *) echo "Expected an .apk file" >&2; exit 2;; esac
+    [ -f "$APK" ] || { echo "APK not found: $APK" >&2; exit 2; }
+    echo "Installing $(basename "$APK"). This works for Android-x86 compatible apps; ARM-only apps are not supported."
+    waydroid app install "$APK" || { echo "APK installation failed; see $LOG" >&2; exit 6; }
+    notify-send -i lumina-android 'Android app installed' "$(basename "$APK") is available in the Android app list." 2>/dev/null || true
+    echo "APK installed successfully"
+    ;;
+esac

@@ -112,9 +112,10 @@
     <!-- Section 6: Android applications -->
     <div class="card tab-sec" data-cat="android">
       <h2>6. Android applications (Waydroid)</h2>
-      <p>Waydroid needs binder kernel support and a Wayland session. It is not available in the live session.</p>
+      <p>Waydroid runs in a nested Weston Wayland window on the Lumina X11 desktop. It needs binder kernel support and an installed system. Android-x86 compatible APKs work best; ARM-only apps are not supported natively.</p>
       <div id="android"></div>
       <div class="acts">
+        <button class="btn primary" id="androidopen">Open Android</button>
         <button class="btn" id="androidset">Set up Android support</button>
       </div>
     </div>
@@ -163,6 +164,7 @@ async function refresh() {
       + row('Mac Native Alternatives', true, '1-click Linux ports available in Store');
 
     $('#android').innerHTML = row('Waydroid Container', c.waydroid, c.waydroid ? 'Installed' : 'Not installed')
+      + row('Wayland Display Backend', c.weston, c.weston ? 'Weston nested window ready' : 'Installed by Android Setup')
       + row('Kernel binder', c.binder, c.binder ? 'Available' : 'Missing')
       + row('Live session', !sys.live, sys.live ? 'Android is unavailable here' : 'Supported session');
 
@@ -224,6 +226,13 @@ $('#macextract').onclick = () => { L.app('files', ['home:']); L.notify('Inspect 
 $('#macalt').onclick = () => L.app('store');
 
 $('#androidset').onclick = () => setup('android', 'Android Waydroid setup');
+$('#androidopen').onclick = async () => {
+  try {
+    const r = await L.post('/api/compat/setup', { what: 'android-open' });
+    if (r.ok) success('Android is starting in a Wayland window.');
+    else error(r.error || 'Run Android setup first.');
+  } catch (e) { error(e); }
+};
 $('#termquick').onclick = async () => {
   try { await L.post('/api/terminal', { mode: 'standard' }); success('Terminal opened.'); }
   catch(e) { error(e); }

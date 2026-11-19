@@ -271,6 +271,31 @@ class SourceTests(unittest.TestCase):
                     missing.append("%s %s (%s)" % (method.upper(), url, path.name))
         self.assertEqual(missing, [], "UI calls without an API route: " + ", ".join(missing))
 
+    def test_windows_store_files_use_wine_not_privileged_package_helper(self):
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))', api)
+        self.assertLess(api.index('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))'),
+                        api.index('steps.append(["install-file", file])'))
+        self.assertIn('argv = ["wine", "start", "/unix", path]', api)
+        store = self.read("src/ui/apps/store.html")
+        self.assertIn("|apk", store)
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertNotIn("*.exe)", helper)
+
+    def test_android_nested_wayland_runtime(self):
+        api = API.read_text(encoding="utf-8")
+        self.assertIn("def launch_android", api)
+        self.assertIn('"/usr/libexec/lumina/lumina-android"', api)
+        self.assertIn("not available in the live session", api)
+        self.assertIn('helper, "install", path', api)
+        self.assertIn('"weston": bool(shutil.which("weston"))', api)
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn("-t trixie-backports waydroid weston", helper)
+        runtime = self.read("src/libexec/lumina-android")
+        self.assertIn("--backend=x11-backend.so", runtime)
+        self.assertIn("waydroid app install", runtime)
+        self.assertIn("ARM-only apps are not supported", runtime)
+
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "node is required for inline JavaScript validation")
