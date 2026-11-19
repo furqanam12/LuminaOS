@@ -1,0 +1,51 @@
+name: build-iso
+
+# Deliberately manual: an ISO build downloads the Debian base and can take
+# 30-90 minutes. It is not an implicit check on every source-only commit.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: LuminaOS-performance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Debian image build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            debootstrap squashfs-tools xorriso grub-pc-bin \
+            grub-efi-amd64-bin grub-common mtools dosfstools \
+            debian-archive-keyring librsvg2-bin imagemagick dpkg-dev \
+            rsync python3-pil fonts-inter
+      - name: Validate source and build LuminaOS ISO
+        run: sudo bash tools/build-release.sh
+      - name: Verify ISO and checksum files
+        run: |
+          test -s LuminaOS-1.1-amd64.iso
+          sha256sum -c LuminaOS-1.1-amd64.iso.sha256
+      - name: Upload distributable image
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuminaOS-1.1-amd64
+          path: |
+            LuminaOS-performance/LuminaOS-1.1-amd64.iso
+            LuminaOS-performance/LuminaOS-1.1-amd64.iso.sha256
+            LuminaOS-performance/release/build-manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
