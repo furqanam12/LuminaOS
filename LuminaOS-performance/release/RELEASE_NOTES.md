@@ -52,11 +52,12 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - Rotating API audit log (1 MiB) so unattended desktops cannot grow it without bound.
 - Token protection extended to the new printer, Bluetooth and accessibility actions.
 
-### Compatibility
-- New Compatibility Wizard.
-- Wine setup and configuration.
-- Flatpak/Store entry point.
-- Waydroid status and live-session guard.
+## Compatibility and distribution
+- Universal package installer for .exe/.msi, .deb, .AppImage, .flatpak, .snap, .rpm, and .goodmac images.
+- Compatibility wizard with Windows (Wine), Kali Linux, Flatpak, AppImage, macOS, and Android tabs.
+- Kali Linux Security Suite with dedicated Kali terminal, kali-tools CLI, pinned repos, and one-click tool installers.
+- lumina-terminal as default x-terminal-emulator with robust multi-terminal fallback.
+- File associations for Windows, Android, macOS and AppImage packages.
 
 ## Known limitations
 

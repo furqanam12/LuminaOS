@@ -80,6 +80,8 @@ sudo install -m 755 "$SRC/libexec/lumina-pkg" "$CH/usr/libexec/lumina/lumina-pkg
 sudo install -m 755 "$SRC/libexec/kali-tools" "$CH/usr/local/bin/kali-tools"
 sudo install -Dm644 "$SRC/etc/lumina/kali-profile.sh" "$CH/etc/lumina/kali-profile.sh"
 sudo install -m 644 "$SRC"/data/applications/*.desktop "$CH/usr/share/applications/"
+sudo mkdir -p "$CH/usr/share/mime/packages"
+sudo install -m 644 "$SRC"/data/mime/packages/lumina-os-mime.xml "$CH/usr/share/mime/packages/lumina-os-mime.xml"
 sudo mkdir -p "$CH/usr/share/icons/hicolor/scalable/apps"
 for f in "$SRC"/ui/img/apps/*.svg; do sudo install -m 644 "$f" "$CH/usr/share/icons/hicolor/scalable/apps/lumina-$(basename "$f")"; done
 sudo mkdir -p "$CH/usr/share/themes"; sudo rm -rf "$CH"/usr/share/themes/Lumina-*; sudo cp -r "$HERE"/build/themes/Lumina-* "$CH/usr/share/themes/"

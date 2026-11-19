@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-executable-windows">
+    <comment>Windows executable</comment>
+    <glob pattern="*.exe"/>
+    <glob pattern="*.msi"/>
+    <glob pattern="*.bat"/>
+  </mime-type>
+  <mime-type type="application/x-android-package-archive">
+    <comment>Android APK</comment>
+    <glob pattern="*.apk"/>
+  </mime-type>
+  <mime-type type="application/x-apple-diskimage">
+    <comment>Apple disk image</comment>
+    <glob pattern="*.dmg"/>
+  </mime-type>
+  <mime-type type="application/x-apple-package">
+    <comment>Apple installer package</comment>
+    <glob pattern="*.pkg"/>
+  </mime-type>
+  <mime-type type="application/x-mach-o-executable">
+    <comment>Mach-O macOS executable</comment>
+    <glob pattern="*.macho"/>
+  </mime-type>
+  <mime-type type="application/x-appimage">
+    <comment>AppImage portable application</comment>
+    <glob pattern="*.AppImage"/>
+    <glob pattern="*.appimage"/>
+  </mime-type>
+</mime-info>
