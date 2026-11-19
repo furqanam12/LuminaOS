@@ -130,8 +130,9 @@ for s in /usr/share/applications/calamares*.desktop /usr/share/applications/org.
 done
 mkdir -p /etc/skel/Desktop
 install -m 644 /usr/share/applications/lumina-install.desktop /etc/skel/Desktop/Install\ LuminaOS.desktop
-update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/lumina-terminal 100 2>/dev/null || true
-update-alternatives --set x-terminal-emulator /usr/bin/lumina-terminal 2>/dev/null || true
+# The packaged xfce4-terminal owns x-terminal-emulator. Do not redirect that
+# alternative to the lumina-terminal wrapper: legacy consumers expect -e.
+
 # --- default session: Lumina ---
 rm -f /usr/share/xsessions/xfce.desktop /usr/share/xsessions/lightdm-xsession.desktop
 update-alternatives --install /usr/bin/x-session-manager x-session-manager /usr/bin/lumina-session 90 || true

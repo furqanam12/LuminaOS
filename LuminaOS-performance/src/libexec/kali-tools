@@ -4,7 +4,6 @@
 
 MENU="\033[01;34m=== LuminaOS Kali Security Tools ===\033[00m"
 PACKAGES="nmap wireshark john aircrack-ng sqlmap hydra"
-SECURITY_PACKAGES="metasploit-framework burpsuite nikto hashcat ncrack maltego"
 
 show_menu() {
   echo -e "$MENU"
@@ -28,9 +27,21 @@ show_installed() {
   done
 }
 
+root_exec() {
+  if sudo -n true 2>/dev/null; then sudo -n "$@"; else pkexec "$@"; fi
+}
+
 install_pkgs() {
-  sudo apt-get update -o APT::Status-Fd=1
-  sudo apt-get install -y --no-install-recommends "$@"
+  if [ "$#" -eq 1 ] && [ "$1" = "metasploit-framework" ]; then
+    if [ -x /usr/libexec/lumina/lumina-pkg ]; then
+      root_exec /usr/libexec/lumina/lumina-pkg kali-msf
+    else
+      echo "Lumina package helper is missing. Configure Kali repositories first." >&2
+      return 2
+    fi
+    return
+  fi
+  sudo apt-get update -o APT::Status-Fd=1 && sudo apt-get install -y --no-install-recommends "$@"
 }
 
 case "${1:-menu}" in

@@ -1358,17 +1358,16 @@ def store_catalog():
     return cat
 
 def store_install(ids, remove=False, file=None, pkgs=None):
-    # Package helpers install system packages; they must never treat a Windows
-    # executable or Android APK as a Debian archive. Those formats have their
-    # own user-session runtimes and are dispatched directly to open_path().
-    if file and not remove and file.lower().endswith((".exe", ".msi", ".bat", ".apk")):
+    # Windows programs are launches, not system-package installs. .apk files
+    # deliberately continue through the real asynchronous job runner below.
+    if file and not remove and file.lower().endswith((".exe", ".msi", ".bat")):
         result = open_path(file)
         jid = uuid.uuid4().hex[:8]
         job = {"id": jid, "names": [os.path.basename(file)],
                "state": "done" if result.get("ok") else "failed",
                "progress": 100 if result.get("ok") else 0,
-               "remove": False, "started": time.time(),
-               "last": result.get("error") or ("Started with " + result.get("via", "runtime"))}
+               "remove": False, "started": time.time(), "launch": True,
+               "last": result.get("error") or ("Launched with " + result.get("via", "runtime"))}
         STORE_JOBS[jid] = job
         HUB.emit("job", dict(job))
         return job
@@ -1390,6 +1389,8 @@ def store_install(ids, remove=False, file=None, pkgs=None):
             continue
         (apt if a["kind"] == "apt" else flat).append(a["pkg"])
     jid = uuid.uuid4().hex[:8]
+    if file and not names:
+        names = [os.path.basename(file)]
     log = os.path.join(CACHE, "job-%s.log" % jid)
     job = {"id": jid, "names": names, "state": "running", "progress": 0, "log": log, "remove": remove,
            "started": time.time()}
@@ -1398,7 +1399,7 @@ def store_install(ids, remove=False, file=None, pkgs=None):
         helper = "/usr/libexec/lumina/lumina-pkg"
         steps = []
         if file:
-            steps.append(["install-file", file])
+            steps.append(["install-apk" if file.lower().endswith(".apk") else "install-file", file])
         if android:
             steps.append(["android-setup"])
         if apt:
@@ -1408,8 +1409,19 @@ def store_install(ids, remove=False, file=None, pkgs=None):
         rc = 0
         with open(log, "w") as lf:
             for st in steps:
-                argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper]) + st
-                p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+                if st[0] == "install-apk":
+                    # User-runtime job: report success only after it exits zero.
+                    argv = ["/usr/libexec/lumina/lumina-android", "install", st[1]]
+                else:
+                    argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper]) + st
+                try:
+                    p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+                except OSError as e:
+                    rc = 1
+                    job["last"] = str(e)[:200]
+                    lf.write(str(e) + "\n")
+                    HUB.emit("job", {k: v for k, v in job.items() if k != "log"})
+                    continue
                 for line in p.stdout:
                     lf.write(line); lf.flush()
                     m = re.search(r"(\d+(?:\.\d+)?)%", line)

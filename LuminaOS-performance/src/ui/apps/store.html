@@ -220,7 +220,7 @@ function drawLibrary() {
   const pane = $('#pane'), st = pane.scrollTop;
   pane.innerHTML = `<div class="page" style="animation:none"><h2>Library</h2>
     <h3 style="margin-top:0">Downloads and updates <a id="upd">Get updates ›</a></h3><div class="joblist">${jobs.map(j => `<div class="row">${j.state === 'running' ? '<div class="spinner"></div>' : j.state === 'done' ? `<span style="color:#30d158">${L.icon('check')}</span>` : `<span style="color:#ff453a">${L.icon('x')}</span>`}
-      <div class="t"><b>${L.esc(j.names.join(', ') || 'Package')}</b><small>${j.state === 'running' ? (j.remove ? 'Removing' : 'Installing') + (j.progress ? ' · ' + Math.round(j.progress) + '%' : '') + ' · ' + L.esc(j.last || 'Preparing…') : j.state === 'done' ? (j.remove ? 'Removed' : 'Installed') : 'Failed: ' + L.esc(j.last || '')}</small></div></div>`).join('') || '<div class="empty" style="padding:16px">No recent activity.</div>'}</div>
+      <div class="t"><b>${L.esc(j.names.join(', ') || 'Package')}</b><small>${j.state === 'running' ? (j.remove ? 'Removing' : 'Installing') + (j.progress ? ' · ' + Math.round(j.progress) + '%' : '') + ' · ' + L.esc(j.last || 'Preparing…') : j.state === 'done' ? (j.remove ? 'Removed' : (j.launch ? 'Launched' : 'Installed')) : 'Failed: ' + L.esc(j.last || '')}</small></div></div>`).join('') || '<div class="empty" style="padding:16px">No recent activity.</div>'}</div>
     <h3>Installed from the Store</h3><div class="grid">${inst.map(card).join('') || '<div class="empty">Nothing yet.</div>'}</div>
     <h3>Install any app package</h3><button class="btn" id="pick">${L.icon('folder')} Open Files and double-click any .exe, .deb, .AppImage, .flatpak, or .rpm</button></div>`;
   pane.scrollTop = st; bindCards(pane);

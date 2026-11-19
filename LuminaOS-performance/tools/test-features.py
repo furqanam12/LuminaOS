@@ -273,9 +273,9 @@ class SourceTests(unittest.TestCase):
 
     def test_windows_store_files_use_wine_not_privileged_package_helper(self):
         api = API.read_text(encoding="utf-8")
-        self.assertIn('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))', api)
-        self.assertLess(api.index('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))'),
-                        api.index('steps.append(["install-file", file])'))
+        self.assertIn('file.lower().endswith((".exe", ".msi", ".bat"))', api)
+        self.assertLess(api.index('file.lower().endswith((".exe", ".msi", ".bat"))'),
+                        api.index('argv = (["sudo", "-n", helper]'))
         self.assertIn('argv = ["wine", "msiexec", "/i", wpath]', api)
         self.assertIn('["wine", "cmd", "/c", wpath]', api)
         store = self.read("src/ui/apps/store.html")
@@ -296,6 +296,33 @@ class SourceTests(unittest.TestCase):
         self.assertIn("--backend=x11-backend.so", runtime)
         self.assertIn("waydroid app install", runtime)
         self.assertIn("ARM-only apps are not supported", runtime)
+
+    def test_android_store_job_waits_for_real_result(self):
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('steps.append(["install-apk" if file.lower().endswith(".apk") else "install-file", file])', api)
+        self.assertIn('if st[0] == "install-apk":', api)
+        self.assertIn('rc = p.wait() or rc', api)
+        self.assertIn('"launch": True', api)
+        self.assertNotIn('(".exe", ".msi", ".bat", ".apk")', api)
+        store = self.read("src/ui/apps/store.html")
+        self.assertIn("j.launch ? 'Launched'", store)
+
+    def test_terminal_wrapper_is_array_safe_and_non_recursive(self):
+        terminal = self.read("src/bin/lumina-terminal")
+        self.assertIn('RUN=(bash --rcfile "$KALI_RC" -i)', terminal)
+        self.assertIn('printf -v COMMAND_STRING', terminal)
+        self.assertIn('FORWARD+=("$1")', terminal)
+        self.assertNotIn('TERMINALS="xfce4-terminal x-terminal-emulator', terminal)
+        for rel in ("build.sh", "src/libexec/lumina-pkg"):
+            text = self.read(rel)
+            self.assertNotIn("update-alternatives --set x-terminal-emulator /usr/bin/lumina-terminal", text)
+        self.assertIn('"$0" kali-install metasploit-framework', self.read("src/libexec/lumina-pkg"))
+
+    def test_android_setup_fails_closed_on_unsupported_distributions(self):
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn("Automatic Android setup is supported only on Debian 13", helper)
+        self.assertNotIn("sh \"$tmp\"", helper)
+        self.assertNotIn("https://repo.waydro.id", helper)
 
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")

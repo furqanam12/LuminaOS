@@ -56,7 +56,7 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - Package-file handling for Windows executables and installers, Linux packages, and Android APKs; each is dispatched to the correct runtime instead of a generic installer.
 - Compatibility wizard with Windows (Wine), Kali Linux, Flatpak, AppImage, macOS, and Android tabs.
 - Kali Linux Security Suite with dedicated Kali terminal, kali-tools CLI, pinned repos, and one-click tool installers.
-- lumina-terminal as default x-terminal-emulator with robust multi-terminal fallback.
+- Dedicated lumina-terminal desktop launcher with robust emulator fallback, Kali profile arrays and preserved `-e` commands; packaged xfce4-terminal remains x-terminal-emulator.
 - File associations for Windows, Android, macOS and AppImage packages.
 
 ## Known limitations

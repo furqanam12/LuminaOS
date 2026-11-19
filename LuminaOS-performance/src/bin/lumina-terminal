@@ -9,66 +9,70 @@ MODE="standard"
 TITLE="Terminal"
 KALI_RC="/etc/lumina/kali-profile.sh"
 USER_KALI_RC="$HOME/.lumina-kali-profile"
+FORWARD=()
 
-for arg in "$@"; do
-    case "$arg" in
+while [ "$#" -gt 0 ]; do
+    case "$1" in
         --kali)
             MODE="kali"
             TITLE="Kali Linux Terminal (Security Suite)"
             ;;
         --title=*)
-            TITLE="${arg#*=}"
+            TITLE="${1#*=}"
+            ;;
+        -e)
+            # Preserve third-party `terminal -e command args...` semantics.
+            shift
+            while [ "$#" -gt 0 ]; do
+                FORWARD+=("$1")
+                shift
+            done
+            break
             ;;
         *)
+            FORWARD+=("$1")
             ;;
     esac
+    shift
 done
 
-# Determine shell command. In Kali mode we source the system-wide profile.
-BASH_CMD="bash"
-if [ "$MODE" = "kali" ]; then
+RUN=(bash)
+if [ "${#FORWARD[@]}" -gt 0 ]; then
+    RUN=("${FORWARD[@]}")
+elif [ "$MODE" = "kali" ]; then
     export KALI_TERMINAL=1
     export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/share/kali-menu:$PATH"
     if [ -f "$KALI_RC" ]; then
-        BASH_CMD="bash --rcfile '$KALI_RC' -i"
+        RUN=(bash --rcfile "$KALI_RC" -i)
     elif [ -f "$USER_KALI_RC" ]; then
-        BASH_CMD="bash --rcfile '$USER_KALI_RC' -i"
+        RUN=(bash --rcfile "$USER_KALI_RC" -i)
     else
         echo "Warning: Kali profile not found at $KALI_RC or $USER_KALI_RC."
         echo "Falling back to a regular shell."
     fi
 fi
 
-TERMINALS="xfce4-terminal x-terminal-emulator gnome-terminal mate-terminal lxterminal konsole alacritty kitty xterm"
+# Never resolve x-terminal-emulator here: this launcher may be its target,
+# which would recurse forever. Call only concrete emulators instead.
+TERMINALS="xfce4-terminal gnome-terminal mate-terminal lxterminal konsole alacritty kitty xterm"
+# xfce/mate/lxterminal take a single command string; %q preserves arguments.
+printf -v COMMAND_STRING '%q ' "${RUN[@]}"
 for term in $TERMINALS; do
     if command -v "$term" >/dev/null 2>&1; then
         case "$term" in
-            xfce4-terminal)
-                if [ "$MODE" = "kali" ]; then
-                    exec xfce4-terminal --title="$TITLE" --execute $BASH_CMD
-                else
-                    exec xfce4-terminal --title="$TITLE"
-                fi
-                ;;
+            xfce4-terminal|mate-terminal|lxterminal)
+                exec "$term" --title="$TITLE" --command="$COMMAND_STRING" ;;
             gnome-terminal)
-                if [ "$MODE" = "kali" ]; then
-                    exec gnome-terminal --title="$TITLE" -- $BASH_CMD
-                else
-                    exec gnome-terminal --title="$TITLE"
-                fi
-                ;;
-            x-terminal-emulator)
-                # Often a wrapper script -> can accept the same flags as xfce4-terminal or xterm
-                exec "$term" -T "$TITLE" -e $BASH_CMD ;;
-            mate-terminal|lxterminal|konsole|alacritty|kitty|xterm)
-                if [ "$MODE" = "kali" ]; then
-                    exec "$term" -T "$TITLE" -e $BASH_CMD
-                else
-                    exec "$term" -T "$TITLE"
-                fi
-                ;;
+                exec "$term" --title="$TITLE" -- "${RUN[@]}" ;;
+            konsole)
+                exec "$term" -p "tabtitle=$TITLE" -e "${RUN[@]}" ;;
+            alacritty)
+                exec "$term" -t "$TITLE" -e "${RUN[@]}" ;;
+            kitty)
+                exec "$term" --title="$TITLE" "${RUN[@]}" ;;
+            xterm)
+                exec "$term" -T "$TITLE" -e "${RUN[@]}" ;;
         esac
-        exit 0
     fi
 done
 

@@ -145,7 +145,7 @@ EOF
 
   kali-msf)
     [ -f /etc/apt/sources.list.d/kali.list ] || { echo "Configure Kali Repositories first, then install Metasploit."; exit 2; }
-    lumina-pkg kali-install metasploit-framework ;;
+    "$0" kali-install metasploit-framework ;;
 
   kali-tools-install)
     if [ -x /usr/local/bin/kali-tools ]; then
@@ -161,8 +161,13 @@ EOF
     apt-get update -o APT::Status-Fd=1 || true
     $APT install xfce4-terminal xterm 2>/dev/null || true
     chmod +x /usr/bin/lumina-terminal 2>/dev/null || true
-    update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/lumina-terminal 100 2>/dev/null || true
-    update-alternatives --set x-terminal-emulator /usr/bin/lumina-terminal 2>/dev/null || true
+    for term in /usr/bin/xfce4-terminal.wrapper /usr/bin/xfce4-terminal; do
+      if [ -x "$term" ]; then
+        update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator "$term" 80 2>/dev/null || true
+        update-alternatives --set x-terminal-emulator "$term" 2>/dev/null || true
+        break
+      fi
+    done
     echo "Terminal alternatives, wrappers, and permissions restored." ;;
 
   check)
@@ -185,16 +190,13 @@ EOF
       apt-get update -o APT::Status-Fd=1
       $APT install -t trixie-backports waydroid weston
     else
-      # Older Debian/Ubuntu: download the official script, verify it, then run it.
-      $APT install curl ca-certificates
-      tmp=$(mktemp)
-      curl -fsSL -o "$tmp" https://repo.waydro.id || { rm -f "$tmp"; echo "Failed to download Waydroid installer"; exit 3; }
-      if [ ! -s "$tmp" ]; then rm -f "$tmp"; echo "Empty installer download"; exit 3; fi
-      sh "$tmp"
-      rm -f "$tmp"
-      $APT install waydroid
+      # Do not execute an unverified third-party script as root. The supported
+      # LuminaOS 1.1 target is Debian 13; other systems need manual verification.
+      echo "Automatic Android setup is supported only on Debian 13 (trixie). Detected: $os_id $os_codename." >&2
+      echo "Use a verified Waydroid and Weston package setup for this distribution." >&2
+      exit 2
     fi
-    echo "Waydroid installed. Android needs a Wayland session; Lumina's current X11 session may not expose it." ;;
+    echo "Waydroid and Weston installed. Android runs in a nested Wayland window and needs binder support and an initialized image." ;;
     
   *)
     echo "usage: lumina-pkg install|remove|install-file|flatpak-install|flatpak-remove|flatpak-setup|wine-setup|appimage-setup|snap-setup|kali-setup|kali-install|terminal-fix|check|upgrade|android-setup"; exit 1 ;;
