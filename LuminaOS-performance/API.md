@@ -170,6 +170,34 @@ Jobs are tracked under `STORE_JOBS` and announced via the SSE hub as `job` event
 |----------|--------|-------------|
 | `/api/snip` | POST | Take a screenshot (body: `{mode: "full\|region\|window", delay?: number}`) |
 
+## Printers
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/printers/list` | GET | List CUPS printers |
+| `/api/printers/add` | POST | Add a printer (body: `{name, uri}`) |
+| `/api/printers/default` | POST | Set the default printer (body: `{name}`) |
+
+## Bluetooth
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/bt` | GET | Adapter state plus known devices (`available`, `powered`, `discoverable`, `devices`) |
+| `/api/bt/power` | POST | Power the adapter on/off (body: `{on}`) |
+| `/api/bt/scan` | POST | Scan for nearby devices (body: `{seconds?}`, max 30) |
+| `/api/bt/pair` | POST | Pair, trust and connect a device (body: `{mac}`) |
+| `/api/bt/connect` | POST | Connect a paired device (body: `{mac}`) |
+| `/api/bt/remove` | POST | Remove a paired device (body: `{mac}`) |
+
+Bluetooth addresses are validated against `AA:BB:CC:DD:EE:FF` before calling `bluetoothctl`.
+
+## Accessibility
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/a11y` | GET | Screen-reader state and Orca/AT-SPI availability |
+| `/api/a11y` | POST | Enable/disable Orca (body: `{enable}`); writes the autostart entry and toolkit setting |
+
 ## Misc
 
 | Endpoint | Method | Description |

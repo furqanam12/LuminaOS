@@ -46,6 +46,7 @@ DEFAULTS = {
     "uiScale": 100,
     "highContrast": False,
     "strongFocus": False,
+    "screenReader": False,
     "performancePreset": "custom",
     "perfShadows": True,
 }
@@ -163,6 +164,7 @@ def rate_check(ip: str, category: str = "default") -> bool:
 
 # ----------------------------------------------------------------- audit logging
 AUDIT_FILE = os.path.join(CACHE, "audit.log")
+AUDIT_MAX_BYTES = 1024 * 1024  # rotate at 1 MiB
 
 
 def audit_log(ip: str, method: str, path: str, ok: bool, detail: str = "") -> None:
@@ -186,6 +188,11 @@ def audit_log(ip: str, method: str, path: str, ok: bool, detail: str = "") -> No
         audit_log("192.168.1.100", "POST", "/api/password", True, "changed successfully")
     """
     try:
+        try:
+            if os.path.getsize(AUDIT_FILE) >= AUDIT_MAX_BYTES:
+                os.replace(AUDIT_FILE, AUDIT_FILE + ".1")
+        except OSError:
+            pass
         with open(AUDIT_FILE, "a", encoding="utf-8") as f:
             f.write("%s %s %s %s %s %s\n" % (
                 time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()),
@@ -1120,9 +1127,137 @@ def net_get():
     res["ip"] = ip
     return res
 
+BT_MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}$")
+
+
+def _bt_available():
+    return os.path.isdir("/sys/class/bluetooth") and bool(os.listdir("/sys/class/bluetooth"))
+
+
+def _bt(args, timeout=15):
+    if not shutil.which("bluetoothctl"):
+        return 127, "bluetoothctl is not installed"
+    return sh_rc(["bluetoothctl"] + list(args), timeout=timeout)
+
+
+def _bt_parse_devices(text):
+    out, seen = [], set()
+    for line in (text or "").splitlines():
+        m = re.search(r"Device\s+([0-9A-Fa-f:]{17})\s+(.+)$", line.strip())
+        if not m:
+            continue
+        mac = m.group(1).upper()
+        if mac in seen:
+            continue
+        seen.add(mac)
+        out.append({"mac": mac, "name": m.group(2).strip()})
+    return out
+
+
+def bt_devices():
+    """Return known Bluetooth devices with paired/connected state."""
+    if not _bt_available() or not shutil.which("bluetoothctl"):
+        return []
+    _, listing = _bt(["devices"], 10)
+    devices = _bt_parse_devices(listing)
+    _, paired_out = _bt(["devices", "Paired"], 10)
+    paired = {d["mac"] for d in _bt_parse_devices(paired_out)}
+    _, connected_out = _bt(["devices", "Connected"], 10)
+    connected = {d["mac"] for d in _bt_parse_devices(connected_out)}
+    for dev in devices[:30]:
+        dev["paired"] = dev["mac"] in paired
+        dev["connected"] = dev["mac"] in connected
+    return devices
+
+
 def bt_get():
-    has = os.path.isdir("/sys/class/bluetooth") and bool(os.listdir("/sys/class/bluetooth"))
-    return {"available": has}
+    has = _bt_available()
+    info = {"available": has, "powered": False, "discoverable": False, "devices": []}
+    if not has:
+        return info
+    _, out = _bt(["show"], 10)
+    info["powered"] = "Powered: yes" in out
+    info["discoverable"] = "Discoverable: yes" in out
+    info["devices"] = bt_devices()
+    return info
+
+
+def bt_scan(seconds=8):
+    if not _bt_available():
+        return {"ok": False, "error": "No Bluetooth adapter was found"}
+    try:
+        seconds = max(3, min(int(seconds or 8), 30))
+    except (TypeError, ValueError):
+        seconds = 8
+    if shutil.which("timeout"):
+        # bluetoothctl scan on normally runs until interrupted; timeout exits with 124.
+        sh_rc(["timeout", str(seconds), "bluetoothctl", "scan", "on"], timeout=seconds + 5)
+    else:
+        _bt(["--timeout", str(seconds), "scan", "on"], timeout=seconds + 5)
+    return {"ok": True, "devices": bt_devices(), "seconds": seconds}
+
+
+def bt_action(action, mac):
+    mac = str(mac or "").strip().upper()
+    if not BT_MAC_RE.match(mac):
+        return {"ok": False, "error": "invalid Bluetooth address"}
+    if not _bt_available():
+        return {"ok": False, "error": "No Bluetooth adapter was found"}
+    if action == "pair":
+        rc, out = _bt(["pair", mac], 30)
+        if rc == 0:
+            _bt(["trust", mac], 10)
+            _bt(["connect", mac], 15)
+    elif action == "connect":
+        rc, out = _bt(["connect", mac], 20)
+    elif action == "remove":
+        rc, out = _bt(["remove", mac], 15)
+    else:
+        return {"ok": False, "error": "unknown Bluetooth action"}
+    return {"ok": rc == 0, "msg": out[-600:]}
+
+
+def bt_power(on):
+    if not _bt_available():
+        return {"ok": False, "error": "No Bluetooth adapter was found"}
+    rc, out = _bt(["power", "on" if on else "off"], 10)
+    return {"ok": rc == 0, "msg": out[-600:]}
+
+
+def a11y_get():
+    return {"screenReader": bool(get_settings().get("screenReader")),
+            "installed": bool(shutil.which("orca")),
+            "atspi": bool(shutil.which("at-spi2-registryd") or shutil.which("at-spi-bus-launcher"))}
+
+
+def _a11y_autostart(enable):
+    path = os.path.join(HOME, ".config", "autostart", "orca.desktop")
+    try:
+        if enable:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("[Desktop Entry]\nType=Application\nName=Orca Screen Reader\n"
+                        "Exec=orca --replace\nX-GNOME-Autostart-enabled=true\n")
+        elif os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
+def a11y_set(enable):
+    enable = bool(enable)
+    if enable and not shutil.which("orca"):
+        return {"ok": False, "error": "Orca is not installed"}
+    if shutil.which("gsettings"):
+        sh(["gsettings", "set", "org.gnome.desktop.interface", "toolkit-accessibility",
+            "true" if enable else "false"], 5)
+    _a11y_autostart(enable)
+    set_settings({"screenReader": enable})
+    if enable:
+        spawn(["orca", "--replace"])
+    else:
+        sh_rc(["pkill", "-x", "orca"], 5)
+    return {"ok": True, "screenReader": enable}
 
 def display_get():
     out = sh(["xrandr", "--query"])
@@ -1496,6 +1631,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, net_get())
         if p == "/api/bt":
             return self._send(200, bt_get())
+        if p == "/api/a11y":
+            return self._send(200, a11y_get())
         if p == "/api/display":
             return self._send(200, display_get())
         if p == "/api/notifications":
@@ -1622,6 +1759,8 @@ class Handler(BaseHTTPRequestHandler):
             "/api/service", "/api/store/install", "/api/update/install",
             "/api/timezone", "/api/hostname", "/api/compat/setup", "/api/password",
             "/api/auth", "/api/run", "/api/snip", "/api/wallpaper/upload",
+            "/api/printers/add", "/api/printers/default", "/api/a11y",
+            "/api/bt/scan", "/api/bt/pair", "/api/bt/connect", "/api/bt/remove", "/api/bt/power",
         }
         if p in SENSITIVE_POST and not token_ok(self.headers):
             return self._send(401, {"error": "authentication required"})
@@ -1949,14 +2088,30 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": False, "error": str(e)})
         # ---------------------------------------------------------------- printers (5.8)
         if p == "/api/printers/add":
-            uri = b.get("uri", "")
-            name = b.get("name", "Printer")
-            try:
-                import subprocess as _sp
-                _sp.run(["lpadmin", "-p", name, "-v", uri, "-E"], capture_output=True)
-                return self._send(200, {"ok": True})
-            except Exception as e:
-                return self._send(200, {"ok": False, "error": str(e)})
+            uri = str(b.get("uri", "")).strip()
+            name = str(b.get("name", "Printer")).strip()
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name):
+                return self._send(200, {"ok": False, "error": "invalid printer name"})
+            if not uri or len(uri) > 500:
+                return self._send(200, {"ok": False, "error": "invalid device URI"})
+            rc, out = sh_rc(["lpadmin", "-p", name, "-v", uri, "-E"], 30)
+            return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-600:]})
+        if p == "/api/printers/default":
+            name = str(b.get("name", "")).strip()
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name):
+                return self._send(200, {"ok": False, "error": "invalid printer name"})
+            rc, out = sh_rc(["lpadmin", "-d", name], 15)
+            return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-600:]})
+        # ---------------------------------------------------------------- Bluetooth management
+        if p == "/api/bt/scan":
+            return self._send(200, bt_scan(b.get("seconds", 8)))
+        if p in ("/api/bt/pair", "/api/bt/connect", "/api/bt/remove"):
+            return self._send(200, bt_action(p.rsplit("/", 1)[1], b.get("mac", "")))
+        if p == "/api/bt/power":
+            return self._send(200, bt_power(bool(b.get("on", True))))
+        # ---------------------------------------------------------------- accessibility
+        if p == "/api/a11y":
+            return self._send(200, a11y_set(b.get("enable", False)))
         return self._send(404, {"error": "unknown endpoint " + p})
 
 # ----------------------------------------------------------------- clipboard history (4.5)

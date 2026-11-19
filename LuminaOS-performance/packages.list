@@ -48,3 +48,8 @@ librsvg2-common
 gstreamer1.0-plugins-good
 gstreamer1.0-libav
 libnotify-bin
+at-spi2-core
+orca
+bluez
+cups
+cups-client

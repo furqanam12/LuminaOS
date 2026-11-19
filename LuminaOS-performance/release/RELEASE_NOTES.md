@@ -23,6 +23,7 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - High-contrast dark and light palettes.
 - Strong keyboard focus indicator.
 - Keyboard activation for common clickable controls.
+- Orca screen-reader integration with AT-SPI, autostart and a Settings toggle.
 - Settings → Accessibility page.
 
 ### Command palette
@@ -35,12 +36,21 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - Keep both / Replace / Skip conflict handling.
 - ZIP/TAR extraction, ZIP creation and permissions editing.
 - Ctrl+L address editing and Trash restore support.
+- Loading skeleton while the first folder listing is fetched.
 
 ### Notifications
 - Action buttons.
 - Snooze for 15 minutes.
 - Quiet hours, including overnight schedules.
 - Per-app Normal / Silent / Off rules.
+
+### Devices and printing
+- Bluetooth adapter power, scanning, pairing, connecting and device removal.
+- Printer management with validated add and set-default actions.
+
+### Security and reliability
+- Rotating API audit log (1 MiB) so unattended desktops cannot grow it without bound.
+- Token protection extended to the new printer, Bluetooth and accessibility actions.
 
 ### Compatibility
 - New Compatibility Wizard.
@@ -54,6 +64,7 @@ LuminaOS 1.1 is an update to the 1.0 Aurora release. It keeps the same design la
 - Performance improvements are implemented but not numerically measured in a guest.
 - Android support remains experimental and unavailable in the live session.
 - Windows application compatibility remains app-dependent.
+- Bluetooth and Orca screen-reader behavior could not be validated in the installed 1.0 guest (no Bluetooth adapter; Orca not installed).
 - Compositing is intentionally kept enabled; disabling it caused black areas in VirtualBox on 1.0.
 
 ## Build

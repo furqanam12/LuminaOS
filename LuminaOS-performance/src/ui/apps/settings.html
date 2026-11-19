@@ -247,11 +247,14 @@ const PAGES = {
       else L.dialog({ title: 'Failed', text: r.error || 'Could not add printer.' });
     });
     pg.querySelectorAll('[id^="prm-"]').forEach(b => b.onclick = async () => {
-      const i = b.id.split('-')[1];
-      if (pr.printers.length) {
-        // Not implemented in API yet - placeholder
-        L.notify('Printer', 'Set as default (API endpoint pending)', 'printer', 'Settings');
-      }
+      const i = +b.id.split('-')[1];
+      const p = pr.printers[i];
+      if (!p) return;
+      b.disabled = true;
+      const r = await L.post('/api/printers/default', { name: p.name });
+      if (r.ok) L.notify('Default printer', p.name + ' is now the default.', 'printer', 'Settings');
+      else L.dialog({ title: 'Could not set default', text: r.error || 'The printer could not be changed.' });
+      b.disabled = false;
     });
   },
   async power(pg) {
@@ -322,16 +325,45 @@ const PAGES = {
   },
   async bluetooth(pg) {
     const b = await L.get('/api/bt');
-    const devList = b.available ? `<div class="h2">Paired devices</div><div class="card" id="bt-devices"><div class="muted" style="padding:14px">No devices paired yet. Put your device in pairing mode and it will appear here.</div></div>` : '';
-    pg.innerHTML = head('Bluetooth & devices') + (b.available ? row('bluetooth', 'Bluetooth', 'Discoverable as "' + L.esc(SYS.hostname) + '"', sw('bt', true))
+    const devs = b.devices || [];
+    const cards = devs.length ? devs.map(x => {
+      const state = x.connected ? 'Connected' : x.paired ? 'Paired' : 'Nearby';
+      const actions = [
+        !x.paired ? `<button class="btn small" data-bt="pair" data-mac="${x.mac}">Pair</button>` : '',
+        x.paired && !x.connected ? `<button class="btn small" data-bt="connect" data-mac="${x.mac}">Connect</button>` : '',
+        x.paired ? `<button class="btn small" data-bt="remove" data-mac="${x.mac}">Remove</button>` : ''
+      ].join('');
+      return `<div class="card" style="padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b style="font-weight:600">${L.esc(x.name || x.mac)}</b><div class="muted" style="font-size:11px">${x.mac} · ${state}</div></div><div style="display:flex;gap:6px">${actions}</div></div></div>`;
+    }).join('') : `<div class="card empty">No Bluetooth devices found. Put the device in pairing mode and scan.</div>`;
+    pg.innerHTML = head('Bluetooth & devices') + (b.available ? row('bluetooth', 'Bluetooth', 'Powered and discoverable as "' + L.esc(SYS.hostname) + '"', sw('bt', b.powered))
       : row('bluetooth', 'Bluetooth', 'No Bluetooth adapter was found on this device. VirtualBox can pass a USB Bluetooth adapter through to the VM.', '<span class="pill">Unavailable</span>'))
-      + devList
+      + (b.available ? `<div class="h2">Devices</div><div style="margin-bottom:8px"><button class="btn primary" id="btscan">Scan for devices</button></div>` + cards : '')
       + `<div class="h2">Input devices</div>` + row('mouse', 'Mouse & touchpad', 'Pointer speed, scrolling', `<input type="range" class="slider" id="ptr" min="-10" max="10" value="${S().pointer || 0}" style="--v:${((S().pointer || 0) + 10) * 5}%">`)
       + row('keyboard', 'Keyboard', 'Layout and shortcuts: Super opens Start, Super+A Control Centre, Super+E File Explorer', `<button class="btn small" id="kb">Shortcuts</button>`)
       + row('printer', 'Printers & scanners', 'Add a printer through CUPS', `<button class="btn small" id="pr">Open</button>`);
     on('ptr', 'change', e => { L.setSettings({ pointer: +e.target.value }); L.post('/api/run', { cmd: `xinput list --id-only 2>/dev/null | while read i; do xinput set-prop $i 'libinput Accel Speed' ${(+e.target.value / 10).toFixed(2)} 2>/dev/null; done` }); });
     on('kb', 'click', () => L.app('welcome', ['shortcuts']));
     on('pr', 'click', () => L.post('/api/run', { cmd: 'system-config-printer || xdg-open http://localhost:631' }));
+    on('bt', 'change', async e => {
+      const r = await L.post('/api/bt/power', { on: e.target.checked });
+      if (!r.ok) { e.target.checked = !e.target.checked; L.notify('Bluetooth', r.error || 'Could not change Bluetooth power.', 'bluetooth', 'Settings'); }
+      else go('bluetooth');
+    });
+    on('btscan', 'click', async e => {
+      const btn = e.currentTarget;
+      btn.disabled = true; btn.textContent = 'Scanning…';
+      const r = await L.post('/api/bt/scan', { seconds: 8 });
+      btn.disabled = false; btn.textContent = 'Scan for devices';
+      if (!r.ok) L.notify('Bluetooth', r.error || 'The scan failed.', 'bluetooth', 'Settings');
+      else go('bluetooth');
+    });
+    pg.querySelectorAll('[data-bt]').forEach(btn => btn.onclick = async () => {
+      btn.disabled = true;
+      const r = await L.post('/api/bt/' + btn.dataset.bt, { mac: btn.dataset.mac });
+      if (!r.ok) L.notify('Bluetooth', r.error || 'The device action failed.', 'bluetooth', 'Settings');
+      else if (btn.dataset.bt === 'remove') L.notify('Bluetooth', 'Device removed.', 'bluetooth', 'Settings');
+      setTimeout(() => go('bluetooth'), 700);
+    });
   },
   async network(pg) {
     pg.innerHTML = head('Network & internet') + '<div class="card empty"><div class="spinner" style="margin:0 auto"></div></div>';
@@ -401,13 +433,15 @@ const PAGES = {
     draw();
   },
   async accessibility(pg) {
-    const s = S();
+    const s = S(), a = await L.get('/api/a11y').catch(() => ({ installed: false, atspi: false }));
     pg.innerHTML = head('Accessibility') + `<div class="muted" style="margin-bottom:16px">Make LuminaOS easier to see and navigate. Changes apply across all built-in apps.</div>
       <div class="h2">Display</div>
       ${row('zoomin', 'Interface scale', 'Scale windows and controls', slider('scale', s.uiScale || 100, 80, 150))}
       ${row('contrast', 'High contrast', 'Use stronger text, borders and panel colours', sw('hc', s.highContrast))}
       ${row('sparkle', 'Animation effects', 'Disable repeating motion and transitions', sw('acc-anim', !s.reduceMotion))}
       ${row('layout', 'Transparency effects', 'Use solid panels instead of blurred glass', sw('acc-tr', s.transparency !== false))}
+      <div class="h2">Assistive technology</div>
+      ${row('access', 'Screen reader', a.installed ? 'Orca speaks interface text, menus and controls' : 'Orca is not installed in this image', a.installed ? sw('sr', s.screenReader) : '<span class="pill">Not installed</span>')}
       <div class="h2">Keyboard</div>
       ${row('access', 'Strong focus indicator', 'Show a thick outline around the focused control', sw('focus-ring', s.strongFocus))}
       ${row('keyboard', 'Command palette', 'Open the command palette with Ctrl + K', '<button class="btn small" id="cmdhelp">Show commands</button>')}
@@ -417,6 +451,10 @@ const PAGES = {
     on('acc-anim', 'change', e => L.setSettings({ reduceMotion: !e.target.checked }));
     on('acc-tr', 'change', e => L.setSettings({ transparency: e.target.checked }));
     on('focus-ring', 'change', e => L.setSettings({ strongFocus: e.target.checked }));
+    on('sr', 'change', async e => {
+      const r = await L.post('/api/a11y', { enable: e.target.checked });
+      if (!r.ok) { e.target.checked = !e.target.checked; L.notify('Accessibility', r.error || 'Could not start the screen reader.', 'access', 'Settings'); }
+    });
     on('cmdhelp', 'click', () => L.ui('command'));
   },
   async users(pg) {

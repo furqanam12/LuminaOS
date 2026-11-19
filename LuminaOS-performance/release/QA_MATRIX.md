@@ -1,15 +1,17 @@
 # LuminaOS 1.1 QA matrix
 
-Status legend: **Source-pass** = automated source validation passed. **Guest-pending** = requires a booted 1.1 ISO. No guest test has been performed in this package.
+Status legend: **Source-pass** = automated source validation passed. **Live-1.0-pass** = executed against the installed 1.0 VM; any 1.0-only failures are recorded and fixed in source. **Guest-pending** = requires a booted 1.1 ISO. No 1.1 guest test has been performed in this package.
 
 | ID | Area | Test case | Expected result | Status |
 |---|---|---|---|---|
 | BUILD-01 | Build | Build source on Debian/Ubuntu x86-64 | `LuminaOS-1.1-amd64.iso` created | Guest-pending |
 | BUILD-02 | Build | Verify ISO checksum | `sha256sum -c` passes | Guest-pending |
-| TEST-01 | Automation | `tools/test-features.py` | 10/10 pass | Source-pass |
+| TEST-01 | Automation | `tools/test-features.py` | 19/19 pass | Source-pass |
 | TEST-02 | Automation | `tools/test-installer.py` | 8/8 pass | Source-pass |
-| TEST-03 | Automation | `tools/test-performance.py` | 46/46 pass | Source-pass |
+| TEST-03 | Automation | `tools/test-performance.py` | 51/51 pass | Source-pass |
 | TEST-04 | Automation | `tools/test-performance.js` | 25/25 pass | Source-pass |
+| TEST-05 | Automation | `tools/test-release.py` | 7/7 pass | Source-pass |
+| TEST-06 | Automation | `tools/test-live.py` on installed 1.0 VM | 77/81 checks pass; 2 known 1.0-only failures fixed in source | Live-1.0-pass |
 | BOOT-01 | Live ISO | Standard GRUB entry | Boots to usable desktop | Guest-pending |
 | BOOT-02 | Live ISO | Safe-graphics GRUB entry | Boots to usable desktop with `nomodeset` | Guest-pending |
 | BOOT-03 | Live ISO | Automatic sign-in | User `lumina` signed in | Guest-pending |

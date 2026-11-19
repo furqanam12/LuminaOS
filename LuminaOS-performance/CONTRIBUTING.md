@@ -99,25 +99,24 @@ There is no central git repository yet — the project ships as source tarballs.
 
 ### 4. Testing
 
+- **Source suites:** `python3 tools/test-features.py`, `tools/test-installer.py`, `tools/test-performance.py`, `tools/test-release.py` and `node tools/test-performance.js`
 - **Syntax check Python:** `python3 -m py_compile src/lib/lumina/api.py`
-- **Syntax check JS:** Open the HTML file in a browser with developer tools
+- **Syntax check JS:** Open the HTML file in a browser with developer tools (the feature suite also runs `node --check` on inline scripts)
 - **Shell:** `sh -n src/libexec/lumina-pkg`
+- **Live guest test:** inside a booted session run `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority python3 tools/test-live.py`
 - **Full test:** Build the ISO with `./build.sh` (requires Debian/Ubuntu, ~8 GB disk, sudo) and boot in VirtualBox
 
 ### 5. Submitting Changes
 
-Since there is no central git host yet, share your changes as:
-- A unified diff (`diff -u`)
-- A patched source tree
-- A description of what changed and why
+Open a pull request against **https://github.com/furqanam12/LuminaOS**. Include a short description, the tests you ran, and any guest/VM evidence. CI runs the host suites automatically.
 
 ## Areas That Need Help
 
-- Unit tests for `api.py` (no test suite exists yet)
-- Integration tests (automated VM boot + API checks)
-- More Settings panels (Bluetooth pairing, Wi-Fi management, power profiles)
-- Accessibility improvements (screen reader support, high-contrast mode)
-- Performance tuning for older hardware
+- Build and guest acceptance of the 1.1 ISO (see `release/QA_MATRIX.md`)
+- Localization / i18n and locale-aware formatting
+- Real-hardware validation (Wi-Fi firmware, power management, suspend)
+- Performance tuning for older hardware and first-paint latency
+- More automated VM integration tests and screenshot regression checks
 - Documentation improvements
 
 ## License

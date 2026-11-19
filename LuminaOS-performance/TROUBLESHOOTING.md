@@ -29,6 +29,10 @@ curl -s 10.0.2.2:8000/lumina-ssh.sh | sh
 ```
 (You need `python -m http.server 8000` serving `$env:TEMP\\opencode\\www` on the host.)
 
+### `systemctl` reports the system as degraded (vboxadd.service)
+**Cause:** VirtualBox Guest Additions ships a `vboxadd.service` unit that can report failure even when the kernel modules and shared clipboard/display integration are working.
+**Fix:** Run `/sbin/rcvboxadd status`. If the drivers and shared folders work, clear the stale failure with `sudo systemctl reset-failed vboxadd.service`. If the unit still fails and Guest Additions features are actually broken, reinstall the Guest Additions ISO; do not mask the unit unless you have confirmed you do not need its service hooks.
+
 ## Shell & UI
 
 ### Glass/transparency is slow or CPU-bound
@@ -46,6 +50,10 @@ or set `LUMINA_GPU=never` to force software rendering everywhere.
 ### Settings changes don't persist
 **Cause:** The settings file (`~/.config/lumina/settings.json`) may not be writable, or the shell crashed before writing.
 **Fix:** Check `~/.cache/lumina-shell.log` for errors. Ensure `~/.config/lumina/` exists and is writable.
+
+### Screen reader (Orca) does not start
+**Cause:** Orca or the AT-SPI accessibility bus is missing, or the toolkit bridge is disabled.
+**Fix:** Install `at-spi2-core` and `orca`, then enable **Settings → Accessibility → Screen reader** (or run `gsettings set org.gnome.desktop.interface toolkit-accessibility true` and `orca --replace`). The live log message `AT-SPI: Error retrieving accessibility bus address` means the bus is not running.
 
 ## API
 

@@ -12,18 +12,26 @@
 - VM creator examples updated to `LuminaOS-1.1-amd64.iso`.
 - Release notes, QA matrix, build guide, checklist and sign-off template written.
 - Automated source validation:
-  - `tools/test-features.py`: 10/10 passed.
+  - `tools/test-features.py`: 19/19 passed.
   - `tools/test-installer.py`: 8/8 passed.
-  - `tools/test-performance.py`: 46/46 passed.
+  - `tools/test-performance.py`: 51/51 passed.
   - `tools/test-performance.js`: 25/25 passed.
+  - `tools/test-release.py`: 7/7 passed.
+- Live validation of the installed **1.0** VM (2026-11-18):
+  - `tools/test-live.py`: 81 checks, **77 passed**, 2 failed, 2 warnings.
+  - The two failures are the same installed-1.0 `/api/store/owner` empty-parameter crash; the source fix and regression test are in commit `9d1f26a`.
+  - **12/12 built-in apps** opened in 0.5–1.6 s; filesystem, settings, notifications, audio, display, network, window actions and 19 UI pages passed.
+  - Warnings: `vboxadd.service` unit reports failed while Guest Additions are active, and the VM exposes no cpufreq driver.
+- GitHub Actions workflow `.github/workflows/ci.yml` runs the host suites on push.
 
 ## Not completed
 
-- No ISO was built.
+- No ISO was built for 1.1.
 - No checksum for a 1.1 ISO exists yet.
-- No virtual machine was booted.
-- No live-session, installer, installed-boot or feature acceptance test was run in a guest.
-- No performance percentages are claimed.
+- No virtual machine was booted with a 1.1 ISO.
+- No 1.1 live-session, installer, installed-boot or feature acceptance test was run in a guest.
+- No 1.1 performance percentages are claimed.
+- Full localization (i18n) and real-hardware validation remain future work.
 
 ## Host assessment
 

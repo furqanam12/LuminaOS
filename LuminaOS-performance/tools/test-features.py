@@ -187,6 +187,90 @@ class SourceTests(unittest.TestCase):
         self.assertIn('if not d.endswith(".desktop"):', api)
         self.assertIn("if os.path.isfile(f):", api)
 
+    def test_printer_default_endpoint(self):
+        """Printers can be made default without the old placeholder message."""
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('if p == "/api/printers/default":', api)
+        self.assertIn('["lpadmin", "-d", name]', api)
+        self.assertIn('re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name)', api)
+        packages = self.read("packages.list").splitlines()
+        self.assertIn("cups", packages)
+        self.assertIn("cups-client", packages)
+        settings = self.read("src/ui/apps/settings.html")
+        self.assertIn("'/api/printers/default'", settings)
+        self.assertNotIn("API endpoint pending", settings)
+
+    def test_bluetooth_management_endpoints(self):
+        """Bluetooth scanning and pairing are real API actions, not a static card."""
+        api = API.read_text(encoding="utf-8")
+        for route in ("/api/bt/scan", "/api/bt/pair", "/api/bt/connect", "/api/bt/remove", "/api/bt/power"):
+            self.assertIn('"%s"' % route, api)
+        self.assertIn("BT_MAC_RE", api)
+        self.assertIn("bluetoothctl", api)
+        settings = self.read("src/ui/apps/settings.html")
+        self.assertIn("'/api/bt/scan'", settings)
+        self.assertIn("data-bt=\"pair\"", settings)
+        self.assertIn("Scan for devices", settings)
+        self.assertIn("bluez", self.read("packages.list").splitlines())
+
+    def test_screen_reader_support(self):
+        """Orca/AT-SPI is packaged and can be toggled from Settings."""
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('"screenReader": False', api)
+        self.assertIn("def a11y_set", api)
+        self.assertIn("orca", api)
+        packages = self.read("packages.list")
+        self.assertIn("at-spi2-core", packages)
+        self.assertIn("orca", packages)
+        settings = self.read("src/ui/apps/settings.html")
+        self.assertIn("'/api/a11y'", settings)
+        self.assertIn("Screen reader", settings)
+
+    def test_audit_log_rotation(self):
+        """Audit logs must rotate rather than grow without bound."""
+        api = API.read_text(encoding="utf-8")
+        self.assertIn("AUDIT_MAX_BYTES", api)
+        self.assertIn('AUDIT_FILE + ".1"', api)
+
+    def test_files_loading_skeleton(self):
+        """Files shows a loading state before the first asynchronous listing."""
+        files = self.read("src/ui/apps/files.html")
+        self.assertIn('<div class="spinner" style="margin:0 auto 10px"></div>Loading', files)
+
+    def test_ui_api_routes_exist(self):
+        """Every literal L.get/L.post URL used by the UI must have an API route."""
+        api = API.read_text(encoding="utf-8")
+        lines = api.splitlines()
+        get_at = next(i for i, line in enumerate(lines) if line.strip().startswith("def route_get"))
+        post_at = next(i for i, line in enumerate(lines) if line.strip().startswith("def route_post"))
+        end_at = next((i for i, line in enumerate(lines[post_at + 1:], post_at + 1)
+                       if line.startswith("class ") or line.startswith("def ")), len(lines))
+        get_src, post_src = "\n".join(lines[get_at:post_at]), "\n".join(lines[post_at:end_at])
+
+        def routes(src):
+            return (set(re.findall(r'p\s*==\s*"([^"]+)"', src)),
+                    set(re.findall(r'p\.startswith\(\s*"([^"]+)"', src)))
+
+        get_exact, get_prefix = routes(get_src)
+        post_exact, post_prefix = routes(post_src)
+        missing = []
+        for path in (ROOT / "src/ui").rglob("*.html"):
+            text = path.read_text(encoding="utf-8")
+            for m in re.finditer(r"L\.(get|post)\(\s*['\"]([^'\"]+)", text):
+                method, url = m.group(1), m.group(2)
+                if not url.startswith("/api/") or "${" in url:
+                    continue
+                url = url.split("?")[0]
+                exact, prefix = (get_exact, get_prefix) if method == "get" else (post_exact, post_prefix)
+                if url.endswith("/"):
+                    # Dynamic prefix such as '/api/bt/' + action must match a real route.
+                    found = any(r.startswith(url) for r in exact | prefix)
+                else:
+                    found = url in exact or any(url.startswith(p) for p in prefix)
+                if not found:
+                    missing.append("%s %s (%s)" % (method.upper(), url, path.name))
+        self.assertEqual(missing, [], "UI calls without an API route: " + ", ".join(missing))
+
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "node is required for inline JavaScript validation")
