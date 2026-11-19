@@ -108,7 +108,7 @@ There is no central git repository yet — the project ships as source tarballs.
 
 ### 5. Submitting Changes
 
-Open a pull request against **https://github.com/furqanam12/LuminaOS**. Include a short description, the tests you ran, and any guest/VM evidence. CI runs the host suites automatically.
+Open a pull request against **https://github.com/furqanam12/LuminaOS**. Include a short description, the tests you ran, and any guest/VM evidence. A host-test workflow is prepared at `.github/workflows/ci.yml`; until it is enabled, run the suites locally.
 
 ## Areas That Need Help
 
