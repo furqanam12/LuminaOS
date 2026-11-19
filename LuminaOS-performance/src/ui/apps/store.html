@@ -231,7 +231,7 @@ async function filePage(f) {
   page = 'file'; drawRail();
   const n = f.split('/').pop();
   $('#pane').innerHTML = `<div class="page filepg"><img src="/ui/img/apps/store.svg"><h2 style="margin-top:14px">Install ${L.esc(n)}?</h2><p style="color:var(--fg-2)">${L.esc(f)}</p>
-    <p style="color:var(--fg-3);font-size:12px;max-width:440px;margin:0 auto 16px">Lumina opens Windows apps through Wine, Android APKs through Waydroid, and Linux packages through the appropriate package manager.</p>
+    <p style="color:var(--fg-3);font-size:12px;max-width:440px;margin:0 auto 16px">Lumina opens Windows apps through Wine, Android APKs through Waydroid, and Linux packages through the appropriate package manager. Only install files from sources you trust; a password prompt may appear when system files need changing.</p>
     <button class="btn primary" id="fgo">${L.icon('download')} Install</button> <button class="btn" id="fno">Cancel</button><div id="fst" style="margin-top:14px;color:var(--fg-3)"></div></div>`;
   $('#fno').onclick = () => go('home');
   $('#fgo').onclick = async () => { const j = await L.post('/api/store/install', { ids: [], file: f }); j.names = [n]; JOBS[j.id] = j; go('library'); };
@@ -246,7 +246,7 @@ async function uninstallPage(desk) {
 }
 function handleArgs(a) {
   a = (a || []).map(x => x.startsWith('file://') ? decodeURIComponent(x.slice(7)) : x);
-  if (a[0] && /\.(deb|flatpakref|flatpak|appimage|snap|rpm|exe|msi|apk)$/i.test(a[0])) return filePage(a[0]);
+  if (a[0] && /\.(deb|flatpakref|flatpak|appimage|snap|rpm|exe|msi|bat|apk)$/i.test(a[0])) return filePage(a[0]);
   if (a[0] === '--install-file' && a[1]) return filePage(a[1]);
   if (a[0] === '--android') return detail('waydroid');
   if (a[0] === '--uninstall' && a[1]) return uninstallPage(a[1]);

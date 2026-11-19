@@ -962,7 +962,12 @@ def open_path(path):
                 return {"ok": False, "error": str(e)}
     if low.endswith((".exe", ".msi", ".bat")):
         if shutil.which("wine"):
-            argv = ["wine", "start", "/unix", path] if low.endswith(".msi") else ["wine", path]
+            if low.endswith((".msi", ".bat")):
+                wpath = sh(["winepath", "-w", path]) if shutil.which("winepath") else ""
+                wpath = wpath or path
+                argv = ["wine", "msiexec", "/i", wpath] if low.endswith(".msi") else ["wine", "cmd", "/c", wpath]
+            else:
+                argv = ["wine", path]
             spawn(argv, cwd=os.path.dirname(path))
             notify("Starting Windows program", os.path.basename(path), "lumina-windows", "Windows programs")
             return {"ok": True, "via": "wine"}

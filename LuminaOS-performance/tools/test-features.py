@@ -276,7 +276,8 @@ class SourceTests(unittest.TestCase):
         self.assertIn('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))', api)
         self.assertLess(api.index('file.lower().endswith((".exe", ".msi", ".bat", ".apk"))'),
                         api.index('steps.append(["install-file", file])'))
-        self.assertIn('argv = ["wine", "start", "/unix", path]', api)
+        self.assertIn('argv = ["wine", "msiexec", "/i", wpath]', api)
+        self.assertIn('["wine", "cmd", "/c", wpath]', api)
         store = self.read("src/ui/apps/store.html")
         self.assertIn("|apk", store)
         helper = self.read("src/libexec/lumina-pkg")
