@@ -23,6 +23,13 @@ FILES = {
     "Desktop installer shortcut": "/etc/skel/Desktop/Install LuminaOS.desktop",
     "Setup app": "/usr/share/lumina/ui/apps/setup.html",
     "Compatibility app": "/usr/share/lumina/ui/apps/compat.html",
+    "Universal terminal": "/usr/bin/lumina-terminal",
+    "Kali Terminal launcher": "/usr/share/applications/lumina-kali-terminal.desktop",
+    "Kali session profile": "/etc/lumina/kali-profile.sh",
+    "Kali tools CLI": "/usr/local/bin/kali-tools",
+    "Android nested-Wayland launcher": "/usr/libexec/lumina/lumina-android",
+    "Universal MIME associations": "/usr/share/mime/packages/lumina-os-mime.xml",
+    "Wine Windows runtime": "/usr/bin/wine",
     "Files app": "/usr/share/lumina/ui/apps/files.html",
     "Accessibility page": "/usr/share/lumina/ui/apps/settings.html",
     "Command palette overlay": "/usr/share/lumina/ui/overlay.html",
@@ -33,6 +40,7 @@ FILES = {
 SETTING_KEYS = [
     "theme", "accent", "wallpaper", "reduceMotion", "transparency", "dockMagnify",
     "perfShadows", "performancePreset", "uiScale", "highContrast", "strongFocus",
+    "screenReader",
     "focus", "focusUntil", "quietStart", "quietEnd", "notificationRules", "widgets",
 ]
 
@@ -61,6 +69,9 @@ def main():
         first_run = api("/api/first-run/status")
         boot_checks = api("/api/system/check")
         compat = api("/api/compat")
+        a11y = api("/api/a11y")
+        bluetooth = api("/api/bt")
+        terminal = api("/api/terminal/status")
         apps = api("/api/apps")
         zones = api("/api/timezones")
         notifications = api("/api/notifications")
@@ -82,7 +93,10 @@ def main():
     check("System checks", bool(boot_checks.get("ok")),
           "%s/%s checks OK" % (sum(1 for c in boot_checks.get("checks", []) if c.get("ok")),
                                len(boot_checks.get("checks", []))))
-    check("Compatibility API", all(k in compat for k in ("wine", "flatpak", "waydroid", "binder")), str(compat)[:160])
+    check("Windows and Android compatibility API", all(k in compat for k in ("wine", "flatpak", "waydroid", "weston", "binder")), str(compat)[:160])
+    check("Accessibility state", all(k in a11y for k in ("screenReader", "installed", "atspi")), a11y.get("installed", "unknown"))
+    check("Bluetooth state", all(k in bluetooth for k in ("available", "powered", "devices")), "adapter available" if bluetooth.get("available") else "no adapter (valid on VM)")
+    check("Terminal status", bool(terminal.get("ok") and terminal.get("installed")), terminal.get("installed", []))
     check("App catalogue", len(apps) > 0, "%s apps" % len(apps))
     check("Time zones", len(zones.get("zones") or []) > 0, str(zones.get("current", "")))
     check("Notification centre", isinstance(notifications, list), "%s notifications" % len(notifications))
