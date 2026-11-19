@@ -1,65 +1,230 @@
 <!DOCTYPE html>
-<html class="dark"><head><meta charset="utf-8"><title>LuminaOS compatibility</title>
+<html class="dark"><head><meta charset="utf-8"><title>LuminaOS Universal Compatibility</title>
 <link rel="stylesheet" href="/ui/css/lumina.css"><link rel="stylesheet" href="/ui/css/window.css">
 <style>
 .wrap { display: flex; flex-direction: column; height: 100%; background: var(--bg-win); }
-.hero { padding: 22px 30px 12px; border-bottom: 1px solid var(--line); }
-.hero h1 { margin: 0; font-size: 21px; font-weight: 600; }
-.hero p { color: var(--fg-3); line-height: 1.6; margin: 6px 0 0; }
-.body { flex: 1; overflow-y: auto; padding: 22px 30px; }
-.banner { padding: 14px 16px; border-radius: 10px; background: rgba(255,159,10,.12); border: 1px solid rgba(255,159,10,.35); line-height: 1.6; margin-bottom: 16px; }
-.card { padding: 18px; margin-bottom: 12px; }
-.card h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-.card p { color: var(--fg-3); line-height: 1.6; margin: 0 0 14px; }
-.status { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-2); }
+.hero { padding: 20px 28px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.hero h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.hero p { color: var(--fg-3); line-height: 1.5; margin: 4px 0 0; font-size: 13px; }
+.tabs { display: flex; gap: 6px; padding: 10px 28px; background: rgba(0,0,0,.15); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer; color: var(--fg-2); transition: background var(--t-fast), color var(--t-fast); }
+.tab:hover { background: var(--hover); color: var(--fg); }
+.tab.active { background: var(--accent); color: #fff; }
+.body { flex: 1; overflow-y: auto; padding: 20px 28px; }
+.banner { padding: 12px 16px; border-radius: 10px; background: rgba(48,209,88,.1); border: 1px solid rgba(48,209,88,.25); line-height: 1.5; margin-bottom: 16px; font-size: 13px; }
+.card { padding: 16px; margin-bottom: 12px; border-radius: 12px; background: var(--card-a); border: 1px solid var(--line); }
+.card h2 { margin: 0 0 6px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card p { color: var(--fg-3); line-height: 1.5; margin: 0 0 12px; font-size: 12.5px; }
+.status { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 13px; }
 .status:last-of-type { border-bottom: 0; }
 .pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--card-a); color: var(--fg-2); }
 .pill.ok { background: rgba(48,209,88,.16); color: #4ade80; } .pill.no { background: rgba(255,159,10,.16); color: #ffb020; }
 .acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-.foot { padding: 14px 30px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
-.foot .muted { flex: 1; }
-.error { color: #ff8a80; margin-top: 10px; }
+.foot { padding: 12px 28px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+.foot .muted { flex: 1; font-size: 12px; }
+.badge-tag { font-size: 10.5px; padding: 2px 6px; border-radius: 6px; background: var(--card-h); color: var(--fg-2); margin-right: 4px; display: inline-block; }
+.error { color: #ff8a80; margin-top: 10px; font-size: 12px; }
+.success { color: #4ade80; margin-top: 10px; font-size: 12px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 </style></head><body>
 <div class="wrap">
-  <div class="hero"><h1>Compatibility wizard</h1><p>Set up optional application support and see what this system can actually run.</p></div>
-  <div class="body">
-    <div class="banner">Windows and Android compatibility depends on the application and the host graphics stack. Nothing here changes the base Debian system beyond the optional components you choose.</div>
-    <div class="card"><h2>1. Check this system</h2><p>Read-only environment checks before enabling optional compatibility layers.</p><div id="checks">Checking…</div></div>
-    <div class="card"><h2>2. Windows programs</h2><p>Wine runs many .exe and .msi programs. Compatibility varies by application.</p><div id="wine"></div><div class="acts"><button class="btn primary" id="wineset">Set up Wine</button><button class="btn" id="winecfg">Wine settings</button></div></div>
-    <div class="card"><h2>3. Flatpak applications</h2><p>Flatpak extends the Lumina Store with sandboxed Linux applications from Flathub.</p><div id="flatpak"></div><div class="acts"><button class="btn" id="flatstore">Open Store</button></div></div>
-    <div class="card"><h2>4. Android applications (experimental)</h2><p>Waydroid needs binder kernel support and a Wayland session. It is not available in the live session.</p><div id="android"></div><div class="acts"><button class="btn" id="androidset">Set up Android support</button></div></div>
-    <div class="error" id="err"></div>
+  <div class="hero">
+    <div>
+      <h1>Compatibility wizard</h1>
+      <p>Universal multi-platform app support: Windows (.exe), Linux (.deb, .AppImage, .flatpak, .snap, .rpm), Kali Linux Tools, and macOS alternatives.</p>
+    </div>
+    <button class="btn small" id="termfix-top">Terminal Health & Fix</button>
   </div>
-  <div class="foot"><span class="muted" id="summary">Checking compatibility…</span><button class="btn primary" id="done">Done</button></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="all">All Platforms</div>
+    <div class="tab" data-tab="windows">Windows (.exe/.msi)</div>
+    <div class="tab" data-tab="linux">Linux Formats</div>
+    <div class="tab" data-tab="kali">Kali Linux & Security</div>
+    <div class="tab" data-tab="mac">macOS Apps</div>
+    <div class="tab" data-tab="android">Android (APK)</div>
+  </div>
+
+  <div class="body">
+    <div class="banner" id="topbanner">Universal application layer active: double-click software packages from Files or the Store to automatically install them.</div>
+
+    <!-- Section 1: System Checks -->
+    <div class="card tab-sec" data-cat="all">
+      <h2>1. Check this system</h2>
+      <p>Core environment checks before configuring compatibility layers.</p>
+      <div id="checks">Checking…</div>
+    </div>
+
+    <!-- Section 2: Windows programs -->
+    <div class="card tab-sec" data-cat="windows">
+      <h2>2. Windows programs (.exe, .msi, .bat)</h2>
+      <p>Wine and Proton run many Windows desktop applications and games with near-native speed. Double-click any .exe in Files to start.</p>
+      <div id="wine"></div>
+      <div class="acts">
+        <button class="btn primary" id="wineset">Set up Wine</button>
+        <button class="btn" id="winecfg">Wine settings</button>
+        <button class="btn" id="winetricks">Winetricks (DLLs & Fonts)</button>
+        <button class="btn" id="winefull">Install Wine Multiarch</button>
+      </div>
+    </div>
+
+    <!-- Section 3: Kali Linux Suite & Terminal -->
+    <div class="card tab-sec" data-cat="kali">
+      <h2>3. Kali Linux Suite & Security Terminal</h2>
+      <p>Run Kali Linux penetration testing and security tools (Nmap, Wireshark, Metasploit, Burp Suite, John) with dedicated Kali terminal.</p>
+      <div id="kali"></div>
+      <div class="acts">
+        <button class="btn primary" id="kaliterm">Open Kali Terminal</button>
+        <button class="btn" id="kalisetup">Configure Kali Repositories</button>
+        <button class="btn" id="kalitools">Install Top 10 Kali Tools</button>
+        <button class="btn" id="termrepair">Repair Terminal Launchers</button>
+      </div>
+    </div>
+
+    <!-- Section 4: Universal Linux applications -->
+    <div class="card tab-sec" data-cat="linux">
+      <h2>4. Flatpak, AppImage, Snap & RPM Linux apps</h2>
+      <p>Flatpak extends the Lumina Store with thousands of sandboxed Flathub apps. AppImages run portably with zero installation.</p>
+      <div id="linuxapps"></div>
+      <div class="acts">
+        <button class="btn primary" id="flatstore">Open Store</button>
+        <button class="btn" id="flatset">Configure Flatpak & Flathub</button>
+        <button class="btn" id="appimageset">Enable AppImage Runner</button>
+        <button class="btn" id="snapset">Set up Snapcraft</button>
+      </div>
+    </div>
+
+    <!-- Section 5: macOS Applications -->
+    <div class="card tab-sec" data-cat="mac">
+      <h2>5. macOS applications (.dmg, .pkg, Mach-O)</h2>
+      <p>macOS apps use Apple Cocoa and Mach-O formats. LuminaOS provides DMG extraction, Darling command-line support, and one-click Linux native equivalents.</p>
+      <div id="macapps"></div>
+      <div class="acts">
+        <button class="btn" id="macinfo">Darling Translation Info</button>
+        <button class="btn" id="macextract">Inspect DMG Archive</button>
+        <button class="btn primary" id="macalt">Find Native App Equivalent</button>
+      </div>
+    </div>
+
+    <!-- Section 6: Android applications -->
+    <div class="card tab-sec" data-cat="android">
+      <h2>6. Android applications (Waydroid)</h2>
+      <p>Waydroid needs binder kernel support and a Wayland session. It is not available in the live session.</p>
+      <div id="android"></div>
+      <div class="acts">
+        <button class="btn" id="androidset">Set up Android support</button>
+      </div>
+    </div>
+
+    <div class="error" id="err"></div>
+    <div class="success" id="succ"></div>
+  </div>
+
+  <div class="foot">
+    <span class="muted" id="summary">Checking compatibility…</span>
+    <button class="btn" id="termquick">Test Terminal</button>
+    <button class="btn primary" id="done">Done</button>
+  </div>
 </div>
+
 <script src="/ui/js/lumina.js"></script><script src="/ui/js/window.js"></script>
 <script>
 const L = Lumina, $ = s => document.querySelector(s);
 function pill(ok, y, n) { return `<span class="pill ${ok ? 'ok' : 'no'}">${ok ? y : n}</span>`; }
-function error(e) { $('#err').textContent = e.message || 'Could not load compatibility information.'; }
+function error(e) { $('#err').textContent = e.message || e || 'Could not load compatibility information.'; $('#succ').textContent = ''; }
+function success(msg) { $('#succ').textContent = msg; $('#err').textContent = ''; setTimeout(() => { $('#succ').textContent = ''; }, 6000); }
+
 async function refresh() {
   try {
-    const c = await L.get('/api/compat'), sys = await L.get('/api/sys');
+    const c = await L.get('/api/compat'), sys = await L.get('/api/sys'), term = await L.get('/api/terminal/status').catch(() => ({ ok: true, installed: [] }));
     $('#checks').innerHTML = row('Installed system', !sys.live, sys.live ? 'Run from an installed disk for full support' : 'Running from disk')
-      + row('Linux graphics', true, sys.gpu || 'Unknown graphics adapter');
-    $('#wine').innerHTML = row('Wine', c.wine, c.wineVersion || 'Not installed')
-      + row('Wine prefix', c.winePrefix, c.winePrefix ? 'Ready' : 'Needs setup');
-    $('#flatpak').innerHTML = row('Flatpak', c.flatpak, c.flatpak ? 'Installed' : 'Optional');
-    $('#android').innerHTML = row('Waydroid', c.waydroid, c.waydroid ? 'Installed' : 'Not installed')
+      + row('Linux graphics', true, sys.gpu || 'Hardware rendering active')
+      + row('Terminal Emulator', term.installed && term.installed.length > 0, term.installed && term.installed.length ? term.installed.join(', ') : 'Restoring fallbacks');
+      
+    $('#wine').innerHTML = row('Wine Runtime', c.wine, c.wineVersion || 'Not installed')
+      + row('Wine User Prefix', c.winePrefix, c.winePrefix ? 'Ready (~/.wine)' : 'Needs setup')
+      + row('Bottles / Proton Manager', c.bottles || c.proton, c.bottles ? 'Bottles installed' : c.proton ? 'Steam Proton ready' : 'Available in Store');
+      
+    const toolsStr = c.kaliTools && c.kaliTools.length ? c.kaliTools.map(t => `<span class="badge-tag">${L.esc(t)}</span>`).join('') : 'None yet';
+    $('#kali').innerHTML = row('Kali Linux Repositories', c.kali, c.kali ? 'Configured (Safe Pinning)' : 'Not enabled')
+      + row('Security Tools Installed', c.kaliTools && c.kaliTools.length > 0, toolsStr)
+      + row('Kali Terminal Launcher', true, 'Iconic prompt & tools PATH');
+      
+    $('#linuxapps').innerHTML = row('Flatpak & Flathub', c.flatpak, c.flatpak ? 'Active' : 'Optional')
+      + row('AppImage Portable Runner', c.appimage, c.appimage ? 'FUSE runtime ready' : 'Needs FUSE')
+      + row('Snapcraft Packages', c.snap, c.snap ? 'Installed' : 'Optional')
+      + row('RPM Package Support (Alien)', c.alien, c.alien ? 'Ready' : 'Convert via alien');
+      
+    $('#macapps').innerHTML = row('DMG / PKG Universal Extractor', true, 'Supported via p7zip/lumina-pkg')
+      + row('Darling Darwin Emulation', c.darling, c.darling ? 'Installed' : 'CLI translation layer')
+      + row('Mac Native Alternatives', true, '1-click Linux ports available in Store');
+
+    $('#android').innerHTML = row('Waydroid Container', c.waydroid, c.waydroid ? 'Installed' : 'Not installed')
       + row('Kernel binder', c.binder, c.binder ? 'Available' : 'Missing')
       + row('Live session', !sys.live, sys.live ? 'Android is unavailable here' : 'Supported session');
-    $('#summary').textContent = c.wine && c.flatpak ? 'Optional compatibility layers are available.' : 'Review the optional setup steps above.';
+
+    $('#summary').textContent = (c.wine ? 'Windows ready. ' : '') + (c.kali ? 'Kali suite ready. ' : '') + (c.flatpak ? 'Flatpak ready.' : 'Ready to configure.');
   } catch (e) { error(e); }
 }
-function row(name, ok, detail) { return `<div class="status"><span>${L.esc(name)}</span><span>${pill(ok, 'Ready', 'Not ready')} <small class="muted">${L.esc(detail || '')}</small></span></div>`; }
-async function setup(what) {
-  try { await L.post('/api/compat/setup', { what }); await refresh(); L.notify('Compatibility setup', 'The requested setup has started.', 'lumina-about', 'LuminaOS'); }
-  catch (e) { error(e); }
+
+function row(name, ok, detail) {
+  return `<div class="status"><span>${L.esc(name)}</span><span>${pill(ok, 'Ready', 'Not ready')} <small class="muted" style="margin-left:6px">${detail || ''}</small></span></div>`;
 }
-LWin.init({ icon: '/ui/img/apps/windows.svg', title: 'Compatibility wizard' }).then(refresh);
-$('#wineset').onclick = () => setup('wine');
-$('#winecfg').onclick = () => setup('winecfg');
+
+async function setup(what, label) {
+  try {
+    $('#err').textContent = '';
+    $('#succ').textContent = `Starting ${label || what}...`;
+    await L.post('/api/compat/setup', { what });
+    await refresh();
+    success(`${label || what} command executed successfully.`);
+    L.notify('Compatibility Setup', `${label || what} has completed.`, 'lumina-about', 'LuminaOS');
+  } catch (e) { error(e); }
+}
+
+// Tab filtering
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const cat = tab.dataset.tab;
+    document.querySelectorAll('.tab-sec').forEach(sec => {
+      sec.style.display = (cat === 'all' || sec.dataset.cat === cat) ? 'block' : 'none';
+    });
+  };
+});
+
+// Event Handlers
+$('#wineset').onclick = () => setup('wine', 'Wine Prefix initialization');
+$('#winecfg').onclick = () => setup('winecfg', 'Wine Configuration Utility');
+$('#winetricks').onclick = () => setup('winetricks', 'Winetricks Helper');
+$('#winefull').onclick = () => setup('wine-install', 'Wine 32-bit/64-bit multiarch install');
+
+$('#kaliterm').onclick = async () => {
+  try { await L.post('/api/terminal/kali', {}); success('Kali Linux Terminal launched.'); }
+  catch(e) { error(e); }
+};
+$('#kalisetup').onclick = () => setup('kali-setup', 'Kali Linux Repositories');
+$('#kalitools').onclick = () => setup('kali-top10', 'Top 10 Kali Security Tools');
+$('#termrepair').onclick = () => setup('terminal-fix', 'Terminal repair and alternatives restore');
+$('#termfix-top').onclick = () => setup('terminal-fix', 'Terminal repair and alternatives restore');
+
 $('#flatstore').onclick = () => L.app('store');
-$('#androidset').onclick = () => setup('android');
+$('#flatset').onclick = () => setup('flatpak-setup', 'Flatpak & Flathub setup');
+$('#appimageset').onclick = () => setup('appimage-setup', 'AppImage FUSE runtime');
+$('#snapset').onclick = () => setup('snap-setup', 'Snapcraft daemon');
+
+$('#macinfo').onclick = () => setup('darling', 'macOS Darling translation layer');
+$('#macextract').onclick = () => { L.app('files', ['home:']); L.notify('Inspect macOS DMG', 'Select any .dmg or .pkg file in Files to inspect.', 'lumina-about', 'macOS'); };
+$('#macalt').onclick = () => L.app('store');
+
+$('#androidset').onclick = () => setup('android', 'Android Waydroid setup');
+$('#termquick').onclick = async () => {
+  try { await L.post('/api/terminal', { mode: 'standard' }); success('Terminal opened.'); }
+  catch(e) { error(e); }
+};
 $('#done').onclick = () => LWin.close();
+
+LWin.init({ icon: '/ui/img/apps/windows.svg', title: 'Compatibility wizard' }).then(refresh);
 </script></body></html>

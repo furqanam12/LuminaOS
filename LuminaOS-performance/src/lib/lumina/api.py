@@ -914,6 +914,19 @@ def desktop_entry(path):
         return None
 
 
+def launch_terminal(mode="standard"):
+    term_bin = "/usr/bin/lumina-terminal" if os.path.exists("/usr/bin/lumina-terminal") else (shutil.which("lumina-terminal") or "")
+    if term_bin:
+        argv = [term_bin, "--kali"] if mode == "kali" else [term_bin]
+        spawn(argv)
+        return {"ok": True, "mode": mode, "launcher": term_bin}
+    for alt in ["xfce4-terminal", "x-terminal-emulator", "gnome-terminal", "mate-terminal", "lxterminal", "xterm"]:
+        if shutil.which(alt):
+            spawn([alt])
+            return {"ok": True, "mode": mode, "fallback": alt}
+    return {"ok": False, "error": "No terminal emulator found"}
+
+
 def open_path(path):
     path = safe_path(path)
     low = path.lower()
@@ -931,19 +944,34 @@ def open_path(path):
             spawn(argv, cwd=os.path.dirname(path))
             notify("Starting Windows program", os.path.basename(path), "lumina-windows", "Windows programs")
             return {"ok": True, "via": "wine"}
-        notify("Windows programs aren't set up", "Install Wine from the Lumina Store to open .exe files.",
+        spawn(["lumina-app", "compat", "--setup-wine", path])
+        notify("Windows programs aren't set up", "Opening Compatibility Wizard to set up Wine...",
                "lumina-windows", "Windows programs")
         return {"ok": False, "error": "wine missing"}
+    if low.endswith(".appimage"):
+        try:
+            os.chmod(path, os.stat(path).st_mode | 0o111)
+            spawn([path], cwd=os.path.dirname(path))
+            notify("Starting AppImage", os.path.basename(path), "lumina-store", "AppImage")
+            return {"ok": True, "via": "appimage"}
+        except Exception as e:
+            notify("AppImage launch error", str(e), "lumina-store", "AppImage")
+            return {"ok": False, "error": str(e)}
     if low.endswith(".apk"):
         if shutil.which("waydroid"):
             spawn(["waydroid", "app", "install", path])
             return {"ok": True, "via": "waydroid"}
-        notify("Android apps aren't set up", "Open Settings > Windows programs & Android to set up Android support.",
+        spawn(["lumina-app", "compat", "--setup-android"])
+        notify("Android apps aren't set up", "Open Compatibility Wizard to set up Android support.",
                "lumina-android", "Android")
         return {"ok": False, "error": "waydroid missing"}
-    if low.endswith((".deb", ".flatpakref")):
+    if low.endswith((".deb", ".flatpakref", ".flatpak", ".snap", ".rpm")):
         spawn(["lumina-app", "store", "--install-file", path])
         return {"ok": True, "via": "store"}
+    if low.endswith((".dmg", ".pkg")):
+        notify("macOS package", os.path.basename(path) + " (Opening Compatibility Wizard)", "lumina-about", "macOS")
+        spawn(["lumina-app", "compat", "--mac-file", path])
+        return {"ok": True, "via": "compat-mac"}
     if os.path.isdir(path):
         spawn(["lumina-app", "files", path])
         return {"ok": True}
@@ -1684,13 +1712,31 @@ class Handler(BaseHTTPRequestHandler):
             cur = sh(["timedatectl", "show", "-p", "Timezone", "--value"]) or time.tzname[0]
             return self._send(200, {"zones": zones, "current": cur})
         if p == "/api/compat":
+            kali_repo = os.path.exists("/etc/apt/sources.list.d/kali.list")
+            tools = [t for t in ("nmap", "wireshark", "metasploit-framework", "burpsuite", "john", "hydra", "aircrack-ng", "sqlmap") if shutil.which(t)]
             return self._send(200, {
                 "wine": bool(shutil.which("wine")),
                 "wineVersion": sh(["wine", "--version"]) if shutil.which("wine") else "",
                 "winePrefix": os.path.isdir(os.path.join(HOME, ".wine")),
+                "bottles": bool(shutil.which("bottles")) or os.path.exists("/var/lib/flatpak/app/com.usebottles.bottles"),
+                "proton": bool(shutil.which("steam")),
                 "waydroid": bool(shutil.which("waydroid")),
                 "binder": os.path.exists("/dev/binder") or "binder" in sh("cat /proc/filesystems"),
                 "flatpak": bool(shutil.which("flatpak")),
+                "snap": bool(shutil.which("snap")),
+                "appimage": bool(shutil.which("appimaged")) or os.path.isdir(os.path.join(HOME, "Applications")),
+                "darling": bool(shutil.which("darling")),
+                "alien": bool(shutil.which("alien")),
+                "kali": kali_repo or bool(tools),
+                "kaliTools": tools,
+            })
+        if p == "/api/terminal/status":
+            terms = [t for t in ("xfce4-terminal", "gnome-terminal", "xterm", "lxterminal", "mate-terminal", "alacritty", "kitty") if shutil.which(t)]
+            return self._send(200, {
+                "ok": True,
+                "installed": terms,
+                "kaliProfile": os.path.exists(os.path.expanduser("~/.lumina-kali-profile")),
+                "kaliRepo": os.path.exists("/etc/apt/sources.list.d/kali.list")
             })
         if p == "/api/power/profile/get":
             return self._send(200, {"profile": get_settings().get("performancePreset", "balanced")})
@@ -1974,14 +2020,39 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/hostname":
             rc, out = sh_rc(["hostnamectl", "set-hostname", b["name"]], 30)
             return self._send(200, {"ok": rc == 0, "msg": out})
+        if p == "/api/terminal":
+            mode = b.get("mode", "standard")
+            return self._send(200, launch_terminal(mode))
+        if p == "/api/terminal/kali":
+            return self._send(200, launch_terminal("kali"))
         if p == "/api/compat/setup":
             what = b.get("what")
+            helper = "/usr/libexec/lumina/lumina-pkg"
+            sudo_cmd = ["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper]
             if what == "wine":
-                spawn(["sh", "-c", "WINEDEBUG=-all wineboot -u && notify-send -i lumina-windows 'Windows programs are ready' 'Double-click any .exe file to run it.'"])
+                spawn(["sh", "-c", "WINEDEBUG=-all wineboot -u 2>/dev/null; notify-send -i lumina-windows 'Windows programs ready' 'Double-click any .exe or .msi file to run it.' 2>/dev/null"])
             elif what == "winecfg":
                 spawn(["winecfg"])
+            elif what == "winetricks":
+                spawn(["winetricks"])
+            elif what == "wine-install":
+                spawn(sudo_cmd + ["wine-setup"])
+            elif what == "flatpak-setup":
+                spawn(sudo_cmd + ["flatpak-setup"])
+            elif what == "appimage-setup":
+                spawn(sudo_cmd + ["appimage-setup"])
+            elif what == "snap-setup":
+                spawn(sudo_cmd + ["snap-setup"])
+            elif what == "kali-setup":
+                spawn(sudo_cmd + ["kali-setup"])
+            elif what == "kali-top10":
+                spawn(sudo_cmd + ["kali-install", "nmap", "wireshark", "john", "aircrack-ng", "sqlmap", "hydra"])
+            elif what == "terminal-fix":
+                spawn(sudo_cmd + ["terminal-fix"])
             elif what == "android":
                 spawn(["lumina-app", "store", "--android"])
+            elif what == "darling":
+                notify("macOS Darling Layer", "Darling runs macOS command-line apps and Mach-O binaries.", "lumina-about", "macOS")
             return self._send(200, {"ok": True})
         # ---------------------------------------------------------------- power profiles (5.1)
         if p == "/api/power/profile":

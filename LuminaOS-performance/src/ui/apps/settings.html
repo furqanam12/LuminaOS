@@ -573,7 +573,8 @@ const PAGES = {
       <div class="h2">Android apps (experimental)</div>${row('android', 'Waydroid', c.waydroid ? 'Installed' : 'Not installed', st(c.waydroid, 'Installed', 'Not installed'))}
       ${row('shield', 'Kernel support (binder)', c.binder ? 'Available' : 'The kernel does not expose binder; Android needs a kernel with binder support', st(c.binder, 'Available', 'Missing'))}
       ${row('rocket', 'Set up Android', 'Downloads the Android image (about 1 GB). Needs Wayland support; works best on an installed system.', '<button class="btn small" id="aset">Set up</button>')}
-      <div class="h2">Linux apps</div>${row('bag', 'Flatpak & Flathub', c.flatpak ? 'Flatpak is installed' : 'Flatpak is not installed', st(c.flatpak, 'Ready', 'Optional'))}`;
+      <div class="h2">Linux apps</div>${row('bag', 'Flatpak & Flathub', c.flatpak ? 'Flatpak is installed' : 'Flatpak is not installed', st(c.flatpak, 'Ready', 'Optional'))}
+      <div class="h2">Security & Kali Suite</div>${row('terminal', 'Kali Tools & Terminal', c.kali ? 'Configured (Kali repos active)' : 'Available in Compatibility Wizard', st(c.kali, 'Ready', 'Optional'))}`;
     on('compat-wizard', 'click', () => L.app('compat'));
     on('wins', 'click', () => L.app('store', ['wine']));
     on('wset', 'click', async () => { await L.post('/api/compat/setup', { what: 'wine' }); L.notify('Setting up Windows programs', 'This takes a minute.', 'lumina-windows', 'Settings'); });

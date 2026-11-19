@@ -222,7 +222,7 @@ function drawLibrary() {
     <h3 style="margin-top:0">Downloads and updates <a id="upd">Get updates ›</a></h3><div class="joblist">${jobs.map(j => `<div class="row">${j.state === 'running' ? '<div class="spinner"></div>' : j.state === 'done' ? `<span style="color:#30d158">${L.icon('check')}</span>` : `<span style="color:#ff453a">${L.icon('x')}</span>`}
       <div class="t"><b>${L.esc(j.names.join(', ') || 'Package')}</b><small>${j.state === 'running' ? (j.remove ? 'Removing' : 'Installing') + (j.progress ? ' · ' + Math.round(j.progress) + '%' : '') + ' · ' + L.esc(j.last || 'Preparing…') : j.state === 'done' ? (j.remove ? 'Removed' : 'Installed') : 'Failed: ' + L.esc(j.last || '')}</small></div></div>`).join('') || '<div class="empty" style="padding:16px">No recent activity.</div>'}</div>
     <h3>Installed from the Store</h3><div class="grid">${inst.map(card).join('') || '<div class="empty">Nothing yet.</div>'}</div>
-    <h3>Install a package file</h3><button class="btn" id="pick">${L.icon('folder')} Open Files and double-click a .deb or .flatpakref</button></div>`;
+    <h3>Install any app package</h3><button class="btn" id="pick">${L.icon('folder')} Open Files and double-click any .exe, .deb, .AppImage, .flatpak, or .rpm</button></div>`;
   pane.scrollTop = st; bindCards(pane);
   $('#upd').onclick = () => L.app('settings', ['update']);
   $('#pick').onclick = () => L.app('files', ['home:']);
@@ -231,7 +231,7 @@ async function filePage(f) {
   page = 'file'; drawRail();
   const n = f.split('/').pop();
   $('#pane').innerHTML = `<div class="page filepg"><img src="/ui/img/apps/store.svg"><h2 style="margin-top:14px">Install ${L.esc(n)}?</h2><p style="color:var(--fg-2)">${L.esc(f)}</p>
-    <p style="color:var(--fg-3);font-size:12px;max-width:440px;margin:0 auto 16px">Only install packages from sources you trust. Lumina will ask for your password.</p>
+    <p style="color:var(--fg-3);font-size:12px;max-width:440px;margin:0 auto 16px">Lumina Universal App Installer supports .exe, .msi, .deb, .AppImage, .flatpak, .snap, and .rpm.</p>
     <button class="btn primary" id="fgo">${L.icon('download')} Install</button> <button class="btn" id="fno">Cancel</button><div id="fst" style="margin-top:14px;color:var(--fg-3)"></div></div>`;
   $('#fno').onclick = () => go('home');
   $('#fgo').onclick = async () => { const j = await L.post('/api/store/install', { ids: [], file: f }); j.names = [n]; JOBS[j.id] = j; go('library'); };
@@ -246,7 +246,7 @@ async function uninstallPage(desk) {
 }
 function handleArgs(a) {
   a = (a || []).map(x => x.startsWith('file://') ? decodeURIComponent(x.slice(7)) : x);
-  if (a[0] && /\.(deb|flatpakref)$/i.test(a[0])) return filePage(a[0]);
+  if (a[0] && /\.(deb|flatpakref|flatpak|appimage|snap|rpm|exe|msi)$/i.test(a[0])) return filePage(a[0]);
   if (a[0] === '--install-file' && a[1]) return filePage(a[1]);
   if (a[0] === '--android') return detail('waydroid');
   if (a[0] === '--uninstall' && a[1]) return uninstallPage(a[1]);

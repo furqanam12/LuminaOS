@@ -75,7 +75,7 @@ echo "==> Installing Lumina shell, apps and system config"
 L="$CH/usr/share/lumina"
 sudo rm -rf "$L"; sudo mkdir -p "$L" "$CH/usr/libexec/lumina"
 sudo rsync -a --exclude __pycache__ "$SRC/ui" "$SRC/lib" "$SRC/data" "$L/"
-for b in lumina-shell lumina-app lumina-ctl lumina-session lumina-install; do sudo install -m 755 "$SRC/bin/$b" "$CH/usr/bin/$b"; done
+for b in lumina-shell lumina-app lumina-ctl lumina-session lumina-install lumina-terminal; do sudo install -m 755 "$SRC/bin/$b" "$CH/usr/bin/$b"; done
 sudo install -m 755 "$SRC/libexec/lumina-pkg" "$CH/usr/libexec/lumina/lumina-pkg"
 sudo install -m 644 "$SRC"/data/applications/*.desktop "$CH/usr/share/applications/"
 sudo mkdir -p "$CH/usr/share/icons/hicolor/scalable/apps"
@@ -124,7 +124,8 @@ for s in /usr/share/applications/calamares*.desktop /usr/share/applications/org.
 done
 mkdir -p /etc/skel/Desktop
 install -m 644 /usr/share/applications/lumina-install.desktop /etc/skel/Desktop/Install\ LuminaOS.desktop
-update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal.wrapper 2>/dev/null || true
+update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/lumina-terminal 100 2>/dev/null || true
+update-alternatives --set x-terminal-emulator /usr/bin/lumina-terminal 2>/dev/null || true
 # --- default session: Lumina ---
 rm -f /usr/share/xsessions/xfce.desktop /usr/share/xsessions/lightdm-xsession.desktop
 update-alternatives --install /usr/bin/x-session-manager x-session-manager /usr/bin/lumina-session 90 || true

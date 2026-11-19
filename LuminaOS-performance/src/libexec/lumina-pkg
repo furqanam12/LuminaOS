@@ -1,10 +1,12 @@
 #!/bin/sh
-# Privileged package helper for Lumina Store / Updates. Runs as root via sudo or pkexec.
+# Privileged package helper for Lumina Store / Updates / Universal Compatibility.
+# Runs as root via sudo or pkexec.
 set -e
 export DEBIAN_FRONTEND=noninteractive
 APT="apt-get -y -o Dpkg::Progress-Fancy=0 -o APT::Status-Fd=1 -o Dpkg::Use-Pty=0"
-valid() { for p in "$@"; do case "$p" in *[!a-zA-Z0-9.+_-]*) echo "invalid package: $p"; exit 2;; esac; done; }
-online() { getent hosts deb.debian.org >/dev/null 2>&1 || getent hosts flathub.org >/dev/null 2>&1; }
+valid() { for p in "$@"; do case "$p" in *[!a-zA-Z0-9.+_:-]*) echo "invalid package: $p"; exit 2;; esac; done; }
+online() { getent hosts deb.debian.org >/dev/null 2>&1 || getent hosts flathub.org >/dev/null 2>&1 || getent hosts http.kali.org >/dev/null 2>&1; }
+
 cmd="$1"; shift || true
 case "$cmd" in
   install)
@@ -12,39 +14,143 @@ case "$cmd" in
     online || { echo "No internet connection"; exit 3; }
     apt-get update -o APT::Status-Fd=1 || true
     $APT install --no-install-recommends "$@" ;;
+    
   remove)
     valid "$@"; $APT remove "$@" ;;
+    
   install-file)
-    f="$1"; [ -f "$f" ] || { echo "file not found"; exit 2; }
+    f="$1"; [ -f "$f" ] || { echo "file not found: $f"; exit 2; }
     case "$f" in
-      *.deb) $APT install "$f" ;;
-      *.flatpakref) flatpak install -y --noninteractive --from "$f" ;;
-      *) echo "unsupported file"; exit 2 ;;
+      *.deb)
+        apt-get update -o APT::Status-Fd=1 || true
+        $APT install "$f" ;;
+      *.flatpakref)
+        command -v flatpak >/dev/null || { apt-get update; $APT install flatpak; }
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+        flatpak install -y --noninteractive --from "$f" ;;
+      *.flatpak)
+        command -v flatpak >/dev/null || { apt-get update; $APT install flatpak; }
+        flatpak install -y --noninteractive --bundle "$f" ;;
+      *.AppImage|*.appimage)
+        chmod +x "$f"
+        # Ensure fuse is available
+        $APT install fuse3 libfuse2t64 2>/dev/null || $APT install fuse3 libfuse2 2>/dev/null || true
+        dest="/usr/local/bin/$(basename "$f" | tr ' ' '_')"
+        cp "$f" "$dest"
+        chmod +x "$dest"
+        echo "Installed AppImage to $dest" ;;
+      *.rpm)
+        command -v alien >/dev/null || { apt-get update; $APT install alien; }
+        alien -i "$f" ;;
+      *.snap)
+        command -v snap >/dev/null || { apt-get update; $APT install snapd; systemctl enable --now snapd.socket || true; }
+        snap install --dangerous "$f" ;;
+      *.tar.gz|*.tgz|*.tar.xz|*.tar.bz2)
+        dest="/opt/$(basename "$f" | sed -E 's/\.(tar\.(gz|xz|bz2)|tgz)$//')"
+        mkdir -p "$dest"
+        tar -xf "$f" -C "$dest"
+        echo "Extracted package to $dest" ;;
+      *.dmg|*.pkg)
+        # macOS container/archive inspection
+        command -v 7z >/dev/null || { apt-get update; $APT install p7zip-full; }
+        outdir="/tmp/mac-extract-$(date +%s)"
+        mkdir -p "$outdir"
+        7z x "$f" -o"$outdir" -y || true
+        echo "macOS archive extracted to $outdir" ;;
+      *)
+        echo "unsupported file format: $f"; exit 2 ;;
     esac ;;
+    
   flatpak-install)
     valid "$@"
     online || { echo "No internet connection"; exit 3; }
     command -v flatpak >/dev/null || { apt-get update; $APT install flatpak; }
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     flatpak install -y --noninteractive flathub "$@" ;;
+    
   flatpak-remove)
     valid "$@"; flatpak uninstall -y --noninteractive "$@" ;;
+    
+  flatpak-setup)
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install flatpak
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    echo "Flatpak and Flathub successfully configured." ;;
+    
+  wine-setup)
+    online || { echo "No internet connection"; exit 3; }
+    dpkg --add-architecture i386 2>/dev/null || true
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install wine wine32:i386 wine64 winetricks cabextract 2>/dev/null || $APT install wine winetricks cabextract 2>/dev/null || true
+    echo "Wine compatibility layer successfully configured." ;;
+
+  appimage-setup)
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install fuse3 libfuse2t64 2>/dev/null || $APT install fuse3 libfuse2 2>/dev/null || true
+    mkdir -p /etc/skel/Applications
+    echo "AppImage runtime and FUSE successfully configured." ;;
+
+  snap-setup)
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install snapd
+    systemctl enable --now snapd.socket 2>/dev/null || true
+    ln -s /var/lib/snapd/snap /snap 2>/dev/null || true
+    echo "Snap framework successfully configured." ;;
+
+  kali-setup)
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install gnupg curl ca-certificates
+    # Add Kali Archive Key
+    mkdir -p /etc/apt/trusted.gpg.d /etc/apt/sources.list.d /etc/apt/preferences.d
+    curl -fsSL https://archive.kali.org/archive-key.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/kali-archive-keyring.gpg 2>/dev/null || true
+    # Configure Kali rolling repository with low pin-priority so it never conflicts with Debian base
+    cat > /etc/apt/sources.list.d/kali.list << 'EOF'
+deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+EOF
+    cat > /etc/apt/preferences.d/kali.pref << 'EOF'
+Package: *
+Pin: release o=Kali
+Pin-Priority: 100
+EOF
+    apt-get update -o APT::Status-Fd=1 || true
+    echo "Kali Linux repositories configured with safe package pinning." ;;
+
+  kali-install)
+    valid "$@"
+    online || { echo "No internet connection"; exit 3; }
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install -t kali-rolling "$@" 2>/dev/null || $APT install "$@" ;;
+
+  terminal-fix)
+    apt-get update -o APT::Status-Fd=1 || true
+    $APT install xfce4-terminal xterm 2>/dev/null || true
+    chmod +x /usr/bin/lumina-terminal 2>/dev/null || true
+    update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/lumina-terminal 100 2>/dev/null || true
+    update-alternatives --set x-terminal-emulator /usr/bin/lumina-terminal 2>/dev/null || true
+    echo "Terminal alternatives, wrappers, and permissions restored." ;;
+
   check)
     apt-get update -o APT::Status-Fd=1 >/dev/null 2>&1 || true
     apt-get -s upgrade ;;
+    
   upgrade)
     online || { echo "No internet connection"; exit 3; }
     apt-get update -o APT::Status-Fd=1
     $APT upgrade ;;
+    
   android-setup)
     online || { echo "No internet connection"; exit 3; }
     $APT install curl ca-certificates
-    # Download the installer, verify it exists, then run it (no curl | bash).
     tmp=$(mktemp)
     curl -fsSL -o "$tmp" https://repo.waydro.id || { rm -f "$tmp"; echo "Failed to download Waydroid installer"; exit 3; }
     if [ ! -s "$tmp" ]; then rm -f "$tmp"; echo "Empty installer download"; exit 3; fi
     sh "$tmp"
     rm -f "$tmp"
     $APT install waydroid ;;
-  *) echo "usage: lumina-pkg install|remove|install-file|flatpak-install|flatpak-remove|check|upgrade"; exit 1 ;;
+    
+  *)
+    echo "usage: lumina-pkg install|remove|install-file|flatpak-install|flatpak-remove|flatpak-setup|wine-setup|appimage-setup|snap-setup|kali-setup|kali-install|terminal-fix|check|upgrade|android-setup"; exit 1 ;;
 esac
