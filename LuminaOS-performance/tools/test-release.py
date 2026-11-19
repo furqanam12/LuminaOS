@@ -104,6 +104,27 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(data["product"], "LuminaOS")
             self.assertEqual(data["guest_validation"], "pending")
             self.assertEqual(len(data["iso_sha256"]), 64)
+    def test_professional_documentation_suite(self):
+        pages = ("README.md", "USER_GUIDE.md", "COMPATIBILITY_GUIDE.md",
+                 "BUILD_AND_DEPLOY.md", "ARCHITECTURE.md", "SHARE_WITH_FRIEND.md")
+        for name in pages:
+            text = (ROOT / "docs" / name).read_text(encoding="utf-8")
+            self.assertGreater(len(text), 1000, name)
+            self.assertNotIn("LumiEnglandOS", text)
+            self.assertNotIn("UNDENOTE", text)
+            self.assertNotIn("â†’", text)
+        index = ROOT / "docs" / "index.html"
+        self.assertTrue(index.is_file())
+        source = index.read_text(encoding="utf-8")
+        self.assertEqual(source.count('class="chapter"'), 5)
+        self.assertIn("hero h1.title,.hero .brand h3{color:#fff}", source)
+        self.assertIn('href="#chapter-user_guide"', source)
+        pdf = ROOT / "docs" / "LuminaOS-Documentation.pdf"
+        self.assertGreater(pdf.stat().st_size, 100000)
+        self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
+        rebuilt = subprocess.run([sys.executable, str(ROOT / "tools/build-docs.py"), "--no-pdf"],
+                                 capture_output=True, text=True, timeout=30)
+        self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
 
 
 if __name__ == "__main__":

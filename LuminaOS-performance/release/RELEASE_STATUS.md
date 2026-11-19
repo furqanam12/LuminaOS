@@ -16,7 +16,7 @@
   - `tools/test-installer.py`: 10/10 passed.
   - `tools/test-performance.py`: 51/51 passed.
   - `tools/test-performance.js`: 25/25 passed.
-  - `tools/test-release.py`: 8/8 passed.
+  - `tools/test-release.py`: 9/9 passed.
 - Live validation of the installed **1.0** VM (2026-11-18):
   - `tools/test-live.py`: 81 checks, **77 passed**, 2 failed, 2 warnings.
   - The two failures are the same installed-1.0 `/api/store/owner` empty-parameter crash; the source fix and regression test are in commit `9d1f26a`.

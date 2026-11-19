@@ -104,7 +104,8 @@ There is no central git repository yet — the project ships as source tarballs.
 - **Syntax check JS:** Open the HTML file in a browser with developer tools (the feature suite also runs `node --check` on inline scripts)
 - **Shell:** `sh -n src/libexec/lumina-pkg`
 - **Live guest test:** inside a booted session run `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority python3 tools/test-live.py`
-- **Full test:** Build the ISO with `./build.sh` (requires Debian/Ubuntu, ~8 GB disk, sudo) and boot in VirtualBox
+- **Full test:** Build the ISO with the manual GitHub **build-iso** workflow, or with `./build.sh` (requires Debian/Ubuntu, ~8 GB disk, sudo) and boot in VirtualBox
+- **Documentation:** edit `docs/*.md`, then regenerate the styled HTML and PDF with `python3 tools/build-docs.py`
 
 ### 5. Submitting Changes
 

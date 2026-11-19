@@ -43,23 +43,23 @@ Click **Next**.
 Allocate **4096 MB (4 GB)** minimum. Choose **6144â€“8192 MB (6â€“8 GB)** for best performance.
 
 ### 4) Create disk
-Select **Create a Virtual Hard Disk Now â†’ VDI â†’ Dynamically allocated â†’ 40 GB**.
+Select **Create a Virtual Hard Disk Now → VDI → Dynamically allocated → 40 GB**.
 
 ### 5) Configure the VM
-Select `LuminaOS` â†’ click **Settings**:
+Select `LuminaOS` → click **Settings**:
 
-- **System â†’ Motherboard â†’ Enable EFI** â†’ ON
-- **System â†’ Processor** â†’ 2 cores (4 if available)
-- **System â†’ Acceleration â†’ Hardware virtualization** â†’ ON
-- **Display â†’ Video memory** â†’ 128 MB or 256 MB
-- **Display â†’ Graphics controller** â†’ `VBoxVGA`
-- **Display â†’ Enable 3D Acceleration** â†’ ON
-- **USB Tablet / pointing device** â†’ USB tablet (smooth mouse)
+- **System → Motherboard → Enable EFI** → ON
+- **System → Processor** → 2 cores (4 if available)
+- **System → Acceleration → Hardware virtualization** → ON
+- **Display → Video memory** → 128 MB or 256 MB
+- **Display → Graphics controller** → `VBoxVGA`
+- **Display → Enable 3D Acceleration** → ON
+- **USB Tablet / pointing device** → USB tablet (smooth mouse)
 
 Under **Storage**, attach the ISO to the virtual optical drive:
 
-1. Click the empty **Controller: IDE â†’ Optical Drive**.
-2. Click the CD icon â†’ **Choose a disk file**.
+1. Click the empty **Controller: IDE → Optical Drive**.
+2. Click the CD icon → **Choose a disk file**.
 3. Select `LuminaOS-1.1-amd64.iso`.
 
 Under **Audio**, set:
@@ -86,13 +86,13 @@ To install LuminaOS on the VM disk:
 ### 7) Remove the ISO after install
 After the installation completes and the VM restarts:
 
-- Go to **Devices â†’ Optical Drives â†’ Remove disk from virtual drive**
+- Go to **Devices → Optical Drives → Remove disk from virtual drive**
 - This prevents booting the installer again
 
 ### 8) Guest Additions (for smooth mouse, shared clipboard, display resize)
 In the running VM:
 
-1. Click **Devices â†’ Insert Guest Additions CD image**
+1. Click **Devices → Insert Guest Additions CD image**
 2. In LuminaOS, open Terminal and run:
    ```sh
    sudo /media/cdrom/VBoxLinuxAdditions.run
@@ -110,11 +110,11 @@ In the running VM:
 
 | Type | Works? | How |
 |---|---|---|
-| **Linux .deb** | Yes | Double-click in Files â†’ auto-install via Store/lumina-pkg |
+| **Linux .deb** | Yes | Double-click in Files → auto-install via Store/lumina-pkg |
 | **Flatpak** | Yes | Store or `.flatpakref` / `.flatpak` file |
 | **AppImage** | Yes | Double-click â€” FUSE enabled at build |
 | **Windows .exe / .msi** | Usually | Wine configured in **Compatibility wizard** |
-| **Kali tools (nmap, etc.)** | Yes | `kali-tools` or **Compatibility â†’ Kali** |
+| **Kali tools (nmap, etc.)** | Yes | `kali-tools` or **Compatibility → Kali** |
 | **Android .apk** | Experimental | Waydroid requires Wayland + binder kernel |
 | **macOS .dmg / .pkg** | Inspect only | Darling + extraction; native GUI macOS apps not emulated |
 
@@ -129,25 +129,25 @@ To share a quick demo of your OS with your friend, you can also:
 ## Troubleshooting
 
 **Black screen after starting VM**  
-â†’ Turn on **Enable EFI**, use `VBoxVGA`, and enable 3D acceleration.
+→ Turn on **Enable EFI**, use `VBoxVGA`, and enable 3D acceleration.
 
 **Mouse jumpy**  
-â†’ Insert Guest Additions and reboot.
+→ Insert Guest Additions and reboot.
 
 **No internet in VM**  
-â†’ Ensure NAT adapter is connected.
+→ Ensure NAT adapter is connected.
 
 **No audio**  
-â†’ Use Intel HD Audio controller in VM settings.
+→ Use Intel HD Audio controller in VM settings.
 
 **AppImage won't run**  
-â†’ Enable FUSE via **Compatibility â†’ AppImage Setup**.
+→ Enable FUSE via **Compatibility → AppImage Setup**.
 
 **Kali Terminal says "profile not found"**  
-â†’ Use regular terminal, or run `sudo install -Dm644 /usr/share/lumina/etc/lumina/kali-profile.sh /etc/lumina/kali-profile.sh`.
+→ Use the regular terminal and `kali-tools`, or open Compatibility Wizard and review the Kali setup. The reference ISO installs the profile at `/etc/lumina/kali-profile.sh`; do not create a false profile override to hide a missing image file.
 
 **Wine .exe shows "not installed"**  
-â†’ Open Compatibility wizard â†’ Set up Wine (multiarch). Internet required.
+→ Open Compatibility wizard → Set up Wine (multiarch). Internet required.
 
 ## File integrity verification (optional but recommended)
 

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="LuminaOS 1.1 user, compatibility, build and architecture documentation">
+<title>LuminaOS 1.1 — Professional Documentation</title>
+<style>
+:root{--navy:#0b1f36;--blue:#0a63c9;--cyan:#11a9b0;--ink:#152435;--muted:#5d6d80;--line:#dce4ef;--paper:#fff;--wash:#f3f6fb}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--wash);color:var(--ink);font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:#075eae;text-decoration:none}a:hover{text-decoration:underline}header.hero{padding:52px max(6vw,40px);background:linear-gradient(120deg,#07182d,#103f6b 58%,#087f91);color:#fff}.brand{display:flex;align-items:center;gap:14px}.mark{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:linear-gradient(140deg,#57e4ec,#287add);font-size:25px;font-weight:800;box-shadow:0 8px 30px #0014}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:11px;opacity:.75;font-weight:700}h1.title{font-size:clamp(31px,5vw,48px);letter-spacing:-.035em;line-height:1.15;margin:24px 0 10px}.hero p{max-width:760px;color:#cde7f5;font-size:17px}.hero h1.title,.hero .brand h3{color:#fff}.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}.badge{border:1px solid #ffffff36;border-radius:99px;padding:4px 10px;font-size:11px;background:#ffffff0c;color:#e0f5fa}
+.layout{max-width:1380px;margin:0 auto;display:grid;grid-template-columns:254px minmax(0,1fr);gap:27px;padding:32px 30px 60px}aside{position:sticky;top:22px;align-self:start;background:var(--paper);padding:20px;border:1px solid var(--line);border-radius:14px}aside h3{margin:0 0 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}aside a{display:block;padding:7px 9px;border-radius:7px;color:var(--muted);font-size:13px}aside a:hover{background:#eaf3fd;color:#075eae;text-decoration:none}aside .print-doc{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+main{min-width:0}.chapter{background:var(--paper);padding:36px clamp(22px,4.5vw,62px);margin-bottom:24px;border:1px solid var(--line);border-radius:15px;box-shadow:0 5px 18px #15243504}h1,h2,h3,h4{color:var(--navy);line-height:1.3;letter-spacing:-.015em}h1{font-size:33px;margin:0 0 24px;padding-bottom:16px;border-bottom:2px solid #327cdd2a}h1:not(:first-child){margin-top:24px}h2{margin:33px 0 12px;font-size:22px;border-left:3px solid var(--cyan);padding-left:12px}h3{margin:24px 0 10px;font-size:17px}p{margin:10px 0}li{margin:5px 0}code{background:#edf2fa;padding:1px 4px;border-radius:4px;font:12px/1.55 ui-monospace,Consolas,monospace;color:#123556}pre{padding:16px;background:#0c1c2d;color:#dfeefd;border-radius:9px;overflow:auto;line-height:1.6}pre code{display:block;background:transparent;color:inherit;padding:0}blockquote{border-left:4px solid #e9a824;background:#fff9e7;padding:13px 16px;margin:18px 0;border-radius:0 7px 7px 0}blockquote p{margin:0}table{width:100%;border-collapse:collapse;margin:16px 0;table-layout:auto;font-size:13px}th{text-align:left;background:#eaf1fa;color:var(--navy);font-weight:700}th,td{padding:9px 11px;border:1px solid var(--line);vertical-align:top}tbody tr:nth-child(even){background:#f8fbfe}hr{border:0;border-top:1px solid var(--line);margin:30px 0}footer{padding:25px 30px;text-align:center;font-size:12px;color:var(--muted)}
+@media(max-width:880px){.layout{grid-template-columns:1fr;padding:18px 14px}aside{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:4px}aside h3,aside .print-doc{grid-column:1/-1}.chapter{padding:28px 22px}header.hero{padding:35px 24px}th,td{padding:7px;font-size:12px}}
+@media print{body{background:#fff;color:#111;font-size:10.2pt;line-height:1.5}header.hero{padding:70mm 20mm 25mm;background:#0b1f36!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}h1.title{font-size:36pt}.layout{display:block;padding:12mm 15mm}aside,footer{display:none}.chapter{border:0;border-radius:0;box-shadow:none;padding:0;margin:0}.chapter:not(:first-of-type){break-before:page}h1{font-size:23pt;break-after:avoid}h2,h3{break-after:avoid}table{break-inside:auto;font-size:8.7pt}tr,li,blockquote{break-inside:avoid}thead{display:table-header-group}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f4f7!important;color:#111!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}a{color:#111;text-decoration:none}a[href^="https://"]::after{content:" ("attr(href)")";font-size:8pt;color:#555;word-break:break-all}.hero .badge{display:none}@page{size:A4;margin:0}}
+</style></head><body>
+<header class="hero"><div class="brand"><div class="mark">L</div><div><h3 style="margin:0">LuminaOS</h3><div class="eyebrow">Aurora Update 1</div></div></div>
+<h1 class="title">Documentation &amp; release handbook</h1>
+<p>A practical guide to using, evaluating and building LuminaOS — with clear compatibility boundaries, repeatable checks and production-ready release practices.</p>
+<div class="badges"><span class="badge">Edition 1.1</span><span class="badge">Revision 1.0</span><span class="badge">20 November 2026</span><span class="badge">Users · Developers · QA</span></div></header>
+<div class="layout"><aside><h3>Documentation</h3><a href="#chapter-readme">Documentation home</a>
+<a href="#chapter-user_guide">User guide</a>
+<a href="#chapter-compatibility_guide">Compatibility</a>
+<a href="#chapter-build_and_deploy">Build & deployment</a>
+<a href="#chapter-architecture">Architecture</a><div class="print-doc"><a href="LuminaOS-Documentation.pdf">Download PDF</a><a href="https://github.com/furqanam12/LuminaOS">GitHub repository</a></div></aside>
+<main><section class="chapter" id="chapter-readme" aria-label="Documentation home">
+<h1 id="luminaos-documentation">LuminaOS Documentation</h1>
+<p><strong>Edition:</strong> LuminaOS 1.1 — Aurora Update 1 <strong>Documentation revision:</strong> 1.0 <strong>Last reviewed:</strong> 20 November 2026 <strong>Audience:</strong> new users, VirtualBox testers, developers and release maintainers</p>
+<p>Welcome to the official documentation set for LuminaOS. These guides describe the features implemented in the source tree, safe installation practices, compatibility boundaries and the release-verification process.</p>
+<blockquote><p><strong>Read this first:</strong> a source test is not the same as acceptance testing a booted ISO. For release readiness, always consult <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/RELEASE_STATUS.md"><code>release/RELEASE_STATUS.md</code></a>, the checksum and the guest-validation results. Compatibility depends on the application, hardware and runtime; no operating system can guarantee every Windows, Android or macOS application.</p></blockquote>
+<h2 id="start-here">Start here</h2>
+<table><col><col><thead><tr><th>Guide</th><th>Purpose</th></tr></thead><tbody><tr><td><strong><a href="#chapter-user_guide">User guide</a></strong></td><td>Desktop, built-in apps, settings, files, keyboard shortcuts and daily use</td></tr><tr><td><strong><a href="#chapter-compatibility_guide">Compatibility guide</a></strong></td><td>Windows, Android, Kali and Linux package support with concrete setup steps</td></tr><tr><td><strong><a href="#chapter-build_and_deploy">Build and deployment guide</a></strong></td><td>Reproducible ISO builds, artifact downloads, VirtualBox setup and guest acceptance</td></tr><tr><td><strong><a href="#chapter-architecture">Architecture guide</a></strong></td><td>Shell, API, window hosting, package helpers, security boundaries and testing</td></tr><tr><td><strong><a href="SHARE_WITH_FRIEND.md">Share LuminaOS with a friend</a></strong></td><td>A concise companion checklist for sharing the ISO</td></tr><tr><td><strong><a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/API.md">API reference</a></strong></td><td>Complete local HTTP/SSE endpoint reference</td></tr><tr><td><strong><a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/TROUBLESHOOTING.md">Troubleshooting</a></strong></td><td>Boot, UI, device, package and compatibility fixes</td></tr><tr><td><strong><a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/CONTRIBUTING.md">Contributing</a></strong></td><td>Coding conventions, test commands and pull-request workflow</td></tr></tbody></table>
+<h2 id="downloadable-documentation">Downloadable documentation</h2>
+<p>The generated, professionally formatted versions are:</p>
+<ul><li><code>docs/index.html</code> — searchable on-screen manual with print layout</li><li><code>docs/LuminaOS-Documentation.pdf</code> — offline/shareable manual</li></ul>
+<p>Regenerate them after editing any Markdown file in this directory:</p>
+<pre><code class="language-sh">cd LuminaOS-performance
+python3 tools/build-docs.py</code></pre>
+<p>If Google Chrome or Microsoft Edge is installed, the script also generates the PDF automatically. Otherwise the always-current Markdown and HTML documentation remain available. No third-party Python packages are needed.</p>
+<h2 id="what-luminaos-provides">What LuminaOS provides</h2>
+<ul><li>A custom <strong>Lumina Shell</strong> with desktop, dock, top bar, Start/overlay surfaces, workspaces and notifications.</li><li>Built-in <strong>Files, Settings, Store, Task Manager, Notepad, Calculator, Photos, Snipping Tool, About, Setup and Compatibility Wizard</strong> applications.</li><li>A local, loopback-only desktop API using JSON and Server-Sent Events.</li><li>Performance controls, accessibility options, window management and persistent per-user settings.</li><li>Printer and Bluetooth management, CUPS integration, Orca/AT-SPI support and clipboard history.</li><li>Route-specific runtimes for Windows programs, Android APKs and common Linux package formats.</li><li>An automated host-test CI workflow and a manually dispatched GitHub Actions ISO build with checksum artifacts.</li></ul>
+<h2 id="documentation-conventions">Documentation conventions</h2>
+<ul><li><strong>Recommended</strong>: a tested or safer option, not a mandatory requirement.</li><li><strong>Warning</strong>: an operation that may need administrator access, modify the host or lose unsaved work.</li><li><strong>Note</strong>: an important version, hardware or compatibility constraint.</li><li>Commands beginning with <code>sudo</code> or <code>pkexec</code> modify the system; understand the action before approving a prompt.</li><li>Absolute operating-system paths describe the <strong>guest</strong>, not the Windows host.</li></ul>
+<h2 id="support-and-evidence">Support and evidence</h2>
+<p>When asking for help, include:</p>
+<ol><li>LuminaOS version, host OS and VirtualBox version.</li><li>Live session or installed system.</li><li>Exact application/package name and format.</li><li>The complete error message, screenshots and logs where available.</li><li>Output from the relevant checklist in <code>docs/BUILD_AND_DEPLOY.md</code>.</li></ol>
+<p>Do not share your API token, password, private SSH key or other credentials in bug reports.</p>
+<hr>
+<p><strong>Project:</strong> https://github.com/furqanam12/LuminaOS <strong>Release evidence:</strong> <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/QA_MATRIX.md"><code>release/QA_MATRIX.md</code></a> · <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/RELEASE_CHECKLIST.md"><code>release/RELEASE_CHECKLIST.md</code></a></p>
+</section>
+<section class="chapter" id="chapter-user_guide" aria-label="User guide">
+<h1 id="luminaos-user-guide">LuminaOS User Guide</h1>
+<h2 id="1-before-you-begin">1. Before you begin</h2>
+<p>LuminaOS can be run live from an ISO or installed on a virtual disk. For normal daily use, install it to a VirtualBox disk and install Guest Additions.</p>
+<p><strong>Recommended VirtualBox resources</strong></p>
+<table><col><col><col><thead><tr><th>Resource</th><th>Minimum</th><th>Recommended</th></tr></thead><tbody><tr><td>Memory</td><td>4 GB</td><td>8 GB</td></tr><tr><td>Virtual CPUs</td><td>2</td><td>4</td></tr><tr><td>Dynamically allocated VDI disk</td><td>20 GB</td><td>40 GB or more</td></tr><tr><td>Video memory</td><td>128 MB</td><td>256 MB</td></tr><tr><td>Graphics controller</td><td>VBoxVGA</td><td>VBoxVGA with 3D acceleration</td></tr></tbody></table>
+<p>For exact VM creation steps, see <a href="SHARE_WITH_FRIEND.md">Share LuminaOS with a friend</a>.</p>
+<h3 id="live-session-versus-installed-mode">Live session versus installed mode</h3>
+<ul><li><strong>Live session</strong>: evaluate the desktop without changing the virtual disk. Some features, especially Android images and full first-run setup, require installation.</li><li><strong>Installed mode</strong>: persistent applications, settings, accounts, updates and compatibility runtimes. Use your account password for administrator prompts.</li></ul>
+<h2 id="2-desktop-tour">2. Desktop tour</h2>
+<table><col><col><thead><tr><th>Area</th><th>What you can do</th></tr></thead><tbody><tr><td><strong>Top bar</strong></td><td>See time, system status, network and sound controls</td></tr><tr><td><strong>Dock</strong></td><td>Launch pinned applications, switch running apps and manage windows</td></tr><tr><td><strong>Start / overlay</strong></td><td>Find applications, settings, commands and files</td></tr><tr><td><strong>Launchpad</strong></td><td>Browse installed apps in a grid</td></tr><tr><td><strong>Control Centre</strong></td><td>Change common connectivity and appearance settings</td></tr><tr><td><strong>Notification Centre</strong></td><td>Read alerts and use actions such as snooze</td></tr><tr><td><strong>Task View</strong></td><td>Review windows and switch workspaces</td></tr><tr><td><strong>Desktop</strong></td><td>Open user files, folders and desktop launchers</td></tr></tbody></table>
+<h3 id="common-keyboard-shortcuts">Common keyboard shortcuts</h3>
+<table><col><col><thead><tr><th>Shortcut</th><th>Action</th></tr></thead><tbody><tr><td><strong>Super</strong></td><td>Open Start</td></tr><tr><td><strong>Super + A</strong></td><td>Control Centre</td></tr><tr><td><strong>Super + E</strong></td><td>File Explorer</td></tr><tr><td><strong>Super + L</strong></td><td>Lock screen</td></tr><tr><td><strong>Ctrl + K</strong></td><td>Command palette</td></tr><tr><td><strong>Ctrl + T</strong></td><td>New Files tab</td></tr><tr><td><strong>Ctrl + L</strong></td><td>Files address entry</td></tr><tr><td><strong>F2</strong></td><td>Rename selected file</td></tr><tr><td><strong>Tab / Shift + Tab</strong></td><td>Move between controls</td></tr><tr><td><strong>Enter / Space</strong></td><td>Activate a focused control</td></tr><tr><td><strong>Escape</strong></td><td>Close a menu or overlay</td></tr></tbody></table>
+<h2 id="3-built-in-applications">3. Built-in applications</h2>
+<h3 id="file-explorer">File Explorer</h3>
+<p>Use Files to browse your home folder, mounted devices and shared locations. It supports:</p>
+<ul><li>Grid/list views, search, sort, tabs and split view</li><li>Create, rename, copy, move and delete operations</li><li>Undo/redo for common operations and conflict handling</li><li>ZIP/TAR extraction, ZIP creation, file permissions and Trash restore</li><li>Recent files, Quick Access and a detailed status bar</li><li><strong>Open in Terminal</strong> and <strong>Open in Kali Terminal</strong> in the current directory</li></ul>
+<p>For package files, use the format-specific procedure in the <a href="#chapter-compatibility_guide">Compatibility guide</a>.</p>
+<h3 id="lumina-store">Lumina Store</h3>
+<p>Install or remove catalogued applications, inspect package downloads, install supported local package files and apply updates. The <strong>Library</strong> shows running jobs and their result.</p>
+<blockquote><p>A Windows <code>.exe</code> launch is labelled <strong>Launched</strong>, not Installed. An Android APK installation is only marked complete after the runtime returns success.</p></blockquote>
+<h3 id="settings">Settings</h3>
+<p>Major sections include:</p>
+<ul><li><strong>System and display</strong>: host information, theme, brightness preferences, night light and output resolution</li><li><strong>Sound</strong>: volume, mute and system sounds</li><li><strong>Notifications</strong>: focus mode, quiet hours and per-application rules</li><li><strong>Bluetooth &amp; devices</strong>: adapter power, scanning, pairing, connection and removal; pointer speed</li><li><strong>Network</strong>: adapters, Wi-Fi connections and advanced settings</li><li><strong>Personalisation</strong>: theme, accent, wallpaper, dock and effects</li><li><strong>Power &amp; performance</strong>: lock, sleep, restart, shutdown and performance presets</li><li><strong>Printers</strong>: add CUPS printers and choose a default printer</li><li><strong>Accessibility</strong>: interface scale, contrast, focus outlines, animation and screen reader</li><li><strong>Clipboard</strong>: history management</li><li><strong>Time &amp; language</strong>: time zone and 24-hour clock</li><li><strong>Backup &amp; restore</strong>: export/import settings and update preferences</li></ul>
+<h3 id="task-manager-and-utilities">Task Manager and utilities</h3>
+<ul><li><strong>Task Manager</strong>: processes, resource use and performance history</li><li><strong>Notepad</strong>: tabs, find/replace, editing and file status</li><li><strong>Calculator</strong>: standard operations and history</li><li><strong>Photos</strong>: image browsing and viewing</li><li><strong>Snipping Tool</strong>: screenshots with capture options</li><li><strong>About</strong>: version and device details</li><li><strong>Compatibility Wizard</strong>: environment checks and runtime setup</li></ul>
+<h2 id="4-accounts-and-passwords">4. Accounts and passwords</h2>
+<p>To create an account, go to <strong>Settings → User accounts</strong> and enter a unique username, password and confirmation.</p>
+<ul><li>Use lowercase usernames beginning with a letter or underscore.</li><li>Passwords must be at least four characters; use a strong, unique password in practice.</li><li>Account creation assigns a login shell and home directory.</li><li>Do not delete your active account. Keep a working administrator account.</li></ul>
+<p>Changing your password requires your current password. Never send credentials or API tokens in screenshots or support messages.</p>
+<h2 id="5-accessibility">5. Accessibility</h2>
+<p>The following settings are available:</p>
+<ul><li>Interface scale from <strong>80% to 150%</strong></li><li>High-contrast palettes and stronger focus indicators</li><li>Reduced animation and solid/transparency preferences</li><li>Orca screen-reader integration through AT-SPI</li></ul>
+<p>For Orca, open <strong>Settings → Accessibility → Screen reader</strong>. The page reports whether it is installed and switches the toolkit accessibility bridge and autostart entry. If your screen reader does not announce an app, check the troubleshooting guide and the AT-SPI bus log; do not install packages without understanding the proposed change.</p>
+<h2 id="6-devices-network-and-printing">6. Devices, network and printing</h2>
+<h3 id="bluetooth">Bluetooth</h3>
+<p>An adapter is required. On VirtualBox, pass through a USB Bluetooth adapter if necessary. Then:</p>
+<ol><li>Turn on Bluetooth power.</li><li>Put the peripheral into pairing mode.</li><li>Select <strong>Scan for devices</strong>.</li><li>Choose <strong>Pair</strong>, <strong>Connect</strong> or <strong>Remove</strong> as appropriate.</li></ol>
+<p>Pairing may require a confirmation PIN on both devices. Pairing audio hardware is not guaranteed on a VM without working pass-through support.</p>
+<h3 id="wi-fi-and-wired-networking">Wi-Fi and wired networking</h3>
+<p>The Network page reads NetworkManager state. Choose a visible network and supply the security key if required. Wired connections normally work automatically in NAT mode.</p>
+<h3 id="printers">Printers</h3>
+<p>The default CUPS packages are included in the image. To add a printer:</p>
+<ol><li>Connect the printer or verify that its network address is reachable.</li><li>Open <strong>Settings → Printers</strong>.</li><li>Give it a simple name using letters, numbers, <code>.</code>, <code>_</code> or <code>-</code>, and enter the correct device URI, for example <code>socket://192.168.1.50:9100</code>.</li><li>Select <strong>Add printer</strong>.</li><li>Optionally choose <strong>Set as default</strong>.</li></ol>
+<p>CUPS model drivers may still be necessary for specialised features such as duplexing or manufacturer-specific finishing options.</p>
+<h2 id="7-windows-and-android-applications">7. Windows and Android applications</h2>
+<p>These require separate runtimes. They are not native ELF Linux programs.</p>
+<ul><li>For <code>.exe</code>, <code>.msi</code> and <code>.bat</code>, use <strong>Compatibility Wizard → Windows programs</strong>.</li><li>For <code>.apk</code>, use <strong>Compatibility Wizard → Android</strong> on an installed system, prepare the image and open the nested Android window.</li></ul>
+<p>The exact preparation, constraints and error messages are in the <a href="#chapter-compatibility_guide">Compatibility guide</a>. Read the important notes before installing third-party executables.</p>
+<h2 id="8-power-and-updates">8. Power and updates</h2>
+<p><strong>Power</strong> offers lock, sleep, restart and shutdown commands. Restart and shutdown ask for confirmation, but closing applications can still lose unsaved work.</p>
+<p>Before updating:</p>
+<ol><li>Save documents and close running installers.</li><li>Confirm internet access and sufficient disk space.</li><li>Check updates from Settings or Store.</li><li>Wait for jobs to finish; do not power off during package configuration.</li></ol>
+<p>The live guest should never be rebooted by an automated test without your consent.</p>
+<h2 id="9-everyday-safety-checklist">9. Everyday safety checklist</h2>
+<ul><li>Only run Windows, Android and Linux packages from sources you trust.</li><li>Do not execute random terminal commands from untrusted websites.</li><li>Back up files before changing partitions or performing an installation.</li><li>Keep at least one tested, bootable copy of your working ISO.</li><li>Install updates deliberately, not in the middle of another installer.</li><li>Restore demo settings after testing if you share an existing VM.</li></ul>
+<h2 id="10-getting-help">10. Getting help</h2>
+<p>Use <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/TROUBLESHOOTING.md">Troubleshooting</a> for boot, display, API, Store and runtime failures. For VM-first guidance and checksum verification, see <a href="#chapter-build_and_deploy">Build and deployment</a>.</p>
+</section>
+<section class="chapter" id="chapter-compatibility_guide" aria-label="Compatibility">
+<h1 id="compatibility-guide">Compatibility Guide</h1>
+<p>This guide explains how LuminaOS opens non-native program formats and the practical limits of each runtime.</p>
+<blockquote><p><strong>Important:</strong> LuminaOS uses compatibility layers and containers; it does not become Windows, Android or macOS. Per-application testing is essential. Always obtain software from a trusted source.</p></blockquote>
+<h2 id="1-format-dispatch-at-a-glance">1. Format dispatch at a glance</h2>
+<table><col><col><col><thead><tr><th>File format</th><th>Runtime or handler</th><th>What the UI reports</th></tr></thead><tbody><tr><td><code>.exe</code></td><td>Wine</td><td><strong>Launched</strong></td></tr><tr><td><code>.msi</code></td><td>Wine <code>msiexec</code></td><td>Installer launched; finish it inside Wine</td></tr><tr><td><code>.bat</code></td><td>Wine <code>cmd</code></td><td>Windows command process launched</td></tr><tr><td><code>.deb</code></td><td><code>lumina-pkg</code> / APT</td><td>Installation job</td></tr><tr><td><code>.flatpakref</code>, <code>.flatpak</code></td><td>Flatpak / Flathub</td><td>Installation job</td></tr><tr><td><code>.AppImage</code></td><td>Direct executable / FUSE</td><td>Launch or installation job, depending on entry point</td></tr><tr><td><code>.rpm</code></td><td>Alien, then package manager</td><td>Conversion/install job</td></tr><tr><td><code>.snap</code></td><td>Snap daemon</td><td>Installation job</td></tr><tr><td><code>.apk</code></td><td>Waydroid</td><td>User-runtime installation job</td></tr><tr><td><code>.dmg</code>, <code>.pkg</code></td><td>Compatibility / archive tools</td><td>Inspection or native alternatives</td></tr></tbody></table>
+<p><strong>Never treat these formats as interchangeable archives.</strong> Windows and APK files are deliberately kept out of the privileged Debian package installer.</p>
+<h2 id="2-windows-programs-through-wine">2. Windows programs through Wine</h2>
+<p>The image prepares i386 package support and installs Wine32, Wine64 and Winetricks. Compatibility still depends on the Windows program.</p>
+<h3 id="first-time-setup">First-time setup</h3>
+<ol><li>Open <strong>Compatibility Wizard → Windows</strong>.</li><li>Review the Wine and Wine-prefix checks.</li><li>Choose <strong>Set up Wine</strong> to initialise the prefix.</li><li>If a program needs additional runtimes, use <strong>Winetricks</strong> selectively.</li><li>Open the installer or executable from Files or Store.</li></ol>
+<p>Wine's first launch may take time while it creates the Windows environment. Do not repeatedly start installers if the first one is still configuring.</p>
+<h3 id="supported-launch-paths">Supported launch paths</h3>
+<ul><li><strong>Portable <code>.exe</code></strong>: starts through Wine. This is a launch, not a system installation.</li><li><strong>MSI <code>.msi</code></strong>: LuminaOS converts the local filename to a Windows-compatible path and passes it to <code>wine msiexec /i</code>. Complete the vendor installer normally.</li><li><strong>Batch file <code>.bat</code></strong>: opens with <code>wine cmd /c</code>.</li><li><strong>Application not yet available</strong>: LuminaOS opens the Compatibility Wizard rather than silently doing nothing.</li></ul>
+<h3 id="practical-windows-limitations">Practical Windows limitations</h3>
+<p>The following often need application-specific work or cannot be supported by Wine:</p>
+<ul><li>Kernel drivers, protected storage drivers and low-level antivirus software</li><li>Applications using unsupported activation, DRM or anti-cheat systems</li><li>Programs requiring unavailable hardware dongles</li><li>Some .NET, DirectX, Visual C++ or font dependencies</li><li>Installers that need OS-specific reboot and service behavior</li><li>ARM-only Windows executables on an x86-64 VM</li></ul>
+<p><strong>Recommended testing order:</strong> a portable application first, then a small MSI, then your actual required application. Keep a copy of the original installer and save its exact version.</p>
+<h3 id="safe-winetricks-use">Safe Winetricks use</h3>
+<p>Winetricks downloads and installs Windows components into the user's Wine prefix. Review every component; version mismatches can make an otherwise working application fail. Prefer a dedicated prefix for incompatible applications. Do not run unknown DLLs with root privileges.</p>
+<h3 id="bottles-and-proton">Bottles and Proton</h3>
+<p>Bottles and Steam/Proton are optional compatibility managers. They can simplify per-app environments, but they do not make every Windows game or app compatible. Size, GPU performance and anti-cheat restrictions still apply.</p>
+<h2 id="3-android-applications-through-waydroid">3. Android applications through Waydroid</h2>
+<p>Android requires <strong>Waydroid, Weston, binder kernel support and an initialized container</strong>. LuminaOS currently uses an X11 desktop, so Android runs inside a <strong>nested Weston Wayland window</strong>.</p>
+<h3 id="supported-target">Supported target</h3>
+<p>The automated setup path targets <strong>Debian 13 (trixie)</strong> and configures:</p>
+<ul><li>The signed Debian <code>trixie-backports</code> source</li><li><code>waydroid</code> and <code>weston</code></li><li>The Waydroid container service</li><li>On first use, a system image selected by the Waydroid initialization command</li></ul>
+<p>On unsupported distributions the helper stops with a clear message; it does not execute an unverified third-party installer as root.</p>
+<h3 id="setup-and-first-launch">Setup and first launch</h3>
+<ol><li>Use an <strong>installed LuminaOS system</strong>, not the live session.</li><li>Open <strong>Compatibility Wizard → Android</strong>.</li><li>Start <strong>Set up Android support</strong> and install the offered Waydroid package.</li><li>Click <strong>Open Android</strong>.</li><li>Allow the administrator prompts required for container/image setup.</li><li>Wait for the first image download and session startup. This can take several minutes and needs reliable internet access.</li><li>Install an APK through Files or Store and inspect the running job for its real result.</li></ol>
+<h3 id="apk-installation-behavior">APK installation behavior</h3>
+<p>The Store opens <code>lumina-android install /path/to/application.apk</code> as a user-runtime background job. Only an exit status of <strong>zero</strong> marks the job <strong>Installed</strong>. First-start, image, session, permission and package errors remain visible in the job log.</p>
+<p>Do not judge an install by whether a window merely opened. Check the Android app list after the job succeeds.</p>
+<h3 id="important-apk-limitations">Important APK limitations</h3>
+<ul><li><strong>ARM-only APKs are not supported natively by an x86-64 VM.</strong> They require a separately validated translation layer. LuminaOS does not silently claim to install such a layer.</li><li>Android-x86-compatible APKs provide the best starting point.</li><li>Applications requiring Google certification, SafetyNet/Play Integrity, GPS, telephony, NFC, camera or physical sensors may not work.</li><li>Google-enabled images require the vendor download and potentially Google account verification/regional terms.</li><li>Heavy games may be limited by virtual GPU performance and available memory.</li><li>Waydroid does not make every Play Store application available or compatible.</li></ul>
+<h2 id="4-kali-linux-security-suite">4. Kali Linux Security Suite</h2>
+<p>LuminaOS provides a dedicated Kali-themed terminal and a security-tool manager. Most standard tools are installed from Debian; the optional Kali repository is explicitly configured only when requested.</p>
+<h3 id="open-the-terminal">Open the terminal</h3>
+<ul><li>Open <strong>Kali Terminal</strong> from the application menu, or</li><li>Run <code>lumina-terminal --kali</code>, or</li><li>Use <strong>Open in Kali Terminal</strong> from the Files context menu.</li></ul>
+<p>The terminal sources <code>/etc/lumina/kali-profile.sh</code>, with a user-profile fallback. Standard terminal commands still work. Existing <code>x-terminal-emulator</code> alternatives remain attached to a real emulator, not a recursive wrapper.</p>
+<h3 id="the-kali-tools-command">The <code>kali-tools</code> command</h3>
+<pre><code class="language-sh">kali-tools list       # report installed security tools
+kali-tools top10      # install the standard tool set
+kali-tools web        # Burp Suite, SQLMap and Nikto, where available
+kali-tools password   # Hashcat, Hydra and Medusa, where available
+kali-tools msf        # Metasploit through the validated Lumina helper</code></pre>
+<h3 id="metasploit-and-the-optional-kali-repository">Metasploit and the optional Kali repository</h3>
+<ol><li>Click <strong>Configure Kali Repositories</strong> in Compatibility Wizard.</li><li>Allow the key download and signature-checked source configuration.</li><li>Then select <strong>Install Metasploit</strong>.</li></ol>
+<p>Repository setup uses HTTPS, a scoped keyring and a low APT pin-priority. If key or repository signature verification fails, the source is removed and setup fails closed.</p>
+<p><strong>Warning:</strong> Kali is a rolling distribution. Mixing dependencies with Debian can introduce conflicts even with pinning. APT preview is essential for large Metasploit/security-tool installations. Do not approve an unreviewed full-system upgrade merely to make a package install succeed.</p>
+<p>Security tools are dual-use software. Only scan systems and networks you own or have explicit authorization to test.</p>
+<h2 id="5-linux-desktop-packages">5. Linux desktop packages</h2>
+<ul><li><strong>Debian <code>.deb</code></strong>: installed through APT so dependencies can be resolved.</li><li><strong>Flatpak</strong>: Flathub and Sandbox configuration may be required.</li><li><strong>AppImage</strong>: launchable directly when the correct FUSE components and execute bit are present; a separate install action can place a trusted image in a system location.</li><li><strong>RPM</strong>: converted through Alien; distribution-specific scripts or dependencies may not translate perfectly.</li><li><strong>Snap</strong>: requires snapd and the system service/socket.</li></ul>
+<p>These package managers can modify your system and typically need an administrator prompt. Read the package source, dependencies and planned removals before continuing.</p>
+<h2 id="6-macos-files-optional">6. macOS files (optional)</h2>
+<p>DMG and PKG files can be inspected or extracted with the supported tools. Darling provides limited command-line translation where available. <strong>Full graphical macOS application compatibility is not provided.</strong> For daily work, select a maintained native Linux alternative when available.</p>
+<h2 id="7-what-to-include-in-a-compatibility-report">7. What to include in a compatibility report</h2>
+<ul><li>File extension, package/application name and exact version</li><li>Where the file came from and its checksum, if published</li><li>Installed/runtime versions (Wine, Waydroid, Weston, Flatpak, etc.)</li><li>Whether it works on the live session or installed system</li><li>Full job log or error text; never just “it doesn't work”</li><li>VM resource allocation and kernel/container support for Android</li></ul>
+<p>Use <code>tools/validate-guest.py</code> for runtime/file presence checks. That script does <strong>not</strong> install packages or change settings.</p>
+</section>
+<section class="chapter" id="chapter-build_and_deploy" aria-label="Build &amp; deployment">
+<h1 id="build-and-deployment-guide">Build and Deployment Guide</h1>
+<p>This is the release path for producing a LuminaOS image, verifying it and sharing it for VirtualBox evaluation.</p>
+<h2 id="1-release-inputs-and-outputs">1. Release inputs and outputs</h2>
+<p><strong>Required input:</strong> the current LuminaOS source tree and a Linux build environment with administrator access.</p>
+<p><strong>Outputs:</strong></p>
+<pre><code class="language-text">LuminaOS-1.1-amd64.iso
+LuminaOS-1.1-amd64.iso.sha256
+release/build-manifest.json</code></pre>
+<p>The checksum establishes file integrity against the published checksum. It is not a replacement for a digital release signature or a successful guest test.</p>
+<h2 id="2-option-a-github-actions-recommended-on-windows">2. Option A — GitHub Actions (recommended on Windows)</h2>
+<p>The repository includes two workflows:</p>
+<ul><li><strong>host-tests</strong> — source, installer, performance and release checks on relevant pushes.</li><li><strong>build-iso</strong> — manually dispatched Linux build with downloadable ISO artifacts.</li></ul>
+<h3 id="dispatch-the-iso-build">Dispatch the ISO build</h3>
+<p>From the repository root:</p>
+<pre><code class="language-sh">gh auth login
+# If workflow files have not been pushed yet, request the workflow scope first:
+gh auth refresh -h github.com -s workflow
+
+gh workflow run build-iso.yml --ref main
+gh run list --workflow build-iso.yml --limit 1</code></pre>
+<p>Alternatively, open <strong>GitHub → Actions → build-iso → Run workflow</strong>.</p>
+<h3 id="monitor-progress">Monitor progress</h3>
+<p>Copy the run ID from the output and use:</p>
+<pre><code class="language-sh">gh run watch &lt;RUN_ID&gt; --exit-status --interval 60</code></pre>
+<p>The workflow has a 120-minute timeout. It installs the Debian build dependencies, validates the source, runs the build, checks the checksum and uploads artifacts. An in-progress run is <strong>not</strong> evidence of a working ISO.</p>
+<h3 id="download-the-build">Download the build</h3>
+<pre><code class="language-sh">gh run download &lt;RUN_ID&gt; -n LuminaOS-1.1-amd64 -D artifacts</code></pre>
+<p>Inspect <code>artifacts/release/build-manifest.json</code>. It records source test outcomes, timestamps, ISO size, hash and guest-validation state.</p>
+<h3 id="when-a-run-fails">When a run fails</h3>
+<pre><code class="language-sh">gh run view &lt;RUN_ID&gt; --log-failed</code></pre>
+<p>Do not distribute an ISO from a failed job. Correct the error, rerun the source checks and create a fresh artifact.</p>
+<h2 id="3-option-b-local-debian-ubuntu-build">3. Option B — local Debian/Ubuntu build</h2>
+<p>Requirements:</p>
+<ul><li>x86-64 Debian/Ubuntu Linux or WSL2</li><li>Administrator access</li><li>At least 8 GiB free disk; approximately 12 GiB or more is recommended</li><li>Reliable network access</li><li>Debian build utilities from <code>tools/build-release.sh</code></li></ul>
+<p>From the <code>LuminaOS-performance</code> directory:</p>
+<pre><code class="language-sh">sudo bash tools/build-release.sh</code></pre>
+<p>The wrapper installs no guest packages for testing; it constructs a new environment from Debian repositories and the supplied package list. On its first run, the base bootstrap and package download can take considerable time.</p>
+<p>The base ISO enables i386 before installing Wine32/Wine64. On Debian 13, Waydroid is <strong>not</strong> unconditionally included from the main repository; the Android helper configures signed trixie-backports on demand.</p>
+<h3 id="wsl2-notes">WSL2 notes</h3>
+<p>The workflow under <code>release/wsl2/</code> provides a source-copy workflow on E:. It may stop WSL after confirmation for consistent export; it does not unregister the original distro. Follow <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/wsl2/README.md"><code>release/wsl2/README.md</code></a> rather than improvising an import over your working Linux installation.</p>
+<h2 id="4-verify-the-artifact">4. Verify the artifact</h2>
+<h3 id="on-linux">On Linux</h3>
+<p>Run beside the ISO and checksum file:</p>
+<pre><code class="language-sh">sha256sum -c LuminaOS-1.1-amd64.iso.sha256</code></pre>
+<h3 id="on-windows-powershell">On Windows PowerShell</h3>
+<pre><code class="language-powershell">$expected = (Get-Content .\LuminaOS-1.1-amd64.iso.sha256).Split()[0]
+$actual = (Get-FileHash .\LuminaOS-1.1-amd64.iso -Algorithm SHA256).Hash.ToLower()
+if ($actual -ne $expected) { throw &quot;ISO checksum mismatch&quot; }
+Write-Host &quot;ISO checksum verified: $actual&quot;</code></pre>
+<p>A mismatch means the file should not be used. Re-download or rebuild it rather than trying to repair an unknown image.</p>
+<h2 id="5-virtualbox-deployment">5. VirtualBox deployment</h2>
+<p>Use VirtualBox 7.x or newer.</p>
+<table><col><col><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody><tr><td>Guest type/version</td><td>Linux / Debian 64-bit</td></tr><tr><td>RAM</td><td>4 GB minimum; 8 GB recommended</td></tr><tr><td>Processors</td><td>2 minimum; 4 recommended</td></tr><tr><td>Disk</td><td>Dynamic VDI, 40 GB recommended</td></tr><tr><td>Display</td><td>VBoxVGA, 3D acceleration enabled</td></tr><tr><td>Audio</td><td>Intel HD Audio</td></tr><tr><td>Network</td><td>NAT for simple outbound connectivity</td></tr><tr><td>Optical drive</td><td>Verified LuminaOS ISO</td></tr></tbody></table>
+<p>After installation is finished, remove the optical ISO and boot from the virtual disk. Install Guest Additions for improved integration where appropriate.</p>
+<p><strong>Warning:</strong> <strong>Erase disk</strong> inside the Calamares installer means the selected <strong>virtual disk</strong>. Double-check the target device before continuing.</p>
+<p>For a companion checklist, use <a href="SHARE_WITH_FRIEND.md">Share LuminaOS with a friend</a>.</p>
+<h2 id="6-guest-acceptance">6. Guest acceptance</h2>
+<p>Build success is just one stage. Run the read-only guest validator in a booted installed guest:</p>
+<pre><code class="language-sh">python3 tools/validate-guest.py</code></pre>
+<p>It checks expected API fields, package/runtime presence, Wine, Kali terminal, accessibility and Bluetooth response shapes. It does not install packages or change settings.</p>
+<p>For broader non-destructive app checks:</p>
+<pre><code class="language-sh">DISPLAY=:0 XAUTHORITY=&quot;$HOME/.Xauthority&quot; python3 tools/test-live.py</code></pre>
+<p>Run that command inside the graphical guest session (or through SSH with the correct display authority). Review its JSON report for failures and warnings. Restore demo settings, close test windows, clear test notifications and do not reset or power off another user's session without permission.</p>
+<p>Also complete the relevant rows in:</p>
+<ul><li><code>release/QA_MATRIX.md</code></li><li><code>release/RELEASE_CHECKLIST.md</code></li><li><code>release/SIGNOFF_TEMPLATE.md</code></li></ul>
+<p>Required coverage includes live boot, installation, installed boot, settings, apps, network, audio, display and compatibility runtime behavior.</p>
+<h2 id="7-host-test-commands">7. Host test commands</h2>
+<p>From <code>LuminaOS-performance</code>:</p>
+<pre><code class="language-sh">python3 tools/test-features.py
+python3 tools/test-installer.py
+python3 tools/test-performance.py
+node tools/test-performance.js
+python3 tools/test-release.py
+python3 -m py_compile src/lib/lumina/api.py tools/test-live.py</code></pre>
+<p>The exact currently recorded counts are in <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/RELEASE_STATUS.md"><code>release/RELEASE_STATUS.md</code></a> and <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/release/QA_MATRIX.md"><code>release/QA_MATRIX.md</code></a>.</p>
+<h2 id="8-package-delivery-checklist">8. Package delivery checklist</h2>
+<p>Before sending the ISO to someone else:</p>
+<ul><li>ISO was produced by a successful release workflow or Linux build.</li><li>SHA256 verification passes on the destination computer.</li><li>Guest acceptance is documented with any unresolved failures.</li><li>No secret token, SSH private key, password or personal home-directory content is included.</li><li>The recipient has the concise <a href="SHARE_WITH_FRIEND.md">SHARE_WITH_FRIEND.md</a> guide.</li><li>Windows and Android support is described honestly; ARM-only Android apps and app-specific Wine limitations are included.</li><li>A clear build date and version are visible in the manifest.</li></ul>
+<h2 id="9-rollback-and-release-hygiene">9. Rollback and release hygiene</h2>
+<ul><li>Keep the last known working ISO and its checksum.</li><li>Never overwrite your working VirtualBox VM disk while testing a new ISO; make a separate VM.</li><li>Do not modify, restart or power off an existing guest merely to test a release.</li><li>Keep generated ISOs, <code>work/</code> and environment-specific caches out of source commits.</li><li>Store release evidence with the source revision that produced it.</li></ul>
+<p>Professional release sign-off means <strong>repeatable build, verified artifacts and explicit guest evidence</strong>, not merely “all apps are implemented.”</p>
+</section>
+<section class="chapter" id="chapter-architecture" aria-label="Architecture">
+<h1 id="architecture-guide">Architecture Guide</h1>
+<p>LuminaOS is a custom desktop built on a Debian 13 base. Its user interface is hosted by GTK/WebKitGTK windows, communicates through a local API, and delegates privileged work to focused package/container helpers.</p>
+<h2 id="1-component-map">1. Component map</h2>
+<table><col><col><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>src/bin/lumina-session</code></td><td>Starts and restarts the desktop session; owns session-level startup wiring.</td></tr><tr><td><code>src/bin/lumina-shell</code></td><td>Hosts desktop, top bar, dock, toast and overlay surfaces on xfwm4</td></tr><tr><td><code>src/bin/lumina-app</code></td><td>Creates managed windows for built-in applications; handles window geometry, actions and snapping</td></tr><tr><td><code>src/bin/lumina-terminal</code></td><td>Selects a concrete emulator, forwards commands safely and loads Kali profiles when requested</td></tr><tr><td><code>src/lib/lumina/api.py</code></td><td>Loopback HTTP + JSON + Server-Sent Events hub, file/device actions and local job notifications</td></tr><tr><td><code>src/libexec/lumina-pkg</code></td><td>Deliberately privileged package, update and optional repository operations</td></tr><tr><td><code>src/libexec/lumina-android</code></td><td>User-session Waydroid setup, nested Weston startup and APK installation</td></tr><tr><td><code>src/libexec/kali-tools</code></td><td>CLI security-tool reporting and installation routing</td></tr><tr><td><code>src/data/store.json</code></td><td>Store applications, package ecosystems and categories</td></tr><tr><td><code>system/</code></td><td>Live-session, GRUB, Calamares and installed-system configuration overlay</td></tr><tr><td><code>build.sh</code></td><td>Debian bootstrap, package installation, asset generation and hybrid ISO creation</td></tr></tbody></table>
+<p>The UI under <code>src/ui/</code> contains the shell pages and built-in app surfaces. <code>src/ui/js/lumina.js</code> supplies the shared JavaScript client and actions.</p>
+<h2 id="2-desktop-rendering-model">2. Desktop rendering model</h2>
+<p><code>lumina-shell</code> hosts separate WebKitGTK windows for desktop components. It uses WNCK and monitoring/layout information to position workspaces, top bar, dock and overlays.</p>
+<p><code>lumina-app</code> hosts higher-level application windows and supports:</p>
+<ul><li>Per-application default dimensions and single-instance controls</li><li>Client-side title bars with native window actions</li><li>Snap layouts, resize areas and transparent rounding/shadows</li><li>Loading the app's HTML from the local server with serialized launch arguments</li><li>Message passing between web content and native GTK window management</li></ul>
+<p>The shell currently targets X11 with <strong>xfwm4 compositing enabled</strong>. This is deliberate for VM rendering stability. Android adds a nested Wayland compositor instead of silently replacing the whole desktop session.</p>
+<h2 id="3-local-api-and-event-flow">3. Local API and event flow</h2>
+<p>The API listens on <strong><code>127.0.0.1:7700</code></strong> by default and does not require exposure to the LAN or internet.</p>
+<table><col><col><thead><tr><th>Mechanism</th><th>Purpose</th></tr></thead><tbody><tr><td>GET routes</td><td>System information, settings, devices, files, Store and readiness checks</td></tr><tr><td>POST routes</td><td>Settings, mutation, jobs and launch/runtime actions</td></tr><tr><td>Server-Sent Events</td><td>Settings changes, UI commands, app notifications and Store job updates</td></tr><tr><td>Shared <code>Lumina</code> client</td><td>Shared HTTP, application, menu, dialog and settings operations</td></tr></tbody></table>
+<p>Mutating routes require <code>X-Lumina-Token</code>, generated per boot and stored at <code>~/.cache/lumina/api-token</code> with owner-only permissions. Rate limiting and the audit log support basic local-host hardening; the audit log rotates at 1 MiB.</p>
+<p><strong>Trust boundary:</strong> the loopback API is not intended to be a network service. Do not bind it publicly, proxy it into the internet or publish its token.</p>
+<h2 id="4-application-installation-and-job-state">4. Application installation and job state</h2>
+<p>The privileged helper runs through sudo for pre-authorized actions or pkexec for a user-mediated prompt. Package names, printer names and Bluetooth addresses are validated before command execution.</p>
+<p>The Store distinguishes these jobs:</p>
+<ul><li><strong>System packages</strong> — privileged APT, Flatpak or file-install actions; progress is streamed through the helper output.</li><li><strong>Windows launches</strong> — direct Wine execution, represented as <em>Launched</em>, not an installed package.</li><li><strong>APK jobs</strong> — asynchronous user-runtime invocations; success is marked only after process exit zero.</li></ul>
+<p>Process-spawn failures are captured in the job rather than leaving a stuck “running” job. Empty or unsupported parameters are not silently forwarded to arbitrary commands.</p>
+<h2 id="5-compatibility-runtime-separation">5. Compatibility runtime separation</h2>
+<h3 id="wine">Wine</h3>
+<p><code>open_path()</code> selects specific Windows command forms. MSI and batch filenames are converted using <code>winepath</code> and sent to <code>msiexec</code> and <code>cmd</code> respectively. The file is not reclassified as a Debian package.</p>
+<h3 id="wayland-and-android">Wayland and Android</h3>
+<p><code>lumina-android</code> follows a readiness sequence:</p>
+<ol><li>Reject the live session and missing runtime tools.</li><li>Use an existing Wayland socket when available; otherwise start nested Weston on X11.</li><li>Initialize the Android image only if missing, using a privileged prompt.</li><li>Start the Waydroid container.</li><li>Wait for the Android session before installing an APK or reporting readiness.</li></ol>
+<p>This separation means the UI cannot honestly claim that the first button click installed the APK.</p>
+<h3 id="kali">Kali</h3>
+<p>Dedicated terminal launchers use argv arrays for profile paths and concrete emulator choice. They never invoke themselves through the <code>x-terminal-emulator</code> alternative. The package helper validates Kali's archive key, limits its trust to a signed-by keyring and removes the source if verification fails.</p>
+<h2 id="6-settings-and-user-data">6. Settings and user data</h2>
+<p>Per-user configuration normally lives below:</p>
+<pre><code class="language-text">~/.config/lumina/
+~/.cache/lumina/</code></pre>
+<p>Defaults cover appearance, performance, accessibility and notifications. Settings updates are applied consistently through the API/client and propagated to interested shell surfaces.</p>
+<p>Processes use <code>start_new_session=True</code> for detached application launches, and file-opening helpers use safe path checks rather than shell interpolation. The <code>cwd</code> for terminal actions is validated and falls back to the user's home directory.</p>
+<h2 id="7-performance-design">7. Performance design</h2>
+<ul><li>Shared CPU-time sampling and cached statistics reduce repeated system reads.</li><li>Idle work is bounded in desktop, dock, top bar and Task Manager timers.</li><li>Reduced-motion, transparency, dock magnification and shadow preferences are exposed in Settings.</li><li>Balanced, custom and powersaver/low-power profiles coordinate the preferences.</li><li>UI visibility changes and failed pollers release monitoring locks and resume appropriately.</li></ul>
+<p><strong>Performance claims require live measurement.</strong> Host-source tests do not prove guest boot time, frame rate or memory percentages. Before/after comparisons in a guest should use the benchmark tool and an unchanged workload.</p>
+<h2 id="8-build-architecture">8. Build architecture</h2>
+<p>The release wrapper <code>tools/build-release.sh</code> checks the Linux host, tool availability and free space, runs source suites, invokes <code>build.sh</code>, and verifies the output SHA256.</p>
+<p>The GitHub <strong>build-iso</strong> workflow runs this process on Ubuntu 24.04 when manually dispatched and uploads:</p>
+<ul><li><code>LuminaOS-1.1-amd64.iso</code></li><li><code>LuminaOS-1.1-amd64.iso.sha256</code></li><li><code>release/build-manifest.json</code></li></ul>
+<p>Build output is an artifact for testing/distribution. Successful build plus matching checksum still requires guest boot/installer/installed-boot acceptance before a production sign-off.</p>
+<h2 id="9-verification-layers">9. Verification layers</h2>
+<table><col><col><thead><tr><th>Layer</th><th>Purpose</th></tr></thead><tbody><tr><td>Static/source tests</td><td>API routes, settings, installer files, package prerequisites, shell/JS syntax</td></tr><tr><td>Performance tests</td><td>Shared sampling, caching and UI monitoring behavior</td></tr><tr><td>Release checks</td><td>Documentation/read-only validator/WSL workflow safety/checksum manifest format</td></tr><tr><td>Live API suite</td><td>Non-destructive desktop and app checks in a booted guest</td></tr><tr><td>Guest validator</td><td>Expected files, Wine/compatibility endpoints, terminal/Kali support and accessibility state</td></tr><tr><td>VirtualBox acceptance</td><td>Actual live boot, installer, installed boot and user-facing checks</td></tr></tbody></table>
+<p>Use <code>tools/test-live.py</code> for broad non-destructive interaction testing and <code>tools/validate-guest.py</code> for read-only built-image validation. Neither replaces a careful manual review of destructive operations such as repartitioning.</p>
+<h2 id="10-extension-guidelines">10. Extension guidelines</h2>
+<ol><li>Reuse <code>Lumina</code> client APIs instead of duplicating HTTP and token handling.</li><li>Validate all user/package/device identifiers on the server.</li><li>Prefer user-session actions; require privilege only when unavoidable.</li><li>Never report completion before the actual operation exits successfully.</li><li>Keep unrelated user work out of a feature commit.</li><li>Add focused regression tests and update release counts/QA documentation together.</li></ol>
+<p>See <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/CONTRIBUTING.md">Contributing</a> and the <a href="https://github.com/furqanam12/LuminaOS/blob/main/LuminaOS-performance/API.md">API reference</a> for implementation details.</p>
+</section></main></div>
+<footer>LuminaOS documentation · Generated from version-controlled Markdown; no third-party renderer required.<br>Review release status before distributing a new image.</footer>
+</body></html>
