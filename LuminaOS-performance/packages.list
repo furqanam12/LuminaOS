@@ -59,3 +59,25 @@ orca
 bluez
 cups
 cups-client
+# LuminaOS Universal Compatibility & Security Suite
+# Terminal/remote-support
+openssh-server
+# Flatpak / Container backends for Android (Waydroid)
+waydroid
+lxctl
+# AppImage runtime support
+fuse3
+# Kali Linux security tooling (top-10 that are free/large enough for ISO)
+nmap
+wireshark-common
+john
+aircrack-ng
+sqlmap
+hydra
+# Better Windows compatibility (optional at install; Wine configured later)
+wine64
+wine32:i386
+winetricks
+# Better compression (install various app packages)
+xz-utils
+

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Kali Terminal
+GenericName=Security Terminal
+Comment=Kali Linux Security & Penetration Testing Terminal
+Exec=lumina-terminal --kali
+Icon=lumina-terminal
+Categories=System;Security;TerminalEmulator;
+Keywords=kali;security;pentest;terminal;hacker;metasploit;nmap;wireshark;
+StartupWMClass=lumina-terminal
+StartupNotify=true
+Terminal=false

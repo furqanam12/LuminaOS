@@ -349,6 +349,86 @@
    "icon": "waydroid",
    "desc": "Experimental: run Android apps in a container. Needs an installed system with binder support.",
    "essential": false
+  },
+  {
+   "id": "nmap",
+   "name": "Nmap Network Scanner",
+   "pkg": "nmap",
+   "kind": "apt",
+   "category": "security",
+   "icon": "network-workgroup",
+   "desc": "Industry-standard network discovery and security auditing scanner.",
+   "essential": true
+  },
+  {
+   "id": "wireshark",
+   "name": "Wireshark Packet Analyzer",
+   "pkg": "wireshark",
+   "kind": "apt",
+   "category": "security",
+   "icon": "wireshark",
+   "desc": "The world\u2019s foremost network protocol analyzer and packet sniffer.",
+   "essential": true
+  },
+  {
+   "id": "john",
+   "name": "John the Ripper",
+   "pkg": "john",
+   "kind": "apt",
+   "category": "security",
+   "icon": "utilities-terminal",
+   "desc": "Fast password security auditing tool and hash cracker.",
+   "essential": false
+  },
+  {
+   "id": "aircrack-ng",
+   "name": "Aircrack-ng",
+   "pkg": "aircrack-ng",
+   "kind": "apt",
+   "category": "security",
+   "icon": "network-wireless",
+   "desc": "Complete suite of tools to assess WiFi network security.",
+   "essential": false
+  },
+  {
+   "id": "sqlmap",
+   "name": "SQLMap",
+   "pkg": "sqlmap",
+   "kind": "apt",
+   "category": "security",
+   "icon": "database",
+   "desc": "Automatic SQL injection and database takeover tool.",
+   "essential": false
+  },
+  {
+   "id": "hydra",
+   "name": "THC Hydra",
+   "pkg": "hydra",
+   "kind": "apt",
+   "category": "security",
+   "icon": "utilities-terminal",
+   "desc": "Very fast parallelized network login password cracker.",
+   "essential": false
+  },
+  {
+   "id": "bottles",
+   "name": "Bottles (Windows Apps & Games)",
+   "pkg": "com.usebottles.bottles",
+   "kind": "flatpak",
+   "category": "system",
+   "icon": "wine",
+   "desc": "Easily manage Windows wineprefixes, DLLs, dependencies and runners.",
+   "essential": false
+  },
+  {
+   "id": "winetricks",
+   "name": "Winetricks Helper",
+   "pkg": "winetricks",
+   "kind": "apt",
+   "category": "system",
+   "icon": "wine",
+   "desc": "Helper script to download and install various redistributable runtime libraries.",
+   "essential": false
   }
  ],
  "categories": [
@@ -386,6 +466,11 @@
    "id": "system",
    "name": "System",
    "icon": "cpu"
+  },
+  {
+   "id": "security",
+   "name": "Security & Kali",
+   "icon": "shield"
   }
  ]
 }

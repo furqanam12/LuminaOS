@@ -24,111 +24,53 @@ for arg in "$@"; do
     esac
 done
 
-# If Kali mode requested, prepare the Kali environment
+# Determine shell command. In Kali mode we source the system-wide profile.
+BASH_CMD="bash"
 if [ "$MODE" = "kali" ]; then
     export KALI_TERMINAL=1
     export PATH="/usr/local/sbin:/usr/sbin:/sbin:/usr/share/kali-menu:$PATH"
-    
-    # Setup Kali environment profile if not exists
-    if [ ! -f "$USER_KALI_RC" ]; then
-        cat > "$USER_KALI_RC" << 'KALI_EOF'
-# Kali Linux environment for LuminaOS
-export KALI_ENV=1
-export PATH="/usr/local/sbin:/usr/sbin:/sbin:/opt/metasploit-framework/bin:$PATH"
-
-# Signature Kali Linux colored prompt
-if [ -n "$BASH_VERSION" ]; then
-    PS1='\[\033[01;34m\]┌──(\[\033[01;31m\]kali㉿lumina\[\033[01;34m\])-[\[\033[00m\]\w\[\033[01;34m\]]\n\[\033[01;34m\]└─\[\033[01;31m\]\$\[\033[00m\] '
-fi
-
-# Kali Dragon Banner
-if [ -t 1 ] && [ -z "$KALI_BANNER_SHOWN" ]; then
-    export KALI_BANNER_SHOWN=1
-    echo -e "\033[01;34m"
-    echo "  ..............                                     "
-    echo "            ..,;:ccc,.                               "
-    echo "          ......''';lxO.                             "
-    echo ".....''''..........,:ld;                             "
-    echo "           .';;;:::;,,.x,                            "
-    echo "      ..'''.            0Xxoc:,.  ...                "
-    echo "  ....                ,ONkc;,;cokOdc',.              "
-    echo " .                   dMo           ':Collection      "
-    echo "                    dMl          LuminaOS Kali Suite "
-    echo "                    kMX:                             "
-    echo "                    ;DLc.                            "
-    echo "                     .cdl.                           "
-    echo "                        .                            "
-    echo -e "\033[01;32m[*] Kali Linux Security Environment Loaded.\033[00m"
-    echo -e "\033[00;36m[*] Available tool categories: nmap, wireshark, metasploit, burpsuite, john, hydra\033[00m"
-    echo -e "\033[00;33m[*] Type 'kali-tools' to view and install available security toolsets.\033[00m\n"
-fi
-KALI_EOF
-    fi
-
-    # Create helper command kali-tools
-    if [ ! -f "/usr/local/bin/kali-tools" ]; then
-        sudo mkdir -p /usr/local/bin 2>/dev/null || true
-        cat << 'TOOL_EOF' | sudo tee /usr/local/bin/kali-tools >/dev/null 2>&1 || true
-#!/bin/bash
-echo "=== LuminaOS Kali Linux Tools Manager ==="
-echo "1) Check Kali Repositories"
-echo "2) Install Top 10 Security Tools (nmap, wireshark, john, aircrack, etc.)"
-echo "3) Install Metasploit Framework"
-echo "4) Install Web Security Pack (burpsuite, sqlmap, nikto)"
-echo "5) Install Password Auditing Pack (hashcat, hydra, medusa)"
-echo "----------------------------------------"
-echo "For GUI management, open Lumina Compatibility Wizard or Lumina Store."
-TOOL_EOF
-        sudo chmod +x /usr/local/bin/kali-tools 2>/dev/null || true
+    if [ -f "$KALI_RC" ]; then
+        BASH_CMD="bash --rcfile '$KALI_RC' -i"
+    elif [ -f "$USER_KALI_RC" ]; then
+        BASH_CMD="bash --rcfile '$USER_KALI_RC' -i"
+    else
+        echo "Warning: Kali profile not found at $KALI_RC or $USER_KALI_RC."
+        echo "Falling back to a regular shell."
     fi
 fi
 
-# List of terminal emulators in preferred order
-CANDIDATES=(
-    "xfce4-terminal --title=\"$TITLE\""
-    "x-terminal-emulator"
-    "gnome-terminal --title=\"$TITLE\""
-    "mate-terminal --title=\"$TITLE\""
-    "lxterminal --title=\"$TITLE\""
-    "konsole"
-    "alacritty -t \"$TITLE\""
-    "kitty --title \"$TITLE\""
-    "xterm -title \"$TITLE\" -bg black -fg white"
-    "uxterm -title \"$TITLE\""
-)
-
-# If in Kali mode, pass the bash rcfile
-if [ "$MODE" = "kali" ]; then
-    CMD="bash --rcfile $USER_KALI_RC -i"
-else
-    CMD="bash"
-fi
-
-# Try launching available terminal
-for term_spec in "${CANDIDATES[@]}"; do
-    term_bin=$(echo "$term_spec" | awk '{print $1}')
-    if command -v "$term_bin" >/dev/null 2>&1; then
-        if [ "$MODE" = "kali" ]; then
-            if [ "$term_bin" = "xfce4-terminal" ]; then
-                exec xfce4-terminal --title="$TITLE" --execute bash --rcfile "$USER_KALI_RC" -i
-            elif [ "$term_bin" = "gnome-terminal" ]; then
-                exec gnome-terminal --title="$TITLE" -- bash --rcfile "$USER_KALI_RC" -i
-            elif [ "$term_bin" = "xterm" ]; then
-                exec xterm -title "$TITLE" -bg black -fg white -e bash --rcfile "$USER_KALI_RC" -i
-            else
-                exec $term_spec -e bash --rcfile "$USER_KALI_RC" -i
-            fi
-        else
-            exec $term_spec
-        fi
+TERMINALS="xfce4-terminal x-terminal-emulator gnome-terminal mate-terminal lxterminal konsole alacritty kitty xterm"
+for term in $TERMINALS; do
+    if command -v "$term" >/dev/null 2>&1; then
+        case "$term" in
+            xfce4-terminal)
+                if [ "$MODE" = "kali" ]; then
+                    exec xfce4-terminal --title="$TITLE" --execute $BASH_CMD
+                else
+                    exec xfce4-terminal --title="$TITLE"
+                fi
+                ;;
+            gnome-terminal)
+                if [ "$MODE" = "kali" ]; then
+                    exec gnome-terminal --title="$TITLE" -- $BASH_CMD
+                else
+                    exec gnome-terminal --title="$TITLE"
+                fi
+                ;;
+            x-terminal-emulator)
+                # Often a wrapper script -> can accept the same flags as xfce4-terminal or xterm
+                exec "$term" -T "$TITLE" -e $BASH_CMD ;;
+            mate-terminal|lxterminal|konsole|alacritty|kitty|xterm)
+                if [ "$MODE" = "kali" ]; then
+                    exec "$term" -T "$TITLE" -e $BASH_CMD
+                else
+                    exec "$term" -T "$TITLE"
+                fi
+                ;;
+        esac
         exit 0
     fi
 done
 
-# Absolute last resort fallback
-if command -v xterm >/dev/null 2>&1; then
-    exec xterm
-fi
-
-echo "ERROR: No graphical terminal emulator found." >&2
+echo "No terminal emulator available."
 exit 1
