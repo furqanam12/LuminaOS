@@ -312,6 +312,7 @@ class SourceTests(unittest.TestCase):
         self.assertIn('RUN=(bash --rcfile "$KALI_RC" -i)', terminal)
         self.assertIn('printf -v COMMAND_STRING', terminal)
         self.assertIn('FORWARD+=("$1")', terminal)
+        self.assertIn('exec "$term" -T "$TITLE" -e "${RUN[@]}"', terminal)
         self.assertNotIn('TERMINALS="xfce4-terminal x-terminal-emulator', terminal)
         for rel in ("build.sh", "src/libexec/lumina-pkg"):
             text = self.read(rel)

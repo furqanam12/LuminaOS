@@ -67,7 +67,7 @@ for term in $TERMINALS; do
             konsole)
                 exec "$term" -p "tabtitle=$TITLE" -e "${RUN[@]}" ;;
             alacritty)
-                exec "$term" -t "$TITLE" -e "${RUN[@]}" ;;
+                exec "$term" -T "$TITLE" -e "${RUN[@]}" ;;
             kitty)
                 exec "$term" --title="$TITLE" "${RUN[@]}" ;;
             xterm)

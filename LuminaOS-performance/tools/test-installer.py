@@ -154,7 +154,7 @@ class SourceTests(unittest.TestCase):
                    ROOT / "src/libexec/kali-tools", ROOT / "src/bin/lumina-terminal",
                    ROOT / "src/libexec/lumina-android", ROOT / "src/etc/lumina/kali-profile.sh"]
         for path in scripts:
-            shell = "bash" if path.name == "build.sh" else "sh"
+            shell = "bash" if path.name in ("build.sh", "lumina-terminal", "lumina-android", "kali-tools", "kali-profile.sh") else "sh"
             result = subprocess.run([shell, "-n", str(path)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, f"{path}: {result.stderr}")
 
