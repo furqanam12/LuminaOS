@@ -914,15 +914,18 @@ def desktop_entry(path):
         return None
 
 
-def launch_terminal(mode="standard"):
+def launch_terminal(mode="standard", cwd=None):
+    start_dir = safe_path(cwd) if cwd else HOME
+    if not os.path.isdir(start_dir):
+        start_dir = HOME
     term_bin = "/usr/bin/lumina-terminal" if os.path.exists("/usr/bin/lumina-terminal") else (shutil.which("lumina-terminal") or "")
     if term_bin:
         argv = [term_bin, "--kali"] if mode == "kali" else [term_bin]
-        spawn(argv)
+        spawn(argv, cwd=start_dir)
         return {"ok": True, "mode": mode, "launcher": term_bin}
     for alt in ["xfce4-terminal", "x-terminal-emulator", "gnome-terminal", "mate-terminal", "lxterminal", "xterm"]:
         if shutil.which(alt):
-            spawn([alt])
+            spawn([alt], cwd=start_dir)
             return {"ok": True, "mode": mode, "fallback": alt}
     return {"ok": False, "error": "No terminal emulator found"}
 
@@ -2024,7 +2027,7 @@ class Handler(BaseHTTPRequestHandler):
             mode = b.get("mode", "standard")
             return self._send(200, launch_terminal(mode))
         if p == "/api/terminal/kali":
-            return self._send(200, launch_terminal("kali"))
+            return self._send(200, launch_terminal("kali", cwd=b.get("cwd")))
         if p == "/api/compat/setup":
             what = b.get("what")
             helper = "/usr/libexec/lumina/lumina-pkg"

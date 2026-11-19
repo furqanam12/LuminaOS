@@ -471,6 +471,7 @@ function bgMenu(e) {
     { label: 'Paste', icon: 'paste', kbd: 'Ctrl+V', disabled: !clip, action: paste },
     { label: 'New folder', icon: 'folder', kbd: 'Ctrl+Shift+N', action: newFolder }, { label: 'New text document', icon: 'filetext', action: () => newFile('New text document.txt') }, '-',
     { label: 'Open in Terminal', icon: 'terminal', action: () => L.post('/api/run', { cmd: `cd '${T().path.replace(/'/g, "'\\''")}' && x-terminal-emulator` }) },
+    { label: 'Open in Kali Terminal', icon: 'terminal', action: () => L.post('/api/terminal/kali', { cwd: T().path }) },
     { label: (hidden ? 'Hide' : 'Show') + ' hidden items', icon: 'eye', action: () => { hidden = !hidden; load(); } }]);
 }
 function rubber(e) {
