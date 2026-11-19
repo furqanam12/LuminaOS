@@ -22,7 +22,8 @@
   - The two failures are the same installed-1.0 `/api/store/owner` empty-parameter crash; the source fix and regression test are in commit `9d1f26a`.
   - **12/12 built-in apps** opened in 0.5–1.6 s; filesystem, settings, notifications, audio, display, network, window actions and 19 UI pages passed.
   - Warnings: `vboxadd.service` unit reports failed while Guest Additions are active, and the VM exposes no cpufreq driver.
-- Host-test workflow is prepared at `.github/workflows/ci.yml`; pushing it requires a GitHub token with `workflow` scope.
+- GitHub Actions workflow `.github/workflows/ci.yml` runs the host suites on push.
+- Manual workflow `.github/workflows/build-iso.yml` builds a 1.1 ISO, verifies its SHA256 and uploads it as a downloadable GitHub Actions artifact.
 
 ## Not completed
 
