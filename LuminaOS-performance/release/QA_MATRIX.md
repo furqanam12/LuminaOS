@@ -10,7 +10,7 @@ Status legend: **Source-pass** = automated source validation passed. **Live-1.0-
 | TEST-02 | Automation | `tools/test-installer.py` | 10/10 pass | Source-pass |
 | TEST-03 | Automation | `tools/test-performance.py` | 51/51 pass | Source-pass |
 | TEST-04 | Automation | `tools/test-performance.js` | 25/25 pass | Source-pass |
-| TEST-05 | Automation | `tools/test-release.py` | 7/7 pass | Source-pass |
+| TEST-05 | Automation | `tools/test-release.py` | 8/8 pass | Source-pass |
 | TEST-06 | Automation | `tools/test-live.py` on installed 1.0 VM | 77/81 checks pass; 2 known 1.0-only failures fixed in source | Live-1.0-pass |
 | BOOT-01 | Live ISO | Standard GRUB entry | Boots to usable desktop | Guest-pending |
 | BOOT-02 | Live ISO | Safe-graphics GRUB entry | Boots to usable desktop with `nomodeset` | Guest-pending |

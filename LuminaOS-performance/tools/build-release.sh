@@ -45,6 +45,7 @@ echo "==> Running local validation suites"
 python3 tools/test-features.py
 python3 tools/test-installer.py
 python3 tools/test-performance.py
+python3 tools/test-release.py
 node tools/test-performance.js
 
 echo "==> Building ISO"
@@ -70,7 +71,7 @@ with iso.open("rb") as f:
         sha.update(block)
 data = {
     "product": "LuminaOS",
-    "version": version,
+    "version": str(version),
     "built_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "iso": str(iso),
     "iso_bytes": iso.stat().st_size,

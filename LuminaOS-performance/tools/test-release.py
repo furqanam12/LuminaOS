@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Focused checks for the LuminaOS 1.1 release-readiness kit."""
 import ast
+import json
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -83,6 +85,25 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("pending", status.lower())
         self.assertIn("No ISO was built", status)
         self.assertIn("No virtual machine was booted", status)
+    def test_release_manifest_is_json_serializable(self):
+        builder = (ROOT / "tools/build-release.sh").read_text(encoding="utf-8")
+        start = builder.index("<<'PY'\n") + len("<<'PY'\n")
+        end = builder.index("\nPY\n", start)
+        script = builder[start:end]
+        with tempfile.TemporaryDirectory(prefix="lumina-manifest-") as temp:
+            temp_path = pathlib.Path(temp)
+            iso = temp_path / "LuminaOS-1.1-amd64.iso"
+            checksum = temp_path / (iso.name + ".sha256")
+            manifest = temp_path / "build-manifest.json"
+            iso.write_bytes(b"LuminaOS manifest fixture")
+            checksum.write_text("fixture", encoding="ascii")
+            result = subprocess.run([sys.executable, "-c", script, str(iso), str(checksum), "1.1", str(manifest)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            self.assertEqual(data["version"], "1.1")
+            self.assertEqual(data["product"], "LuminaOS")
+            self.assertEqual(data["guest_validation"], "pending")
+            self.assertEqual(len(data["iso_sha256"]), 64)
 
 
 if __name__ == "__main__":
