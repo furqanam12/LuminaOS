@@ -2141,22 +2141,25 @@ class Handler(BaseHTTPRequestHandler):
         # ---------------------------------------------------------------- user accounts (5.7)
         if p == "/api/users/add":
             name = b.get("name", "")
+            pw = b.get("password", "")
             if not re.fullmatch(r"[a-z_][a-z0-9_-]*", name):
                 return self._send(200, {"ok": False, "error": "invalid username"})
-            try:
-                import subprocess as _sp
-                _sp.run(["useradd", "-m", name], capture_output=True)
-                return self._send(200, {"ok": True})
-            except Exception as e:
-                return self._send(200, {"ok": False, "error": str(e)})
+            if not pw or len(pw) < 4:
+                return self._send(200, {"ok": False, "error": "password must be at least 4 characters"})
+            rc, out = sh_rc(["useradd", "-m", "-s", "/bin/bash", name], 20)
+            if rc != 0:
+                return self._send(200, {"ok": False, "error": out[-300:] or "useradd failed"})
+            rc2, out2 = sh_rc(["chpasswd"], 20, "%s:%s\n" % (name, pw))
+            if rc2 != 0:
+                sh_rc(["userdel", "-r", name], 20)
+                return self._send(200, {"ok": False, "error": out2[-300:] or "password setup failed"})
+            return self._send(200, {"ok": True})
         if p == "/api/users/remove":
             name = b.get("name", "")
-            try:
-                import subprocess as _sp
-                _sp.run(["userdel", "-r", name], capture_output=True)
-                return self._send(200, {"ok": True})
-            except Exception as e:
-                return self._send(200, {"ok": False, "error": str(e)})
+            if not re.fullmatch(r"[a-z_][a-z0-9_-]*", name):
+                return self._send(200, {"ok": False, "error": "invalid username"})
+            rc, out = sh_rc(["userdel", "-r", name], 30)
+            return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-300:]})
         # ---------------------------------------------------------------- printers (5.8)
         if p == "/api/printers/add":
             uri = str(b.get("uri", "")).strip()

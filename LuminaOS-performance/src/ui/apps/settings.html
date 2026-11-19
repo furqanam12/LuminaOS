@@ -182,22 +182,25 @@ const PAGES = {
   async display(pg) {
     const d = await L.get('/api/display');
     const o = d.outputs[0];
-    pg.innerHTML = head() + `<div class="h2">Brightness & colour</div>
-      ${row('sun', 'Brightness', 'Adjust the brightness of the built-in display', slider('br', S().brightness ?? 100, 20, 100))}
-      ${row('moon', 'Night light', 'Use warmer colours to help block blue light', sw('nl', S().nightLight))}
+    pg.innerHTML = head('Display') + `<div class="h2">Brightness & colour</div>
+      ${row('sun', 'Brightness', 'Apply to the primary display', slider('br', S().brightness ?? 100, 20, 100))}
+      ${row('moon', 'Night light', 'Warmer colours in the evening', sw('nl', S().nightLight))}
       ${row('contrast', 'Theme', 'Choose between light and dark', `<select class="input" id="thm"><option value="dark">Dark</option><option value="light" ${S().theme === 'light' ? 'selected' : ''}>Light</option></select>`)}
-      <div class="h2">Scale & layout</div>
-      ${row('monitor', 'Display resolution', o ? `${L.esc(o.name)} · currently ${o.current}` : 'No display information', o ? `<select class="input" id="res">${o.modes.map(x => `<option ${x === o.current ? 'selected' : ''}>${x}</option>`).join('')}</select>` : '')}
-      ${row('access', 'Animation effects', 'Spring animations when opening windows and menus', sw('anim', !S().reduceMotion))}`;
+      ${row('access', 'Animation effects', 'Spring animations when opening windows and menus', sw('anim', !S().reduceMotion))}
+      <div class="h2">Displays & resolution</div>`
+      + (d.outputs || []).map(x => `<div class="card" style="padding:16px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-weight:600">${L.esc(x.name)}${x.primary ? '  <span class="pill ok">primary</span>' : ''}</b><span class="muted">${x.current}</span></div>`
+      + `<div class="h2" style="margin-top:6px">Resolution</div><select class="input" id="disp-${L.esc(x.name)}" style="width:220px">${(x.modes || []).map(m => `<option>${L.esc(m)}</option>`).join('') || '<option>None</option>'}</select>`
+      + `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn small primary" data-out="${L.esc(x.name)}" id="apply-disp-${L.esc(x.name)}">Apply</button></div></div>`).join('')
+      + (d.outputs && d.outputs.length ? '<div class="h2" style="margin-top:14px">Note</div><div class="card muted">Resolution changes take effect immediately. If the screen goes blank, it will revert in 15 seconds.</div>' : '<div class="card empty">No displays detected</div>');
     on('br', 'change', e => L.setSettings({ brightness: +e.target.value }));
     on('nl', 'change', e => L.setSettings({ nightLight: e.target.checked }));
     on('thm', 'change', e => L.setSettings({ theme: e.target.value }));
     on('anim', 'change', e => L.setSettings({ reduceMotion: !e.target.checked }));
-    on('res', 'change', async e => {
-      const old = o.current, r = await L.post('/api/display', { output: o.name, mode: e.target.value });
-      if (!r.ok) return L.dialog({ title: "Couldn't change resolution", text: r.msg });
-      let n = 12; const keep = await Promise.race([L.dialog({ title: 'Keep these display settings?', text: 'Reverting to previous resolution in 12 seconds.', buttons: ['Keep changes', 'Revert'] }), new Promise(res => setTimeout(() => res(null), n * 1000))]);
-      if (!keep) { await L.post('/api/display', { output: o.name, mode: old }); document.querySelector('.modal-bg') && document.querySelector('.modal-bg').remove(); render(); }
+    d.outputs?.forEach(o => {
+      const sel = $(`#disp-${L.esc(o.name)}`);
+      if (sel) { sel.value = o.current; sel.onchange = e => { $(`#apply-disp-${L.esc(o.name)}`).dataset.new = e.target.value; }; }
+      const btn = $(`#apply-disp-${L.esc(o.name)}`);
+      if (btn) btn.onclick = async () => { const m = btn.dataset.new || o.current; const r = await L.post('/api/display', { output: o.name, mode: m }); if (!r.ok) L.dialog({ title: 'Could not apply resolution', text: r.msg || 'Try a different resolution.' }); };
     });
   },
   async sound(pg) {
@@ -270,6 +273,15 @@ const PAGES = {
       + `<div style="margin-top:6px"><button class="btn small primary" id="prof-apply">Apply</button></div>`
       + `<div class="h2">Display</div>` + row('monitor', 'Brightness', 'Screen brightness', slider('brt', s.brightness||100, 0, 100))
       + `<div class="h2">Sound</div>` + row('volume', 'Input mic', 'Default input device', `<select class="input" id="in-dev" style="width:200px"></select>`);
+    on('plock', 'click', () => L.post('/api/power', { action: 'lock' }));
+    on('psleep', 'click', () => L.post('/api/power', { action: 'suspend' }));
+    on('preb', 'click', async () => { if (await L.dialog({ title: 'Restart computer?', text: 'Unsaved work will be lost.', buttons: ['Restart', 'Cancel'] })) L.post('/api/power', { action: 'reboot' }); });
+    on('poff', 'click', async () => { if (await L.dialog({ title: 'Shut down computer?', text: 'Unsaved work will be lost.', buttons: ['Shut down', 'Cancel'] })) L.post('/api/power', { action: 'shutdown' }); });
+    on('blank', 'change', async e => {
+      L.setSettings({ blank: +e.target.value });
+      const v = +e.target.value;
+      await L.post('/api/run', { cmd: `xset s ${v} ${v}; xset dpms ${v} ${v} ${v}` });
+    });
     on('prof', 'change', e => L.setSettings({ performancePreset: e.target.value }));
     on('prof-apply', 'click', async () => {
       const r = await L.post('/api/power/profile', { profile: $('#prof').value });
@@ -284,21 +296,6 @@ const PAGES = {
     };
     inp();
     on('in-dev', 'change', e => L.post('/api/audio/input/set', { device: e.target.value }));
-  },
-  async display(pg) {
-    const d = await L.get('/api/display');
-    const out = o => `<option>${L.esc(o)}</option>`;
-    pg.innerHTML = head('Display') + `<div class="hero"><div style="flex:1"><h2>Displays</h2><div class="muted">Arrange, resolution and brightness for each connected display.</div></div></div>`
-      + (d.outputs || []).map(o => `<div class="card" style="padding:16px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-weight:600">${L.esc(o.name)}${o.primary ? '  <span class="pill ok">primary</span>' : ''}</b><span class="muted">${o.current}</span></div>`
-      + `<div class="h2" style="margin-top:6px">Resolution</div><select class="input" id="disp-${L.esc(o.name)}" style="width:220px">${(o.modes || []).map(m => out(m)).join('') || '<option>None</option>'}</select>`
-      + `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn small primary" data-out="${L.esc(o.name)}" id="apply-disp-${L.esc(o.name)}">Apply</button></div></div>`).join('')
-      + (d.outputs && d.outputs.length ? `<div class="h2" style="margin-top:14px">Note</div><div class="card muted">Resolution changes take effect immediately. If the screen goes blank, it will revert in 15 seconds.</div>` : '<div class="card empty">No displays detected</div>');
-    d.outputs?.forEach(o => {
-      const sel = $(`#disp-${L.esc(o.name)}`);
-      if (sel) { sel.value = o.current; sel.onchange = e => { $(`#apply-disp-${L.esc(o.name)}`).dataset.new = e.target.value; }; }
-      const btn = $(`#apply-disp-${L.esc(o.name)}`);
-      if (btn) btn.onclick = async () => { const m = btn.dataset.new || o.current; const r = await L.post('/api/display', { output: o.name, mode: m }); if (!r.ok) L.dialog({ title: 'Could not apply resolution', text: r.msg || 'Try a different resolution.' }); };
-    });
   },
   async storage(pg) {
     const [d, pl] = await Promise.all([L.get('/api/stats'), L.get('/api/fs/places')]);
@@ -477,8 +474,8 @@ const PAGES = {
       const pass = $('#upass').value;
       const pass2 = $('#upass2').value;
       if (!name || !pass || pass !== pass2) return L.dialog({ title: 'Invalid input', text: 'Enter a username and matching passwords.' });
-      const r = await L.post('/api/users/add', { name });
-      if (r.ok) L.notify('User created', name + ' can now sign in.', 'user', 'Settings');
+      const r = await L.post('/api/users/add', { name, password: pass });
+      if (r.ok) { L.notify('User created', name + ' can now sign in.', 'user', 'Settings'); $('#uname').value = $('#upass').value = $('#upass2').value = ''; render(); }
       else L.dialog({ title: 'Failed', text: r.error || 'Could not create user.' });
     });
     pg.querySelectorAll('[id^="usr-del-"]').forEach(b => b.onclick = async () => {
