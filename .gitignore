@@ -9,3 +9,14 @@ desktop.ini
 # Temporary/partial downloads
 *.tmp
 *.part
+*.partial
+__pycache__/
+
+# Generated LuminaOS images, build environments and local VM evidence
+LuminaOS-performance/work/
+LuminaOS-performance/LuminaOS-*-amd64.iso
+LuminaOS-performance/LuminaOS-*-amd64.iso.sha256
+LuminaOS-performance/release/build-manifest.json
+LuminaOS-performance/release/vm-live-report.json
+LuminaOS-performance/release/lumina-live-report.json
+LuminaOS-performance/release/vm-*.png

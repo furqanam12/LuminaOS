@@ -54,6 +54,8 @@ def main():
     global BASE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default=BASE, help="Local Lumina API origin")
+    parser.add_argument("--session", choices=("auto", "live", "installed"), default="auto",
+                        help="Expected guest session type. Default: detect from /api/sys")
     args = parser.parse_args()
     if not args.base.startswith("http://127.0.0.1:") and not args.base.startswith("http://localhost:"):
         parser.error("Only a loopback Lumina API origin is allowed")
@@ -89,10 +91,14 @@ def main():
     check("System information", bool(sysinfo.get("user") and sysinfo.get("os")), sysinfo.get("os", ""))
     check("First-run API", "live" in first_run and "complete" in first_run,
           "live=%s complete=%s" % (first_run.get("live"), first_run.get("complete")))
-    check("Installed mode", not sysinfo.get("live"), "live session" if sysinfo.get("live") else "installed")
-    check("System checks", bool(boot_checks.get("ok")),
-          "%s/%s checks OK" % (sum(1 for c in boot_checks.get("checks", []) if c.get("ok")),
-                               len(boot_checks.get("checks", []))))
+    is_live = bool(sysinfo.get("live")) if args.session == "auto" else args.session == "live"
+    check("Session mode", True, "live session" if is_live else "installed")
+    installed_checks = boot_checks.get("checks", [])
+    if is_live:
+        check("Installed-boot checks", True, "not applicable during live-session evaluation")
+    else:
+        check("System checks", bool(boot_checks.get("ok")),
+              "%s/%s checks OK" % (sum(1 for c in installed_checks if c.get("ok")), len(installed_checks)))
     check("Windows and Android compatibility API", all(k in compat for k in ("wine", "flatpak", "waydroid", "weston", "binder")), str(compat)[:160])
     check("Accessibility state", all(k in a11y for k in ("screenReader", "installed", "atspi")), a11y.get("installed", "unknown"))
     check("Bluetooth state", all(k in bluetooth for k in ("available", "powered", "devices")), "adapter available" if bluetooth.get("available") else "no adapter (valid on VM)")
@@ -104,11 +110,14 @@ def main():
     for name, path in FILES.items():
         check(name, os.path.exists(path), path)
 
-    try:
-        grub = open("/boot/grub/grub.cfg", encoding="utf-8", errors="ignore").read().lower()
-        check("GRUB safe graphics entry", "safe graphics" in grub, "/boot/grub/grub.cfg")
-    except Exception as e:
-        check("GRUB safe graphics entry", False, str(e))
+    if is_live:
+        check("Installed GRUB recovery", True, "not applicable during live-session evaluation")
+    else:
+        try:
+            grub = open("/boot/grub/grub.cfg", encoding="utf-8", errors="ignore").read().lower()
+            check("GRUB safe graphics entry", "safe graphics" in grub, "/boot/grub/grub.cfg")
+        except Exception as e:
+            check("GRUB safe graphics entry", False, str(e))
     try:
         shortcuts = open(FILES["Keyboard shortcuts"], encoding="utf-8", errors="ignore").read()
         check("Command palette shortcut", "lumina-ctl command" in shortcuts and "&lt;Primary&gt;k" in shortcuts,

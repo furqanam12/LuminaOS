@@ -21,6 +21,7 @@ REQUIRED_SCRIPTS = [
     "tools/build-release.sh", "tools/validate-guest.py",
     "release/wsl2/prepare-wsl2.ps1", "release/wsl2/wsl-build.sh",
     "release/wsl2/build-in-wsl.ps1", "release/wsl2/vm-acceptance.ps1",
+    "tools/vm-acceptance.py", "tools/download-artifact.py", "tools/build-docs.py",
 ]
 
 
@@ -51,6 +52,10 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         source = (ROOT / "tools/validate-guest.py").read_text(encoding="utf-8")
         compile(source, str(ROOT / "tools/validate-guest.py"), "exec")
+        for rel in REQUIRED_SCRIPTS:
+            if rel.endswith(".py"):
+                source = (ROOT / rel).read_text(encoding="utf-8")
+                compile(source, str(ROOT / rel), "exec")
         for rel in ("release/wsl2/wsl-build.sh", "virtualbox/create-luminaos-vm.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / rel)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, rel + ": " + result.stderr)
@@ -59,6 +64,8 @@ class ReleaseTests(unittest.TestCase):
         source = (ROOT / "tools/validate-guest.py").read_text(encoding="utf-8")
         for forbidden in ("urlopen(request", "Request(", "L.setSettings", "subprocess", "os.chmod", "os.remove"):
             self.assertNotIn(forbidden, source)
+        self.assertIn('--session', source)
+        self.assertIn("not applicable during live-session evaluation", source)
 
     def test_wsl2_workflow_safety(self):
         readme = (RELEASE / "wsl2/README.md").read_text(encoding="utf-8")

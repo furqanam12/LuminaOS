@@ -227,6 +227,9 @@ Write-Host &quot;ISO checksum verified: $actual&quot;</code></pre>
 <p>It checks expected API fields, package/runtime presence, Wine, Kali terminal, accessibility and Bluetooth response shapes. It does not install packages or change settings.</p>
 <p>For broader non-destructive app checks:</p>
 <pre><code class="language-sh">DISPLAY=:0 XAUTHORITY=&quot;$HOME/.Xauthority&quot; python3 tools/test-live.py</code></pre>
+<p>For an isolated <strong>Windows + VirtualBox</strong> acceptance run, <code>tools/vm-acceptance.py</code> creates a brand-new VM (and refuses reused names), boots only the live ISO, forwards loopback port 2225 for SSH, uploads just the test scripts to a temporary guest folder, and captures JSON/screenshots locally. Install <code>paramiko</code> in a project-local virtual environment if needed, then run:</p>
+<pre><code class="language-powershell">python tools/vm-acceptance.py --iso E:\LuminaOS-Artifacts\LuminaOS-1.1-amd64.iso --ram 2048 --basefolder E:\LuminaOS-Acceptance</code></pre>
+<p>It never boots/modifies an older VM and never powers the new VM off automatically. Read the reported exit statuses and evidence files; successful boot alone is not a passing release test.</p>
 <p>Run that command inside the graphical guest session (or through SSH with the correct display authority). Review its JSON report for failures and warnings. Restore demo settings, close test windows, clear test notifications and do not reset or power off another user's session without permission.</p>
 <p>Also complete the relevant rows in:</p>
 <ul><li><code>release/QA_MATRIX.md</code></li><li><code>release/RELEASE_CHECKLIST.md</code></li><li><code>release/SIGNOFF_TEMPLATE.md</code></li></ul>

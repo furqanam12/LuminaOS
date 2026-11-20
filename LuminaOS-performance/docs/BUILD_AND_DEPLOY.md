@@ -146,6 +146,14 @@ For broader non-destructive app checks:
 DISPLAY=:0 XAUTHORITY="$HOME/.Xauthority" python3 tools/test-live.py
 ```
 
+For an isolated **Windows + VirtualBox** acceptance run, `tools/vm-acceptance.py` creates a brand-new VM (and refuses reused names), boots only the live ISO, forwards loopback port 2225 for SSH, uploads just the test scripts to a temporary guest folder, and captures JSON/screenshots locally. Install `paramiko` in a project-local virtual environment if needed, then run:
+
+```powershell
+python tools/vm-acceptance.py --iso E:\LuminaOS-Artifacts\LuminaOS-1.1-amd64.iso --ram 2048 --basefolder E:\LuminaOS-Acceptance
+```
+
+It never boots/modifies an older VM and never powers the new VM off automatically. Read the reported exit statuses and evidence files; successful boot alone is not a passing release test.
+
 Run that command inside the graphical guest session (or through SSH with the correct display authority). Review its JSON report for failures and warnings. Restore demo settings, close test windows, clear test notifications and do not reset or power off another user's session without permission.
 
 Also complete the relevant rows in:
