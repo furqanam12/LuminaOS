@@ -24,9 +24,11 @@
   #widget .s { display: flex; gap: 14px; margin-top: 16px; font-size: 12px; opacity: .85; }
   #widget .s div { flex: 1; background: rgba(255,255,255,.1); border-radius: 12px; padding: 8px 10px; }
   #widget .s b { display: block; font-size: 17px; font-weight: 500; margin-top: 2px; }
-  #boot { position: fixed; inset: 0; background: #000; display: grid; place-items: center; z-index: 10; transition: opacity 700ms ease 200ms; }
+  #boot { position: fixed; inset: 0; background: #000; display: grid; place-items: center; z-index: 10; transition: opacity 700ms ease 200ms;
+    animation: bootFailsafe 1ms linear 12s forwards; }
   #boot img { width: 72px; animation: popIn 700ms var(--spring); }
-  #boot.gone { opacity: 0; pointer-events: none; }
+  #boot.gone { opacity: 0; pointer-events: none; animation: none; }
+  @keyframes bootFailsafe { to { opacity: 0; pointer-events: none; } }
   #rubber { position: fixed; z-index: 6; border: 1px solid rgba(var(--accent-rgb), .9); background: rgba(var(--accent-rgb), .18); border-radius: 3px; display: none; }
 </style></head>
 <body>
@@ -43,8 +45,10 @@ let cur = null, front = 'w1', desktopPath = null, sel = new Set();
 let desktopPathResolved = false, iconsLoading = false, iconsReloadPending = false, iconsForcePending = false, iconsSignature = null;
 let widgetTickTimer = null, widgetStatsTimer = null, widgetStatsDelay = 0, statsLoading = false, statsRefreshPending = false;
 function setWall(name) {
+  name = name || 'aurora.jpg';
   if (name === cur) return; cur = name;
   const url = '/api/wallpaper/file?name=' + encodeURIComponent(name);
+  const boot = document.getElementById('boot');
   const img = new Image();
   img.onload = () => {
     const back = front === 'w1' ? 'w2' : 'w1';
@@ -53,9 +57,9 @@ function setWall(name) {
     b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
     setTimeout(() => f.classList.remove('on'), 950);
     front = back;
-    document.getElementById('boot').classList.add('gone');
+    boot.classList.add('gone');
   };
-  img.onerror = () => document.getElementById('boot').classList.add('gone');
+  img.onerror = () => boot.classList.add('gone');
   img.src = url;
 }
 const ICONMAP = { folder: 'files', 'inode/directory': 'files' };
@@ -71,10 +75,12 @@ async function loadIcons(force = false) {
   if (force === true) iconsSignature = null;
   try {
     if (!desktopPathResolved) {
-      const places = await L.get('/api/fs/places');
-      const d = places.places.find(p => p.icon === 'desktop');
-      desktopPath = d ? d.path : null;
-      desktopPathResolved = true;
+      try {
+        const places = await L.get('/api/fs/places');
+        const d = (places.places || []).find(p => p.icon === 'desktop');
+        desktopPath = d ? d.path : null;
+        desktopPathResolved = true;
+      } catch (e) { /* Keep the built-in icons; retry on the next tick. */ }
     }
     const box = document.getElementById('icons');
     const items = [{ name: 'This PC', icon: '/ui/img/apps/disks.svg', open: () => L.app('files', ['computer:']) },
@@ -146,13 +152,13 @@ document.addEventListener('contextmenu', (e) => {
   ]);
 });
 function tick() {
-  if (!L.settings.widgets) return;
+  if (!L.settings || !L.settings.widgets) return;
   const d = new Date();
   document.getElementById('wt').textContent = L.time(d);
   document.getElementById('wd').textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 async function stats() {
-  if (!L.settings.widgets) return;
+  if (!L.settings || !L.settings.widgets) return;
   if (statsLoading) { statsRefreshPending = true; return; }
   statsLoading = true;
   try {
@@ -167,7 +173,9 @@ async function stats() {
   }
 }
 function apply(s) {
-  setWall(s.wallpaper); document.getElementById('widget').classList.toggle('on', !!s.widgets);
+  s = s || L.settings || {};
+  setWall(s.wallpaper || 'aurora.jpg');
+  document.getElementById('widget').classList.toggle('on', !!s.widgets);
   if (!s.widgets) {
     clearInterval(widgetTickTimer); clearInterval(widgetStatsTimer);
     widgetTickTimer = null; widgetStatsTimer = null; widgetStatsDelay = 0;
@@ -181,7 +189,10 @@ function apply(s) {
     widgetStatsTimer = setInterval(stats, delay); stats();
   }
 }
-L.init().then(s => { apply(s); loadIcons(); setInterval(loadIcons, 15000); });
+L.init().then(s => {
+  s = s || L.settings || {};
+  apply(s); loadIcons(); setInterval(loadIcons, 15000);
+}).catch(e => { console.error('desktop init', e); loadIcons(); });
 L.on('settings', apply);
 L.on('ui', m => { if (m.cmd === 'desktop-refresh') loadIcons(true); });
 </script></body></html>

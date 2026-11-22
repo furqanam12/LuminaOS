@@ -152,6 +152,7 @@ L.on('net', n => { netRevision++; setIcon('net', netIcon(n)); });
 L.on('settings', s => { document.body.classList.toggle('focus', !!s.focus); refreshTimers(); });
 document.addEventListener('visibilitychange', refreshTimers);
 L.init().then(s => {
+  s = s || L.settings || {};
   document.body.classList.toggle('focus', !!s.focus);
   timersReady = true; refreshTimers();
   L.get('/api/windows').then(onWindows);

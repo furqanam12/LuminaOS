@@ -8,6 +8,11 @@ HarmonyOS-like rounded corners and spring animations).
 """
 import os, sys, json, urllib.parse, urllib.request, signal
 
+# Match the shell's WebKit software path (see lumina-session).
+if os.environ.get("LUMINA_WEBKIT_DMABUF") != "1":
+    os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+    os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")

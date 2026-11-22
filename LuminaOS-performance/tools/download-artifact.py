@@ -105,7 +105,7 @@ def main() -> int:
                 return index
             except Exception as exc:
                 last_error = exc
-                time.sleep(min(attempt + 1, 4))
+                time.sleep(min(2 ** attempt, 20))
         raise RuntimeError("Range %d failed after retries: %s" % (index, last_error))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:

@@ -7,6 +7,12 @@ window is a transparent WebKit view; the UI lives in /usr/share/lumina/ui.
 """
 import os, sys, json, time, threading, subprocess, shutil, signal
 
+# WebKit must see these before it initialises.  lumina-session sets them for
+# the normal desktop; this covers direct shell launches as well.
+if os.environ.get("LUMINA_WEBKIT_DMABUF") != "1":
+    os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+    os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+
 ROOT = os.environ.get("LUMINA_ROOT", "/usr/share/lumina")
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
@@ -306,11 +312,10 @@ class Shell:
             mem = psutil.virtual_memory().percent
             disk = psutil.disk_usage("/").percent
             net = psutil.net_io_counters()
-            self.perf.js(json.dumps({
-                "cmd": "perf-tick",
+            self.perf.send("perf-tick", {
                 "cpu": cpu, "mem": mem, "disk": disk,
                 "rx": net.bytes_recv, "tx": net.bytes_sent
-            }))
+            })
         except Exception:
             pass
         return True

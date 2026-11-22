@@ -19,9 +19,10 @@ body { margin: 0; padding: 12px; background: var(--bg-win); color: var(--fg); fo
   <div class="stat net"><span class="stat-label">Net I/O</span><span class="stat-value" id="netio">0 B/s</span><div class="progress"><i class="bar" id="netio-bar"></i></div></div>
   <div class="stat"><span class="stat-label">Uptime</span><span class="stat-value" id="uptime">--</span></div>
 </div>
+<script src="js/lumina.js"></script>
 <script>
 (function() {
-  const L = window.Lumina = {};
+  const L = Lumina;
   L.on('perf-tick', function(d) {
     const pct = v => v.toFixed(1) + '%';
     document.getElementById('cpu').textContent = pct(d.cpu);

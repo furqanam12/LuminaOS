@@ -1856,6 +1856,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/auth", "/api/run", "/api/snip", "/api/wallpaper/upload",
             "/api/printers/add", "/api/printers/default", "/api/a11y",
             "/api/bt/scan", "/api/bt/pair", "/api/bt/connect", "/api/bt/remove", "/api/bt/power",
+            "/api/users/add", "/api/users/remove",
         }
         if p in SENSITIVE_POST and not token_ok(self.headers):
             return self._send(401, {"error": "authentication required"})
@@ -2195,25 +2196,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": False, "error": str(e)})
         # ---------------------------------------------------------------- user accounts (5.7)
         if p == "/api/users/add":
-            name = b.get("name", "")
+            name = str(b.get("name", "")).strip()
             pw = b.get("password", "")
             if not re.fullmatch(r"[a-z_][a-z0-9_-]*", name):
                 return self._send(200, {"ok": False, "error": "invalid username"})
-            if not pw or len(pw) < 4:
-                return self._send(200, {"ok": False, "error": "password must be at least 4 characters"})
-            rc, out = sh_rc(["useradd", "-m", "-s", "/bin/bash", name], 20)
-            if rc != 0:
-                return self._send(200, {"ok": False, "error": out[-300:] or "useradd failed"})
-            rc2, out2 = sh_rc(["chpasswd"], 20, "%s:%s\n" % (name, pw))
-            if rc2 != 0:
-                sh_rc(["userdel", "-r", name], 20)
-                return self._send(200, {"ok": False, "error": out2[-300:] or "password setup failed"})
-            return self._send(200, {"ok": True})
+            if not isinstance(pw, str) or len(pw) < 4 or any(c in pw for c in "\r\n\0"):
+                return self._send(200, {"ok": False, "error": "invalid password (minimum 4 characters; newlines not allowed)"})
+            helper = "/usr/libexec/lumina/lumina-pkg"
+            argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper])
+            rc, out = sh_rc(argv + ["user-add", name], 60, pw + "\n")
+            return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-300:]})
         if p == "/api/users/remove":
-            name = b.get("name", "")
+            name = str(b.get("name", "")).strip()
             if not re.fullmatch(r"[a-z_][a-z0-9_-]*", name):
                 return self._send(200, {"ok": False, "error": "invalid username"})
-            rc, out = sh_rc(["userdel", "-r", name], 30)
+            if name in ("root", pwd.getpwuid(os.getuid()).pw_name):
+                return self._send(200, {"ok": False, "error": "You cannot remove the active or root account"})
+            helper = "/usr/libexec/lumina/lumina-pkg"
+            argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper])
+            rc, out = sh_rc(argv + ["user-remove", name], 60)
             return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-300:]})
         # ---------------------------------------------------------------- printers (5.8)
         if p == "/api/printers/add":
@@ -2221,15 +2222,19 @@ class Handler(BaseHTTPRequestHandler):
             name = str(b.get("name", "Printer")).strip()
             if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name):
                 return self._send(200, {"ok": False, "error": "invalid printer name"})
-            if not uri or len(uri) > 500:
+            if not re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*://[^\s\u0000-\u001f]{1,493}", uri):
                 return self._send(200, {"ok": False, "error": "invalid device URI"})
-            rc, out = sh_rc(["lpadmin", "-p", name, "-v", uri, "-E"], 30)
+            helper = "/usr/libexec/lumina/lumina-pkg"
+            argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper])
+            rc, out = sh_rc(argv + ["printer-add", name, uri], 45)
             return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-600:]})
         if p == "/api/printers/default":
             name = str(b.get("name", "")).strip()
             if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name):
                 return self._send(200, {"ok": False, "error": "invalid printer name"})
-            rc, out = sh_rc(["lpadmin", "-d", name], 15)
+            helper = "/usr/libexec/lumina/lumina-pkg"
+            argv = (["sudo", "-n", helper] if sh_rc(["sudo", "-n", "true"])[0] == 0 else ["pkexec", helper])
+            rc, out = sh_rc(argv + ["printer-default", name], 30)
             return self._send(200, {"ok": rc == 0, "error": None if rc == 0 else out[-600:]})
         # ---------------------------------------------------------------- Bluetooth management
         if p == "/api/bt/scan":

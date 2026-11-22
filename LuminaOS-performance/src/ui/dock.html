@@ -213,11 +213,24 @@ function updateGlass() {
 new ResizeObserver(() => updateGlass()).observe($('dock'));
 
 $('bell').onclick = () => L.ui('notifications');
-async function loadApps() { apps = await L.get('/api/apps'); appsById = {}; apps.forEach(a => appsById[a.id] = a); build(); }
-async function loadNotifs() { const n = await L.get('/api/notifications'); setCount((n.items || n).length); }
+async function loadApps() {
+  try {
+    const r = await L.get('/api/apps');
+    apps = Array.isArray(r) ? r : [];
+  } catch (e) { apps = []; }
+  appsById = {};
+  apps.forEach(a => { if (a && a.id) appsById[a.id] = a; });
+  build();
+}
+async function loadNotifs() {
+  try {
+    const n = await L.get('/api/notifications');
+    setCount((Array.isArray(n) ? n : (n && n.items) || []).length);
+  } catch (e) { setCount(0); }
+}
 function setCount(c) { nCount = c; $('bn').textContent = c > 9 ? '9+' : c; $('bell').classList.toggle('has', c > 0); }
 const startT = Date.now();
-function applySize() { document.documentElement.style.setProperty('--s', (L.settings.dockSize || 44) + 'px'); setTimeout(updateGlass, 50); }
+function applySize() { document.documentElement.style.setProperty('--s', ((L.settings && L.settings.dockSize) || 44) + 'px'); setTimeout(updateGlass, 50); }
 L.on('windows', ws => { windows = ws || []; build(); });
 L.on('apps-changed', () => setTimeout(loadApps, 500));
 L.on('launching', d => { /* app started from elsewhere */ });
@@ -230,6 +243,7 @@ L.on('ui', m => { if (m.cmd === 'overlay-state') { overlayMode = m.mode; build()
 L.init().then(async () => {
   applySize();
   await loadApps();
-  windows = await L.get('/api/windows') || []; build(); loadNotifs();
-});
+  try { windows = await L.get('/api/windows') || []; } catch (e) { windows = []; }
+  build(); loadNotifs();
+}).catch(() => {});
 </script></body></html>

@@ -6,6 +6,14 @@ export DESKTOP_SESSION=lumina
 export GTK_OVERLAY_SCROLLING=1
 export QT_QPA_PLATFORMTHEME=gtk3
 export NO_AT_BRIDGE=1
+# WebKitGTK 2.54's DMA-BUF renderer fails on VirtualBox/VMware/QEMU guests
+# without 3D acceleration and paints the shell windows solid black.  The
+# software path is reliable and fast enough for this 2D desktop.  Set
+# LUMINA_WEBKIT_DMABUF=1 to opt back in on a real GPU.
+if [ "${LUMINA_WEBKIT_DMABUF:-0}" != "1" ]; then
+  export WEBKIT_DISABLE_DMABUF_RENDERER=1
+  export WEBKIT_DISABLE_COMPOSITING_MODE=1
+fi
 [ -f "$HOME/.config/lumina/env" ] && . "$HOME/.config/lumina/env"
 
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then

@@ -212,14 +212,15 @@ function fileThumb(f) {
 }
 async function renderStart() {
   const box = $('pinned'); box.innerHTML = ''; box.classList.remove('stagger'); void box.offsetWidth; box.classList.add('stagger');
-  (L.settings.startPinned || []).map(id => byId[id]).filter(Boolean).slice(0, 18).forEach(a => box.appendChild(gi(a)));
+  ((L.settings && L.settings.startPinned) || []).map(id => byId[id]).filter(Boolean).slice(0, 18).forEach(a => box.appendChild(gi(a)));
   const al = $('alllist'); al.innerHTML = '';
   let letter = '';
-  apps.forEach(a => {
-    const l = (a.name[0] || '#').toUpperCase();
+  (apps || []).forEach(a => {
+    const name = a.name || a.id || 'App';
+    const l = (name[0] || '#').toUpperCase();
     if (l !== letter) { letter = l; al.insertAdjacentHTML('beforeend', `<div class="letter">${L.esc(/[A-Z]/.test(l) ? l : '#')}</div>`); }
     const d = document.createElement('div'); d.className = 'ai';
-    d.innerHTML = `<img src="${L.appIcon(a)}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(a.name)}</span>`;
+    d.innerHTML = `<img src="${L.appIcon(a)}" onerror="this.src='img/app-generic.svg'"><span>${L.esc(name)}</span>`;
     d.onclick = () => launch(a.id); d.oncontextmenu = (e) => { e.preventDefault(); appCtx(e, a); };
     al.appendChild(d);
   });
@@ -519,11 +520,24 @@ L.on('settings', () => { if (mode === 'cc') renderCC(); });
 L.on('sys', s => sys = s);
 L.on('geom', () => glassPos());
 addEventListener('resize', glassPos);
-async function loadApps() { apps = await L.get('/api/apps'); byId = {}; apps.forEach(a => byId[a.id] = a); }
+async function loadApps() {
+  for (let i = 0; i < 4; i++) {
+    try {
+      const r = await L.get('/api/apps');
+      if (Array.isArray(r)) {
+        apps = r; byId = {};
+        apps.forEach(a => { if (a && a.id) byId[a.id] = a; });
+        return;
+      }
+    } catch (e) { /* retry: the shell API may still be starting */ }
+    await new Promise(res => setTimeout(res, 300));
+  }
+  apps = []; byId = {};
+}
 L.init().then(async () => {
   await loadApps();
-  L.get('/api/workspaces').then(w => ws = w);
-  L.get('/api/fs/places').then(p => HOMEDIR = p.home);
+  L.get('/api/workspaces').then(w => ws = w).catch(() => {});
+  L.get('/api/fs/places').then(p => HOMEDIR = (p && p.home) || '').catch(() => {});
   if (L.qs.get('lock') === '1') open('lock');
 });
 </script></body></html>

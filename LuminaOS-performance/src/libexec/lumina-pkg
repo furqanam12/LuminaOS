@@ -157,6 +157,17 @@ EOF
       echo "kali-tools was not found in this image"; exit 2
     fi ;;
 
+  printer-add)
+    [ "$#" -eq 2 ] || { echo "usage: lumina-pkg printer-add NAME URI"; exit 2; }
+    printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,79}$' || { echo "invalid printer name"; exit 2; }
+    printf '%s' "$2" | grep -Eq '^[A-Za-z][A-Za-z0-9+.-]*://' || { echo "invalid printer URI"; exit 2; }
+    lpadmin -p "$1" -v "$2" -E ;;
+
+  printer-default)
+    [ "$#" -eq 1 ] || { echo "usage: lumina-pkg printer-default NAME"; exit 2; }
+    printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,79}$' || { echo "invalid printer name"; exit 2; }
+    lpadmin -d "$1" ;;
+
   terminal-fix)
     apt-get update -o APT::Status-Fd=1 || true
     $APT install xfce4-terminal xterm 2>/dev/null || true
@@ -169,6 +180,30 @@ EOF
       fi
     done
     echo "Terminal alternatives, wrappers, and permissions restored." ;;
+
+  user-add)
+    [ "$#" -eq 1 ] || { echo "usage: lumina-pkg user-add USERNAME"; exit 2; }
+    name="$1"
+    printf '%s' "$name" | grep -Eq '^[a-z_][a-z0-9_-]*$' || { echo "invalid username"; exit 2; }
+    getent passwd "$name" >/dev/null 2>&1 && { echo "account already exists: $name"; exit 2; }
+    IFS= read -r password || { echo "password required on standard input"; exit 2; }
+    [ "${#password}" -ge 4 ] || { echo "password must be at least 4 characters"; exit 2; }
+    useradd -m -s /bin/bash "$name"
+    if ! printf '%s:%s\n' "$name" "$password" | chpasswd; then
+      userdel -r "$name" 2>/dev/null || true
+      echo "account creation rolled back: password could not be set" >&2
+      exit 1
+    fi
+    echo "Created account: $name" ;;
+
+  user-remove)
+    [ "$#" -eq 1 ] || { echo "usage: lumina-pkg user-remove USERNAME"; exit 2; }
+    name="$1"
+    printf '%s' "$name" | grep -Eq '^[a-z_][a-z0-9_-]*$' || { echo "invalid username"; exit 2; }
+    [ "$name" != "root" ] || { echo "refusing to remove root"; exit 2; }
+    getent passwd "$name" >/dev/null 2>&1 || { echo "account does not exist: $name"; exit 2; }
+    userdel -r "$name"
+    echo "Removed account: $name" ;;
 
   check)
     apt-get update -o APT::Status-Fd=1 >/dev/null 2>&1 || true

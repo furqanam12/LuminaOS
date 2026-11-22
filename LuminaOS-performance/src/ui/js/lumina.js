@@ -180,13 +180,13 @@
       // Scale app windows only. Shell windows are positioned with screen
       // coordinates, so zooming them would invalidate hit regions.
       if (document.body && L.qs.has('m')) document.body.style.zoom = scale === 1 ? '' : String(scale);
-      const a = s.accent || '#ff375f';
+      const a = /^#[0-9a-fA-F]{6}$/.test(s.accent || '') ? s.accent : '#ff375f';
       const rgb = [1, 3, 5].map(i => parseInt(a.substr(i, 2), 16));
       h.style.setProperty('--accent', a);
       h.style.setProperty('--accent-rgb', rgb.join(','));
       h.style.setProperty('--accent-2', `rgb(${rgb.map(c => Math.min(255, c + 40)).join(',')})`);
-      const wv = encodeURIComponent(s.wallpaper);
-      h.style.setProperty('--wall-blur', s.transparency === false ? 'none' : `url("/api/wallpaper/blur?name=${wv}&theme=${s.theme}")`);
+      const wv = encodeURIComponent(s.wallpaper || 'aurora.jpg');
+      h.style.setProperty('--wall-blur', s.transparency === false ? 'none' : `url("/api/wallpaper/blur?name=${wv}&theme=${s.theme || 'dark'}")`);
       h.style.setProperty('--wall', `url("/api/wallpaper/file?name=${wv}")`);
       this.applyGeom();
     },
@@ -213,6 +213,7 @@
       for (let i = 0; i < 60; i++) {
         try { this.settings = await this.get('/api/settings'); break; } catch (e) { await new Promise(r => setTimeout(r, 300)); }
       }
+      this.settings = this.settings || {};
       this.applySettings();
       this.connect();
       this.native('ready');

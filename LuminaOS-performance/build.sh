@@ -130,6 +130,10 @@ for s in /usr/share/applications/calamares*.desktop /usr/share/applications/org.
 done
 mkdir -p /etc/skel/Desktop
 install -m 644 /usr/share/applications/lumina-install.desktop /etc/skel/Desktop/Install\ LuminaOS.desktop
+# calamares-settings-debian ships an autostart helper that recreates a second
+# "Install Debian" icon on every login. Lumina's own installer entry is the
+# single supported launcher, so remove that duplicate at build time.
+rm -f /etc/xdg/autostart/calamares-desktop-icon.desktop /usr/bin/add-calamares-desktop-icon
 # The packaged xfce4-terminal owns x-terminal-emulator. Do not redirect that
 # alternative to the lumina-terminal wrapper: legacy consumers expect -e.
 

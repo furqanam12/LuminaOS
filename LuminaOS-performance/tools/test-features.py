@@ -191,8 +191,11 @@ class SourceTests(unittest.TestCase):
         """Printers can be made default without the old placeholder message."""
         api = API.read_text(encoding="utf-8")
         self.assertIn('if p == "/api/printers/default":', api)
-        self.assertIn('["lpadmin", "-d", name]', api)
         self.assertIn('re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name)', api)
+        self.assertIn('["printer-default", name]', api)
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn('lpadmin -d "$1"', helper)
+        self.assertIn('lpadmin -p "$1" -v "$2" -E', helper)
         packages = self.read("packages.list").splitlines()
         self.assertIn("cups", packages)
         self.assertIn("cups-client", packages)
@@ -270,6 +273,21 @@ class SourceTests(unittest.TestCase):
                 if not found:
                     missing.append("%s %s (%s)" % (method.upper(), url, path.name))
         self.assertEqual(missing, [], "UI calls without an API route: " + ", ".join(missing))
+
+    def test_account_management_uses_authenticated_privileged_helper(self):
+        api = API.read_text(encoding="utf-8")
+        self.assertIn('"/api/users/add", "/api/users/remove"', api)
+        self.assertIn('argv + ["user-add", name]', api)
+        self.assertIn('argv + ["user-remove", name]', api)
+        self.assertNotIn('sh_rc(["useradd"', api)
+        self.assertNotIn('sh_rc(["userdel"', api)
+        self.assertNotIn('sh_rc(["chpasswd"', api)
+        self.assertIn("You cannot remove the active or root account", api)
+        helper = self.read("src/libexec/lumina-pkg")
+        self.assertIn("account already exists", helper)
+        self.assertIn("account creation rolled back", helper)
+        self.assertIn("printf '%s:%s\\n'", helper)
+        self.assertIn("refusing to remove root", helper)
 
     def test_windows_store_files_use_wine_not_privileged_package_helper(self):
         api = API.read_text(encoding="utf-8")
