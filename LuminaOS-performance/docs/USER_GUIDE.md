@@ -12,7 +12,9 @@ LuminaOS can be run live from an ISO or installed on a virtual disk. For normal 
 | Virtual CPUs | 2 | 4 |
 | Dynamically allocated VDI disk | 20 GB | 40 GB or more |
 | Video memory | 128 MB | 256 MB |
-| Graphics controller | VBoxVGA | VBoxVGA with 3D acceleration |
+| Graphics controller | VBoxVGA | VBoxVGA (3D acceleration optional) |
+
+LuminaOS uses a reliable software WebKit path in virtual machines, so 3D acceleration is optional. It is enabled automatically only when you opt in with `LUMINA_WEBKIT_DMABUF=1`.
 
 For exact VM creation steps, see [Share LuminaOS with a friend](SHARE_WITH_FRIEND.md).
 

@@ -2,7 +2,7 @@
 
 **Edition:** LuminaOS 1.1 — Aurora Update 1  
 **Documentation revision:** 1.0  
-**Last reviewed:** 20 November 2026  
+**Last reviewed:** 22 November 2026  
 **Audience:** new users, VirtualBox testers, developers and release maintainers
 
 Welcome to the official documentation set for LuminaOS. These guides describe the features implemented in the source tree, safe installation practices, compatibility boundaries and the release-verification process.

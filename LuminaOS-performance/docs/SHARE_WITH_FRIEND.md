@@ -53,7 +53,7 @@ Select `LuminaOS` → click **Settings**:
 - **System → Acceleration → Hardware virtualization** → ON
 - **Display → Video memory** → 128 MB or 256 MB
 - **Display → Graphics controller** → `VBoxVGA`
-- **Display → Enable 3D Acceleration** → ON
+- **Display → Enable 3D Acceleration** → Optional (LuminaOS 1.1 uses a reliable software renderer in VMs)
 - **USB Tablet / pointing device** → USB tablet (smooth mouse)
 
 Under **Storage**, attach the ISO to the virtual optical drive:
@@ -129,7 +129,7 @@ To share a quick demo of your OS with your friend, you can also:
 ## Troubleshooting
 
 **Black screen after starting VM**  
-→ Turn on **Enable EFI**, use `VBoxVGA`, and enable 3D acceleration.
+→ Turn on **Enable EFI** and use `VBoxVGA`. 3D acceleration is **not** required in LuminaOS 1.1; the desktop automatically uses software rendering in virtual machines. If the screen is still black, confirm you booted the 1.1 ISO and try the **Safe graphics** GRUB entry.
 
 **Mouse jumpy**  
 → Insert Guest Additions and reboot.

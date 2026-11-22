@@ -343,6 +343,22 @@ class SourceTests(unittest.TestCase):
         self.assertNotIn("sh \"$tmp\"", helper)
         self.assertNotIn("https://repo.waydro.id", helper)
 
+    def test_virtualbox_webkit_software_rendering_is_default(self):
+        for rel in ("src/bin/lumina-session", "src/bin/lumina-shell", "src/bin/lumina-app"):
+            text = self.read(rel)
+            self.assertIn("WEBKIT_DISABLE_DMABUF_RENDERER", text, rel)
+            self.assertIn("WEBKIT_DISABLE_COMPOSITING_MODE", text, rel)
+            self.assertIn("LUMINA_WEBKIT_DMABUF", text, rel)
+        session = self.read("src/bin/lumina-session")
+        self.assertIn('if [ "${LUMINA_WEBKIT_DMABUF:-0}" != "1" ]', session)
+
+    def test_boot_failsafe_stops_animation_after_handoff(self):
+        desktop = self.read("src/ui/desktop.html")
+        self.assertIn("animation: bootFailsafe 1ms linear 12s forwards", desktop)
+        gone = re.search(r"#boot\.gone\s*\{([^}]*)\}", desktop)
+        self.assertIsNotNone(gone)
+        self.assertIn("animation: none", gone.group(1))
+
     def test_inline_javascript_syntax(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "node is required for inline JavaScript validation")

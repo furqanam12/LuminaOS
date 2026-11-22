@@ -34,6 +34,8 @@ The UI under `src/ui/` contains the shell pages and built-in app surfaces. `src/
 
 The shell currently targets X11 with **xfwm4 compositing enabled**. This is deliberate for VM rendering stability. Android adds a nested Wayland compositor instead of silently replacing the whole desktop session.
 
+On virtual machines, `lumina-session` and the window hosts set `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1` before WebKit initialises. WebKitGTK 2.54's DMA-BUF path fails on VirtualBox/VMware/QEMU guests without usable 3D acceleration and can paint every shell window black. The software path is fast enough for this 2D desktop and keeps the glass styling intact. Set `LUMINA_WEBKIT_DMABUF=1` in `~/.config/lumina/env` to opt back into accelerated rendering on real GPU hardware.
+
 ## 3. Local API and event flow
 
 The API listens on **`127.0.0.1:7700`** by default and does not require exposure to the LAN or internet.

@@ -119,10 +119,12 @@ Use VirtualBox 7.x or newer.
 | RAM | 4 GB minimum; 8 GB recommended |
 | Processors | 2 minimum; 4 recommended |
 | Disk | Dynamic VDI, 40 GB recommended |
-| Display | VBoxVGA, 3D acceleration enabled |
+| Display | VBoxVGA; 3D acceleration optional |
 | Audio | Intel HD Audio |
 | Network | NAT for simple outbound connectivity |
 | Optical drive | Verified LuminaOS ISO |
+
+LuminaOS 1.1 disables WebKitGTK's DMA-BUF renderer by default on virtual machines. This avoids a WebKitGTK 2.54 bug that paints the shell solid black on VirtualBox hosts without working 3D acceleration. **3D acceleration is therefore not required.** On a real GPU you can opt back in by adding `LUMINA_WEBKIT_DMABUF=1` to `~/.config/lumina/env` before the session starts.
 
 After installation is finished, remove the optical ISO and boot from the virtual disk. Install Guest Additions for improved integration where appropriate.
 
